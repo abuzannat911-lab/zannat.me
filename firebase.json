@@ -1,6 +1,6 @@
 {
   "hosting": {
-    "site": "zannatme",
+    "site": "zannatme-81029",
     "public": ".",
     "ignore": [
       "firebase.json",
