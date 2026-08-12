@@ -1,0 +1,1230 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Abu Zannat | WordPress Bug Fixer & Web Developer</title>
+  
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="/assets/zannat_inner_symbol_icon.png">
+  <link rel="apple-touch-icon" href="/assets/zannat_inner_symbol_icon.png">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <!-- Charts -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
+  <!-- Confetti -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <!-- Local Styles -->
+  <link rel="stylesheet" href="/style.css?v=8">
+
+  <!-- HTML2PDF for Invoice PDF Generation -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+</head>
+<body>
+
+  <!-- ================= PUBLIC LANDING PAGE ================= -->
+  <div id="public-landing" class="landing-container">
+    <!-- Navbar -->
+    <header class="landing-navbar">
+      <div class="navbar-brand">
+        <div class="logo-icon" style="background: transparent; border: none; padding: 0;">
+          <img src="/assets/zannat_inner_symbol_icon.png" alt="Zannat Logo" style="width: 38px; height: 38px; object-fit: contain; filter: drop-shadow(0 0 8px rgba(139,92,246,0.5));">
+        </div>
+        <div class="logo-text">
+          <h2>Zannat.me</h2>
+          <span>WordPress Specialist</span>
+        </div>
+      </div>
+      <nav class="navbar-links">
+        <a href="#hero" class="nav-item">Home</a>
+        <a href="#services" class="nav-item">Services</a>
+        <a href="#workflow" class="nav-item">Workflow</a>
+        <a href="#testimonials" class="nav-item">Reviews</a>
+        <a href="#submit-ticket-section" class="btn btn-outline btn-nav-cta">Submit Bug</a>
+      </nav>
+      <div class="navbar-actions">
+        <!-- Theme Toggle -->
+        <button class="theme-toggle-btn" id="theme-toggle-btn" title="Toggle theme" aria-label="Toggle dark/light mode">
+          <i data-lucide="sun" class="icon-sun"></i>
+          <i data-lucide="moon" class="icon-moon"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- Hero Section: Split 3-Column System -->
+    <section id="hero" class="landing-hero">
+      
+      <!-- Left Panel: Profile Detail -->
+      <!-- Left Panel: Profile Detail -->
+      <div class="hero-profile-panel">
+        
+        <!-- Profile Header with photo & status -->
+        <div class="profile-header-card">
+          <div class="profile-avatar-frame">
+            <div class="avatar-glow"></div>
+            <img src="/assets/photo1.jpg" alt="Abu Zannat" id="hero-profile-avatar">
+            <span class="status-dot"></span>
+          </div>
+          <div class="profile-meta">
+            <div class="availability-badge">
+              <span class="badge-dot"></span>
+              <span>Available for fixing bugs</span>
+            </div>
+            <h1 class="profile-name" id="hero-profile-name">Abu Zannat</h1>
+            <span class="profile-title" id="hero-profile-title">WordPress Specialist & Web Developer</span>
+          </div>
+        </div>
+        
+        <div class="profile-about">
+          <div class="about-header">
+            <i data-lucide="coffee" class="text-amber" style="width: 18px; height: 18px; display: inline-block; vertical-align: middle;"></i>
+            <h4 style="display: inline-block; margin-left: 6px; font-size: 0.95rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-primary);">About Me</h4>
+          </div>
+          <p style="margin-top: 12px; font-size: 0.9rem; line-height: 1.6; color: var(--text-secondary);" id="hero-profile-about">Hi, I am Abu Zannat, a WordPress expert specializing in resolving critical core bugs, plugin crashes, WooCommerce issues, database performance tuning, and server-side security hardening. I write clean PHP/JS fixes and optimize sites for speed and security.</p>
+          <p class="about-availability" style="margin-top: 12px; font-size: 0.85rem; color: var(--text-muted);">Active and available for urgent bug dispatch. <a href="#submit-ticket-section" class="text-blue" style="text-decoration: none; font-weight: 600;">Request Urgent Fix</a></p>
+        </div>
+        
+        <div class="profile-ctas">
+          <a href="https://github.com/abuzannat911-lab" target="_blank" class="btn btn-secondary btn-icon-text">
+            <i data-lucide="github"></i>
+            <span>Github</span>
+          </a>
+          <a href="https://www.upwork.com/freelancers/~013160cafe75f54f74?mp_source=share" target="_blank" class="btn btn-primary btn-icon-text">
+            <i data-lucide="external-link"></i>
+            <span>Hire Me</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- Right Panel: Interactive Case-Study Slider -->
+      <div class="hero-slider-panel">
+        <!-- Floating Tilted Case Card -->
+        <div class="tilted-preview-card" id="case-preview-card">
+          <!-- Slide 1: WooCommerce Checkout (default) -->
+          <div class="case-slide active" data-index="0">
+            <div class="slide-mockup-screen">
+              <div class="mockup-header">
+                <span class="dot-red"></span><span class="dot-yellow"></span><span class="dot-green"></span>
+                <span class="mockup-url">mystore.co.bd/checkout</span>
+              </div>
+              <div class="mockup-content">
+                <div class="spinner-bug-demo">
+                  <div class="loading-spinner"></div>
+                  <span class="bug-log text-red font-mono">Uncaught TypeError: Cannot read property 'payment' of undefined in checkout.js:142</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Slide 2: White Screen of Death -->
+          <div class="case-slide" data-index="1">
+            <div class="slide-mockup-screen">
+              <div class="mockup-header">
+                <span class="dot-red"></span><span class="dot-yellow"></span><span class="dot-green"></span>
+                <span class="mockup-url">my-blog.com/wp-admin</span>
+              </div>
+              <div class="mockup-content">
+                <div class="wsod-bug-demo font-mono">
+                  <span class="text-red" style="font-weight: 700;">[!] FATAL ERROR</span>
+                  <span class="text-muted" style="display: block; margin-top: 6px;">Allowed memory size of 134217728 bytes exhausted in /wp-includes/plugin.php on line 182</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Slide 3: Malware redirection -->
+          <div class="case-slide" data-index="2">
+            <div class="slide-mockup-screen">
+              <div class="mockup-header">
+                <span class="dot-red"></span><span class="dot-yellow"></span><span class="dot-green"></span>
+                <span class="mockup-url">techblog.com.bd</span>
+              </div>
+              <div class="mockup-content">
+                <div class="malware-bug-demo font-mono">
+                  <span class="text-warning">[i] Malware Injection Detected</span>
+                  <span class="text-red" style="display: block; margin-top: 6px;">[x] Backdoor script found in active option hooks. Mobile redirects active!</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Case Detail Text -->
+        <div class="slider-case-info">
+          <div class="case-text-details">
+            <h3 id="slider-case-title">WooCommerce Spinner Fix</h3>
+            <p id="slider-case-desc">Resolved JS execution chain conflict blocking checkout and gateway callbacks in mystore.co.bd.</p>
+          </div>
+          <div class="slider-controls">
+            <button class="slider-btn" id="slider-prev-btn" title="Previous Case">
+              <i data-lucide="arrow-up"></i>
+            </button>
+            <button class="slider-btn" id="slider-next-btn" title="Next Case">
+              <i data-lucide="arrow-down"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Slider Quick Links -->
+        <div class="slider-actions">
+          <a href="#services" class="btn btn-outline" style="text-decoration: none; padding: 6px 14px; font-size: 0.8rem; border-radius: 20px;">Explore Fixes</a>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- Metrics Ribbon -->
+    <section class="landing-metrics" id="landing-metrics">
+      <div class="metric-item">
+        <h3>
+          <span class="count-up" data-target="1500" data-suffix="+">0</span>
+        </h3>
+        <span>Bugs Fixed</span>
+      </div>
+      <div class="metric-item">
+        <h3>
+          <span class="count-up" data-target="2" data-suffix=" Hours">0</span>
+        </h3>
+        <span>Avg. Turnaround</span>
+      </div>
+      <div class="metric-item">
+        <h3>
+          <span class="count-up" data-target="99.9" data-suffix="%" data-decimals="1">0</span>
+        </h3>
+        <span>Success Rate</span>
+      </div>
+      <div class="metric-item">
+        <h3>24/7</h3>
+        <span>Emergency Fixes</span>
+      </div>
+    </section>
+
+    <!-- Services Section -->
+    <section id="services" class="landing-services">
+      <div class="section-header">
+        <span class="badge-tag">Expert Services</span>
+        <h2>WordPress Debugging & Repair Services</h2>
+        <p>Common issues I resolve daily for clients globally.</p>
+      </div>
+
+      <div class="services-grid">
+        <div class="service-card-new">
+          <div class="service-icon-bg"><i data-lucide="shield-alert" class="text-red"></i></div>
+          <h4>Malware Cleanup & Security</h4>
+          <p>Thorough file scanning, cleaning backend backdoor injections, malware removal, spam link fixes, and firewall hardening.</p>
+        </div>
+        
+        <div class="service-card-new">
+          <div class="service-icon-bg"><i data-lucide="zap" class="text-amber"></i></div>
+          <h4>Page Speed Optimization</h4>
+          <p>Minifying scripts, database indexing, page caching configuration, image compressions, and achieving 90+ Mobile PageSpeed scores.</p>
+        </div>
+
+        <div class="service-card-new">
+          <div class="service-icon-bg"><i data-lucide="puzzle" class="text-blue"></i></div>
+          <h4>Plugin & Theme Conflicts</h4>
+          <p>Resolving Javascript errors, PHP warning stacks, WooCommerce checkout spinner bugs, and broken visual styles.</p>
+        </div>
+
+        <div class="service-card-new">
+          <div class="service-icon-bg"><i data-lucide="database-backup" class="text-green"></i></div>
+          <h4>Database & Server Recovery</h4>
+          <p>Fixing 'Error Establishing a Database Connection', resolving corrupted database tables, and correcting file permissions.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Workflow Section -->
+    <section id="workflow" class="landing-workflow">
+      <div class="section-header">
+        <span class="badge-tag">Workflow</span>
+        <h2>How It Works</h2>
+        <p>Get your WordPress site fixed in four simple, clean steps.</p>
+      </div>
+      <div class="workflow-steps">
+        <div class="workflow-step">
+          <div class="step-num">01</div>
+          <h4>Submit Ticket</h4>
+          <p>Fill out the bug report below with your site URL and details.</p>
+        </div>
+        <div class="workflow-step">
+          <div class="step-num">02</div>
+          <h4>Diagnostics</h4>
+          <p>I analyze the error logs, active plugins, and configurations safely.</p>
+        </div>
+        <div class="workflow-step">
+          <div class="step-num">03</div>
+          <h4>Smashed</h4>
+          <p>I apply clean, custom code or fixes without breaking anything else.</p>
+        </div>
+        <div class="workflow-step">
+          <div class="step-num">04</div>
+          <h4>Handback</h4>
+          <p>Your site is audited, speeds are verified, and returned to you.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Behind the Scenes Gallery Section -->
+    <section id="gallery" class="landing-gallery">
+      <div class="section-header">
+        <span class="badge-tag">Behind the Scenes</span>
+        <h2>Life Behind the Screen</h2>
+        <p>A glimpse into the real-world experiences, adventures, and mindset that fuel my development journey.</p>
+      </div>
+      
+      <div class="gallery-grid">
+        <div class="gallery-card">
+          <div class="gallery-image-wrapper">
+            <img src="assets/photo4.jpg" alt="Riding through water">
+          </div>
+          <div class="gallery-card-content">
+            <h4>Resilience & Adaptability</h4>
+            <p>Solving problems on and off the road. Navigating any terrain, whether it's complex code bugs or flooded rivers, to deliver results.</p>
+          </div>
+        </div>
+
+        <div class="gallery-card">
+          <div class="gallery-image-wrapper">
+            <img src="/assets/photo2.jpg" alt="Calm river and mountains">
+          </div>
+          <div class="gallery-card-content">
+            <h4>Focus & Analytical Clarity</h4>
+            <p>Finding focus and peace in nature. Bringing clear-minded analysis to resolve high-pressure website crashes.</p>
+          </div>
+        </div>
+
+        <div class="gallery-card">
+          <div class="gallery-image-wrapper">
+            <img src="assets/photo3.jpg" alt="Boat journey">
+          </div>
+          <div class="gallery-card-content">
+            <h4>Continuous Movement</h4>
+            <p>Always exploring, moving forward, and adapting to new development environments and technology stacks.</p>
+          </div>
+        </div>
+
+        <div class="gallery-card">
+          <div class="gallery-image-wrapper">
+            <img src="assets/photo5.jpg" alt="Ready on the pier">
+          </div>
+          <div class="gallery-card-content">
+            <h4>Reliable Partner</h4>
+            <p>Ready for the next digital challenge, committed to establishing speed and reliability for your web operations.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Reviews Section -->
+    <!-- ========== REVIEWS SECTION ========== -->
+    <section id="testimonials" class="reviews-section">
+      <div class="reviews-bg-glow"></div>
+
+      <!-- Section Header -->
+      <div class="section-header">
+        <span class="badge-tag">⭐ Verified Client Reviews</span>
+        <h2>Trusted by Clients Worldwide</h2>
+        <p>Real reviews from real clients — sourced directly from Fiverr. No filters, no edits.</p>
+
+        <!-- Summary Bar -->
+        <div class="reviews-summary-bar">
+          <div class="reviews-rating-big">
+            <span class="rating-number">5.0</span>
+            <div class="rating-stars-big">★★★★★</div>
+            <span class="rating-label">Average Rating</span>
+          </div>
+          <div class="reviews-stats">
+            <div class="stat-pill"><span class="stat-num">100%</span><span class="stat-desc">5-Star Reviews</span></div>
+            <div class="stat-pill"><span class="stat-num">20+</span><span class="stat-desc">Happy Clients</span></div>
+            <div class="stat-pill"><span class="stat-num">12+</span><span class="stat-desc">Countries</span></div>
+          </div>
+          <a href="https://www.upwork.com/freelancers/~013160cafe75f54f74?mp_source=share" target="_blank" class="fiverr-badge-link">
+            <div class="fiverr-badge">
+              <i data-lucide="briefcase" style="width: 14px; height: 14px; color: #14a800;"></i>
+              <span>View on Upwork</span>
+              <i data-lucide="external-link" style="width: 13px; height: 13px;"></i>
+            </div>
+          </a>
+        </div>
+      </div>
+
+      <!-- Reviews Grid -->
+      <div class="reviews-grid" id="reviews-grid"></div>
+
+      <!-- Load More Button -->
+      <div class="reviews-load-more-wrap">
+        <button class="btn btn-outline reviews-load-more-btn" id="reviews-load-more-btn">
+          <i data-lucide="chevrons-down" style="width:16px;height:16px;"></i>
+          Load More Reviews
+        </button>
+        <p class="reviews-shown-label" id="reviews-shown-label"></p>
+      </div>
+    </section>
+
+    <!-- Submit Ticket Form Section (Inline) -->
+    <section id="submit-ticket-section" class="landing-submit-section">
+      <div class="form-container card" style="max-width: 650px; margin: 0 auto; background: var(--glass-bg); border: 1px solid var(--glass-border); box-shadow: var(--glass-shadow);">
+        <div class="card-header" style="text-align: center;">
+          <span class="badge-tag" style="margin-bottom: 8px;">Submit a Bug</span>
+          <h3>Request Urgent WordPress Fix</h3>
+          <p class="text-muted">Describe the issue you're facing. I'll inspect it and get back to you with a quote within 2 hours.</p>
+        </div>
+        <form id="form-submit-ticket" style="margin-top: 24px;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+            <div class="form-group">
+              <label for="ticket-client-name">Your Name *</label>
+              <input type="text" id="ticket-client-name" class="form-control" required placeholder="e.g. John Doe">
+            </div>
+            <div class="form-group">
+              <label for="ticket-client-email">Email Address *</label>
+              <input type="email" id="ticket-client-email" class="form-control" required placeholder="e.g. john@example.com">
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="ticket-site-url">WordPress Website URL *</label>
+            <input type="url" id="ticket-site-url" class="form-control" required placeholder="e.g. https://mywordpress.com">
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+            <div class="form-group">
+              <label for="ticket-bug-type">Bug Category *</label>
+              <select id="ticket-bug-type" class="form-control" required>
+                <option value="Plugin Crash">Plugin Crash / WSOD</option>
+                <option value="WooCommerce">WooCommerce / Checkout</option>
+                <option value="Malware/Security">Malware & Spam Clean</option>
+                <option value="Database/PHP">Database / PHP Warning</option>
+                <option value="CSS/Theme">CSS layout / Design</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="ticket-severity">Bug Severity *</label>
+              <select id="ticket-severity" class="form-control" required>
+                <option value="Low">Low - Visual adjustments</option>
+                <option value="Medium" selected>Medium - Feature broken but site is running</option>
+                <option value="High">High - WooCommerce checkout blocked</option>
+                <option value="Critical">Critical - Site is completely down / Hacked</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="ticket-description">Describe the Issue *</label>
+            <textarea id="ticket-description" class="form-control" rows="4" required placeholder="What happens? Are there any error logs? When did it start?"></textarea>
+          </div>
+          <button type="submit" class="btn btn-primary w-full" style="padding: 12px; margin-top: 16px;">
+            <i data-lucide="send" style="width: 16px; height: 16px;"></i> Send Ticket
+          </button>
+        </form>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="landing-footer">
+      <div class="footer-top">
+        <div class="footer-brand">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+            <i data-lucide="terminal" style="color: var(--accent-purple); width: 20px; height: 20px;"></i>
+            <h3 style="font-size: 1.2rem; margin: 0;">Zannat.me</h3>
+          </div>
+          <p>WordPress specialist available globally for emergency repairs.</p>
+        </div>
+        <div class="footer-links">
+          <a href="#hero">Home</a>
+          <a href="#services">Services</a>
+          <a href="#workflow">Workflow</a>
+          <a href="#testimonials">Reviews</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; 2026 Zannat.me. All rights reserved. WordPress is a registered trademark of the WordPress Foundation.</p>
+      </div>
+    </footer>
+  </div>
+
+  <!-- ================= ADMIN DASHBOARD SHELL ================= -->
+  <div id="admin-shell" class="app-container hidden">
+    
+    <!-- Sidebar Backdrop (Mobile Drawer) -->
+    <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+
+    <!-- Sidebar Navigation Menu -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="logo-icon" style="background: transparent; border: none; padding: 0;">
+          <img src="/assets/zannat_inner_symbol_icon.png" alt="Zannat Logo" style="width: 36px; height: 36px; object-fit: contain; filter: drop-shadow(0 0 8px rgba(139,92,246,0.5));">
+        </div>
+        <div class="logo-text">
+          <h2>Zannat.me</h2>
+          <span>Admin Portal</span>
+        </div>
+      </div>
+      
+      <nav class="sidebar-nav">
+        <ul>
+          <li>
+            <a href="/admin/dashboard" class="nav-link active" data-tab="dashboard" onclick="event.preventDefault(); app.switchTab('dashboard');">
+              <i data-lucide="layout-dashboard"></i>
+              <span>Admin Dashboard</span>
+            </a>
+          </li>
+          <li>
+            <a href="/admin/tickets" class="nav-link" data-tab="tickets" onclick="event.preventDefault(); app.switchTab('tickets');">
+              <i data-lucide="ticket"></i>
+              <span>Manage Tickets</span>
+            </a>
+          </li>
+          <li>
+            <a href="/admin/maintenance" class="nav-link" data-tab="maintenance" onclick="event.preventDefault(); app.switchTab('maintenance');">
+              <i data-lucide="database"></i>
+              <span>Maintenance Tools</span>
+            </a>
+          </li>
+          <li>
+            <a href="/admin/cms" class="nav-link" data-tab="cms" onclick="event.preventDefault(); app.switchTab('cms');">
+              <i data-lucide="pencil-line"></i>
+              <span>Pages & CMS</span>
+            </a>
+          </li>
+          <li>
+            <a href="/admin/invoices" class="nav-link" data-tab="invoices" onclick="event.preventDefault(); app.switchTab('invoices');">
+              <i data-lucide="file-text"></i>
+              <span>Invoice Generate</span>
+            </a>
+          </li>
+          <li style="margin-top: 24px; border-top: 1px solid var(--border-color); padding-top: 16px;">
+            <a href="/" class="nav-link" data-tab="portfolio" id="back-to-site-btn" onclick="event.preventDefault(); app.switchTab('portfolio');">
+              <i data-lucide="arrow-left-circle"></i>
+              <span>View Main Site</span>
+            </a>
+          </li>
+        </ul>
+      </nav>
+
+      <div class="sidebar-footer">
+        <button class="btn btn-secondary btn-icon-text w-full" id="portal-btn">
+          <i data-lucide="log-out" id="portal-icon"></i>
+          <span id="portal-btn-text">Logout</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Workspace Area -->
+    <main class="main-content">
+      
+      <!-- Top header bar -->
+      <header class="top-header">
+        <div class="header-left">
+          <button class="btn btn-icon btn-menu" id="menu-toggle-btn" style="display: none;">
+            <i data-lucide="menu"></i>
+          </button>
+          <div>
+            <h1 id="page-title">Admin Analytics Dashboard</h1>
+            <p id="page-subtitle" class="text-muted">WordPress fix operations statistics, revenue growth, and bug analytics.</p>
+          </div>
+        </div>
+        
+        <div class="header-right">
+          <span class="status-indicator">
+            <span class="pulse-green"></span>
+            <span>Available for fixing bugs</span>
+          </span>
+        </div>
+      </header>
+
+      <!-- Scrollable Tab Pane -->
+      <div class="content-body">
+
+        <!-- ================= ADMIN DASHBOARD TAB ================= -->
+        <section id="tab-dashboard" class="tab-pane active">
+          <!-- KPI Cards Grid -->
+          <div class="kpi-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 24px; margin-bottom: 32px;">
+            <div class="card kpi-card">
+              <div class="kpi-header">
+                <div>
+                  <span class="text-muted text-small">Total Submitted Tickets</span>
+                  <h3 id="kpi-total-tickets">0</h3>
+                </div>
+                <span class="kpi-icon-bg bg-indigo"><i data-lucide="ticket"></i></span>
+              </div>
+            </div>
+            
+            <div class="card kpi-card">
+              <div class="kpi-header">
+                <div>
+                  <span class="text-muted text-small">Resolved Issues</span>
+                  <h3 id="kpi-resolved-tickets" class="text-success">0</h3>
+                </div>
+                <span class="kpi-icon-bg bg-emerald"><i data-lucide="check-circle-2"></i></span>
+              </div>
+            </div>
+
+            <div class="card kpi-card">
+              <div class="kpi-header">
+                <div>
+                  <span class="text-muted text-small">Pending Debugs</span>
+                  <h3 id="kpi-pending-tickets" class="text-red">0</h3>
+                </div>
+                <span class="kpi-icon-bg bg-red"><i data-lucide="alert-circle"></i></span>
+              </div>
+            </div>
+
+            <div class="card kpi-card">
+              <div class="kpi-header">
+                <div>
+                  <span class="text-muted text-small">Total Revenue (BDT)</span>
+                  <h3 id="kpi-total-earnings">৳0</h3>
+                </div>
+                <span class="kpi-icon-bg bg-amber"><i data-lucide="banknote"></i></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Charts Section -->
+          <div class="dashboard-grid" style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px; margin-bottom: 32px;">
+            <div class="card card-chart" style="height: 380px;">
+              <div class="card-header">
+                <h3>Monthly Revenue Fix Growth</h3>
+                <p class="text-muted">Earnings overview per month for resolving complex bug reports.</p>
+              </div>
+              <div style="flex-grow: 1; position: relative; margin-top: 16px;">
+                <canvas id="chart-monthly-earnings"></canvas>
+              </div>
+            </div>
+
+            <div class="card card-chart" style="height: 380px;">
+              <div class="card-header">
+                <h3>Resolved Bug Types</h3>
+                <p class="text-muted">Volume of fixes segmented by issue types.</p>
+              </div>
+              <div style="flex-grow: 1; position: relative; margin-top: 16px; display: flex; align-items: center; justify-content: center;">
+                <canvas id="chart-bug-types"></canvas>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================= TICKETS MANAGEMENT TAB ================= -->
+        <section id="tab-tickets" class="tab-pane">
+          <div class="card table-card">
+            <div class="card-header flex-header" style="border-bottom: 1px solid var(--border-color); padding-bottom: 16px;">
+              <div>
+                <h3>Bug Dispatch Desk</h3>
+                <p class="text-muted text-small">Audit client sites, manage status, and track bug fixes.</p>
+              </div>
+              <div class="filter-group">
+                <select id="ticket-filter-status" onchange="app.renderTicketsTable()">
+                  <option value="">All Statuses</option>
+                  <option value="Pending">Pending</option>
+                  <option value="In Progress">In Progress</option>
+                  <option value="Resolved">Resolved</option>
+                </select>
+              </div>
+            </div>
+            
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Ticket ID</th>
+                    <th>Date</th>
+                    <th>Client</th>
+                    <th>Site URL</th>
+                    <th>Category</th>
+                    <th>Severity</th>
+                    <th>Status</th>
+                    <th style="text-align: right;">Action</th>
+                  </tr>
+                </thead>
+                <tbody id="tickets-tbody">
+                  <!-- JS dynamically populated -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================= MAINTENANCE TAB ================= -->
+        <section id="tab-maintenance" class="tab-pane">
+          <div class="card" style="max-width: 500px; margin: 0 auto;">
+            <div class="card-header">
+              <h3>Maintenance and Database Control</h3>
+              <p class="text-muted">Import/Export your tickets and database states safely.</p>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 16px; margin-top: 24px;">
+              <button class="btn btn-primary btn-icon-text" onclick="app.downloadBackup()">
+                <i data-lucide="download"></i>
+                <span>Download DB Backup (.json)</span>
+              </button>
+              
+              <button class="btn btn-outline btn-icon-text" onclick="document.getElementById('db-restore-input').click()">
+                <i data-lucide="upload"></i>
+                <span>Upload DB Backup (.json)</span>
+              </button>
+              <input type="file" id="db-restore-input" style="display: none;" accept=".json" onchange="app.uploadRestore(event)">
+            </div>
+          </div>
+
+          <div class="card" style="max-width: 500px; margin: 24px auto 0 auto;">
+            <div class="card-header">
+              <h3>SMTP Mail Server Settings</h3>
+              <p class="text-muted">Configure external SMTP mail delivery details for form alerts.</p>
+            </div>
+            <form id="form-smtp-config" style="margin-top: 20px; display: flex; flex-direction: column; gap: 16px;">
+              <div class="form-group">
+                <label for="smtp-host">SMTP Host</label>
+                <input type="text" id="smtp-host" class="form-control" placeholder="smtp.gmail.com">
+              </div>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                <div class="form-group">
+                  <label for="smtp-port">SMTP Port</label>
+                  <input type="number" id="smtp-port" class="form-control" placeholder="587">
+                </div>
+                <div class="form-group">
+                  <label for="smtp-secure">Encryption</label>
+                  <select id="smtp-secure" class="form-control">
+                    <option value="false">STARTTLS (Port 587)</option>
+                    <option value="true">SSL/TLS (Port 465)</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="smtp-user">SMTP Username / Email</label>
+                <input type="text" id="smtp-user" class="form-control" placeholder="sender@gmail.com">
+              </div>
+              <div class="form-group">
+                <label for="smtp-pass">SMTP Password / App Key</label>
+                <input type="password" id="smtp-pass" class="form-control" placeholder="••••••••">
+              </div>
+              <button type="submit" class="btn btn-primary" style="align-self: flex-start; padding: 10px 24px;">
+                <i data-lucide="mail" style="width: 16px; height: 16px; display: inline-block; vertical-align: middle; margin-right: 4px;"></i> Save SMTP Config
+              </button>
+            </form>
+          </div>
+        </section>
+
+        <!-- ================= PAGES & CMS TAB ================= -->
+        <section id="tab-cms" class="tab-pane">
+          <div class="cms-layout" style="display: grid; grid-template-columns: 1fr 1.2fr; gap: 32px; align-items: start;">
+            
+            <!-- Left Side: Homepage Copy Editor & Admin Users -->
+            <div style="display: flex; flex-direction: column; gap: 32px;">
+              <div class="card">
+                <div class="card-header">
+                  <h3>Edit Homepage Copy</h3>
+                  <p class="text-muted text-small">Update the main landing page text and hero avatar instantly.</p>
+                </div>
+                <form id="form-cms-homepage" style="margin-top: 20px; display: flex; flex-direction: column; gap: 16px;">
+                  <div class="form-group">
+                    <label for="cms-hero-name">Hero Profile Name</label>
+                    <input type="text" id="cms-hero-name" class="form-control" required>
+                  </div>
+                  <div class="form-group">
+                    <label for="cms-hero-title">Hero Subtitle / Role</label>
+                    <input type="text" id="cms-hero-title" class="form-control" required>
+                  </div>
+                  <div class="form-group">
+                    <label for="cms-hero-avatar">Hero Avatar Image</label>
+                    <select id="cms-hero-avatar" class="form-control">
+                      <option value="assets/photo1.jpg">Beach Selfie (photo1.jpg)</option>
+                      <option value="assets/photo2.jpg">River Selfie (photo2.jpg)</option>
+                      <option value="assets/photo3.jpg">Boat Selfie (photo3.jpg)</option>
+                      <option value="assets/photo4.jpg">Motorcycle (photo4.jpg)</option>
+                      <option value="assets/photo5.jpg">Pier Selfie (photo5.jpg)</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label for="cms-about-me">About Me Description</label>
+                    <textarea id="cms-about-me" class="form-control" rows="8" required></textarea>
+                  </div>
+                  <button type="submit" class="btn btn-primary" style="align-self: flex-start; padding: 10px 24px;">
+                    <i data-lucide="save" style="width: 16px; height: 16px; display: inline-block; vertical-align: middle; margin-right: 4px;"></i> Save Homepage Content
+                  </button>
+                </form>
+              </div>
+
+              <!-- Admin Users Database -->
+              <div class="card">
+                <div class="card-header">
+                  <h3>Admin Users Database</h3>
+                  <p class="text-muted text-small">Add new users or update administrative credentials.</p>
+                </div>
+                <form id="form-cms-user" style="margin-top: 20px; display: flex; flex-direction: column; gap: 16px;">
+                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                    <div class="form-group">
+                      <label for="cms-user-username">Username *</label>
+                      <input type="text" id="cms-user-username" class="form-control" required placeholder="admin">
+                    </div>
+                    <div class="form-group">
+                      <label for="cms-user-password">Password *</label>
+                      <input type="password" id="cms-user-password" class="form-control" required placeholder="••••••••">
+                    </div>
+                  </div>
+                  <button type="submit" class="btn btn-primary" style="align-self: flex-start; padding: 10px 24px;">
+                    <i data-lucide="user-plus" style="width: 16px; height: 16px; display: inline-block; vertical-align: middle; margin-right: 4px;"></i> Save / Add User
+                  </button>
+                </form>
+                
+                <div class="table-responsive" style="margin-top: 20px;">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>Username</th>
+                        <th>Password</th>
+                        <th style="text-align: right;">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody id="cms-users-tbody">
+                      <!-- Dynamic list of admin users -->
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right Side: Custom Pages Manager -->
+            <div class="card" style="display: flex; flex-direction: column; min-height: 500px;">
+              <div class="card-header flex-header" style="justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 16px;">
+                <div>
+                  <h3>Custom Pages CMS</h3>
+                  <p class="text-muted text-small">Create and publish dynamic sub-pages (e.g. zannat.me/my-setup).</p>
+                </div>
+                <button class="btn btn-primary btn-icon-text" id="cms-new-page-btn" onclick="app.showNewPageForm()">
+                  <i data-lucide="plus-circle"></i>
+                  <span>New Page</span>
+                </button>
+              </div>
+
+              <!-- List of Custom Pages -->
+              <div class="table-responsive" style="margin-top: 16px; flex-grow: 1;">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Title</th>
+                      <th>Slug Path</th>
+                      <th>Layout</th>
+                      <th style="text-align: right;">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="cms-pages-tbody">
+                    <!-- Dynamic list of custom pages -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Dynamic Page Edit/Create Form Modal -->
+          <div class="modal-overlay hidden" id="modal-cms-page">
+            <div class="modal-card" style="max-width: 700px;">
+              <div class="card-header">
+                <h3 id="cms-page-modal-title">Create New Page</h3>
+                <p class="text-muted">Fill out the fields to publish a dynamic custom sub-page.</p>
+              </div>
+              <form id="form-cms-page" style="margin-top: 20px; display: flex; flex-direction: column; gap: 16px;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                  <div class="form-group">
+                    <label for="cms-page-title">Page Title *</label>
+                    <input type="text" id="cms-page-title" class="form-control" required placeholder="e.g. My Gear">
+                  </div>
+                  <div class="form-group">
+                    <label for="cms-page-slug">URL Slug *</label>
+                    <input type="text" id="cms-page-slug" class="form-control" required placeholder="e.g. my-gear" pattern="[a-zA-Z0-9\-_]+">
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label for="cms-page-layout">Page Layout *</label>
+                  <select id="cms-page-layout" class="form-control" required>
+                    <option value="standard">Standard (Includes Header and Footer)</option>
+                    <option value="minimal">Minimal (No Header or Footer - blank canvas)</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="cms-page-content">Page Content (HTML supported) *</label>
+                  <textarea id="cms-page-content" class="form-control" rows="10" required placeholder="<h1>My Equipment</h1><p>Here is what I use daily...</p>"></textarea>
+                </div>
+                <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 16px;">
+                  <button type="button" class="btn btn-secondary" onclick="app.closeModal('modal-cms-page')">Cancel</button>
+                  <button type="submit" class="btn btn-primary">Publish Page</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================= INVOICE GENERATOR TAB ================= -->
+        <section id="tab-invoices" class="tab-pane">
+          <div style="display: flex; gap: 16px; margin-bottom: 24px; border-bottom: 1px solid var(--border-color); padding-bottom: 16px; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+            <div>
+              <h2 style="font-size: 1.4rem; font-weight: 700; margin-bottom: 4px;">Invoice Generator & Billing Desk</h2>
+              <p class="text-muted text-small">Create professional PDF invoices with auto-increment numbers, client addresses, and tax options.</p>
+            </div>
+            <div style="display: flex; gap: 12px;">
+              <button class="btn btn-outline btn-icon-text" onclick="app.toggleInvoiceView('list')">
+                <i data-lucide="list"></i>
+                <span>Invoice History</span>
+              </button>
+              <button class="btn btn-primary btn-icon-text" onclick="app.resetInvoiceForm(); app.toggleInvoiceView('create');">
+                <i data-lucide="plus-circle"></i>
+                <span>Create New Invoice</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- CREATE / EDIT INVOICE PANEL -->
+          <div id="invoice-create-panel" class="invoice-panel">
+            <form id="form-invoice" onsubmit="app.saveInvoice(event)" style="display: flex; flex-direction: column; gap: 24px;">
+              <input type="hidden" id="inv-id">
+
+              <!-- Top Row: Sender & Meta -->
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px;">
+                
+                <!-- Sender Info -->
+                <div class="card" style="padding: 24px;">
+                  <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 16px; color: var(--accent-purple); display: flex; align-items: center; gap: 8px;">
+                    <i data-lucide="building-2" style="width: 18px; height: 18px;"></i> From (Your Details)
+                  </h3>
+                  <div class="form-group" style="margin-bottom: 12px;">
+                    <label>Your Address</label>
+                    <textarea id="inv-my-address" class="form-control" rows="4">Astha Building
+Dorshona Mor, Rangpur City Bypass
+Rangpur city, Rangpur
+Bangladesh</textarea>
+                  </div>
+                </div>
+
+                <!-- Invoice Meta -->
+                <div class="card" style="padding: 24px;">
+                  <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 16px; color: var(--accent-cyan); display: flex; align-items: center; gap: 8px;">
+                    <i data-lucide="hash" style="width: 18px; height: 18px;"></i> Invoice Details
+                  </h3>
+                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <div class="form-group">
+                      <label>Invoice #</label>
+                      <input type="text" id="inv-number" class="form-control" readonly style="opacity: 0.7; cursor: not-allowed;">
+                    </div>
+                    <div class="form-group">
+                      <label>Date</label>
+                      <input type="date" id="inv-date" class="form-control">
+                    </div>
+                    <div class="form-group">
+                      <label>Due Date</label>
+                      <input type="date" id="inv-due-date" class="form-control">
+                    </div>
+                    <div class="form-group">
+                      <label>Currency</label>
+                      <select id="inv-currency" class="form-control" onchange="app.calculateInvoiceTotals()">
+                        <option value="USD">USD ($)</option>
+                        <option value="BDT">BDT (৳)</option>
+                      </select>
+                    </div>
+                    <div class="form-group">
+                      <label>Payment Method</label>
+                      <select id="inv-payment-method" class="form-control">
+                        <option value="Bank Transfer">Bank Transfer</option>
+                        <option value="MFS (bKash / Nagad / Rocket)">MFS (bKash / Nagad / Rocket)</option>
+                        <option value="Payoneer">Payoneer</option>
+                        <option value="Xoom / Remitly / Wise">Xoom / Remitly / Wise</option>
+                      </select>
+                    </div>
+                    <div class="form-group">
+                      <label>Status</label>
+                      <select id="inv-status" class="form-control">
+                        <option value="Paid">Paid</option>
+                        <option value="Unpaid">Unpaid</option>
+                        <option value="Due">Due</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Client Info -->
+              <div class="card" style="padding: 24px;">
+                <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 16px; color: var(--accent-green); display: flex; align-items: center; gap: 8px;">
+                  <i data-lucide="user-round" style="width: 18px; height: 18px;"></i> Bill To (Client)
+                </h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+                  <div class="form-group">
+                    <label>Client Name *</label>
+                    <input type="text" id="inv-client-name" class="form-control" required placeholder="John Doe">
+                  </div>
+                  <div class="form-group">
+                    <label>Company</label>
+                    <input type="text" id="inv-client-company" class="form-control" placeholder="Acme Inc.">
+                  </div>
+                  <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="inv-client-email" class="form-control" placeholder="client@email.com">
+                  </div>
+                </div>
+                <div class="form-group" style="margin-top: 12px;">
+                  <label>Client Address</label>
+                  <textarea id="inv-client-address" class="form-control" rows="3" placeholder="123 Street, City, Country"></textarea>
+                </div>
+              </div>
+
+              <!-- Line Items -->
+              <div class="card" style="padding: 24px;">
+                <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 16px; color: var(--accent-amber); display: flex; align-items: center; gap: 8px;">
+                  <i data-lucide="clipboard-list" style="width: 18px; height: 18px;"></i> Work Description & Line Items
+                </h3>
+                <div class="table-responsive">
+                  <table class="data-table" style="min-width: 500px;">
+                    <thead>
+                      <tr>
+                        <th style="width: 45%;">Description</th>
+                        <th style="width: 12%;">Qty</th>
+                        <th style="width: 18%;">Rate (<span class="inv-currency-symbol">$</span>)</th>
+                        <th style="width: 15%;">Amount</th>
+                        <th style="width: 10%; text-align: right;"></th>
+                      </tr>
+                    </thead>
+                    <tbody id="invoice-items-tbody">
+                    </tbody>
+                  </table>
+                </div>
+                <button type="button" class="btn btn-outline" style="margin-top: 12px; align-self: flex-start;" onclick="app.addInvoiceItemRow()">
+                  <i data-lucide="plus" style="width: 14px; height: 14px;"></i> Add Line Item
+                </button>
+
+                <!-- Totals -->
+                <div style="display: flex; justify-content: flex-end; margin-top: 24px;">
+                  <div style="width: 280px; display: flex; flex-direction: column; gap: 8px;">
+                    <div style="display: flex; justify-content: space-between;"><span class="text-muted">Subtotal</span><span id="inv-subtotal" style="font-weight: 600;">$0.00</span></div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+                      <span class="text-muted">Tax (%)</span>
+                      <input type="number" id="inv-tax-rate" class="form-control" value="0" min="0" max="100" step="0.5" style="width: 70px; text-align: center;" oninput="app.calculateInvoiceTotals()">
+                      <span id="inv-tax-amount" style="font-weight: 600; min-width: 70px; text-align: right;">$0.00</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; border-top: 2px solid var(--accent-purple); padding-top: 8px; margin-top: 4px;">
+                      <span style="font-weight: 700; font-size: 1.1rem;">Total</span>
+                      <span id="inv-total" style="font-weight: 800; font-size: 1.1rem; color: var(--accent-green);">$0.00</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Notes & Actions -->
+              <div class="card" style="padding: 24px;">
+                <div class="form-group">
+                  <label>Notes / Payment Instructions</label>
+                  <textarea id="inv-notes" class="form-control" rows="3" placeholder="Payment via bank transfer, PayPal, etc."></textarea>
+                </div>
+              </div>
+
+              <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                <button type="button" class="btn btn-secondary" onclick="app.toggleInvoiceView('list')">Cancel</button>
+                <button type="submit" class="btn btn-primary btn-icon-text" style="padding: 12px 24px;">
+                  <i data-lucide="save" style="width: 16px; height: 16px;"></i>
+                  <span>Save & Preview Invoice</span>
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <!-- INVOICE LIST PANEL -->
+          <div id="invoice-list-panel" class="invoice-panel hidden">
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Invoice #</th>
+                    <th>Client</th>
+                    <th>Date</th>
+                    <th>Total</th>
+                    <th>Status</th>
+                    <th style="text-align: right;">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="invoices-list-tbody">
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </main>
+
+  </div>
+
+  <!-- Modal: Login Overlay -->
+  <div class="modal-overlay hidden" id="login-overlay">
+    <div class="login-card">
+      <img src="/assets/zannat_inner_symbol_icon.png" alt="Zannat Logo" style="width: 54px; height: 54px; object-fit: contain; margin: 0 auto 16px auto; display: block; filter: drop-shadow(0 0 12px rgba(139,92,246,0.6));">
+      <h2>Zannat.me Portal</h2>
+      <p class="text-muted" style="margin-bottom: 24px;">Authentication Required for Administrative Operations</p>
+      
+      <form id="form-login">
+        <div class="form-group" style="text-align: left;">
+          <label for="login-username">Username</label>
+          <input type="text" id="login-username" class="form-control" required placeholder="admin">
+        </div>
+        
+        <div class="form-group" style="text-align: left; margin-top: 16px;">
+          <label for="login-password">Password</label>
+          <input type="password" id="login-password" class="form-control" required placeholder="••••••••">
+        </div>
+        
+        <div class="error-msg hidden" id="login-error-msg" style="color: var(--accent-red); font-size: 0.8rem; margin-top: 12px; text-align: left;">
+          Invalid credentials. Please check details and try again.
+        </div>
+        
+        <div class="modal-footer" style="margin-top: 24px; display: flex; justify-content: flex-end; gap: 12px;">
+          <button type="button" class="btn btn-secondary" onclick="app.closeModal('login-overlay')">Cancel</button>
+          <button type="submit" class="btn btn-primary" style="padding: 12px;">
+            <i data-lucide="log-in" style="width: 16px; height: 16px;"></i> Authenticate & Enter
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Ticket Edit Note -->
+  <div class="modal-overlay hidden" id="modal-ticket-edit">
+    <div class="modal-card">
+      <div class="card-header">
+        <h3 id="edit-ticket-title">Inspect Ticket</h3>
+        <p class="text-muted" id="edit-ticket-subtitle"></p>
+      </div>
+      
+      <form id="form-edit-ticket" style="margin-top: 16px;">
+        <div class="form-group">
+          <label>Client site URL</label>
+          <input type="text" id="edit-ticket-site-url" class="form-control" readonly style="opacity: 0.7;">
+        </div>
+
+        <div class="form-group" style="margin-top: 16px;">
+          <label>Issue Description</label>
+          <textarea id="edit-ticket-description" class="form-control" rows="4" readonly style="opacity: 0.8; background: rgba(255, 255, 255, 0.05); color: var(--text-muted); cursor: not-allowed; border-color: var(--glass-border);"></textarea>
+        </div>
+        
+        <div class="form-group" style="margin-top: 16px;">
+          <label for="edit-ticket-status">Ticket Status *</label>
+          <select id="edit-ticket-status" class="form-control" required>
+            <option value="Pending">Pending</option>
+            <option value="In Progress">In Progress</option>
+            <option value="Resolved">Resolved</option>
+          </select>
+        </div>
+        
+        <div class="form-group" style="margin-top: 16px;">
+          <label for="edit-ticket-notes">Developer Debug Notes</label>
+          <textarea id="edit-ticket-notes" class="form-control" rows="4" placeholder="Enter findings, debug path, theme/plugin names, solutions applied..."></textarea>
+        </div>
+        
+        <div class="modal-footer" style="margin-top: 24px; display: flex; justify-content: flex-end; gap: 12px;">
+          <button type="button" class="btn btn-secondary" onclick="app.closeModal('modal-ticket-edit')">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= CUSTOM PAGE SHELL ================= -->
+  <div id="custom-page-shell" class="landing-container hidden" style="height: 100vh; overflow-y: auto;">
+    <!-- Header -->
+    <header class="landing-navbar" id="custom-page-header">
+      <div class="navbar-brand">
+        <div class="logo-icon">
+          <i data-lucide="terminal" class="logo-main-icon"></i>
+          <i data-lucide="check" class="logo-sub-icon"></i>
+        </div>
+        <div class="logo-text">
+          <h2>Zannat.me</h2>
+          <span>WordPress Specialist</span>
+        </div>
+      </div>
+      <nav class="navbar-links">
+        <a href="/" class="nav-item" id="custom-page-back-btn">← Back to Home</a>
+      </nav>
+      <div class="navbar-actions">
+        <!-- Theme Toggle -->
+        <button class="theme-toggle-btn" id="theme-toggle-btn-custom" title="Toggle theme" aria-label="Toggle dark/light mode">
+          <i data-lucide="sun" class="icon-sun"></i>
+          <i data-lucide="moon" class="icon-moon"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- Custom Page Content -->
+    <main class="custom-page-content-wrapper" style="max-width: 900px; margin: 0 auto; padding: 120px 24px 80px 24px; min-height: 70vh;">
+      <article class="prose" id="custom-page-article">
+        <h1 id="custom-page-title" style="font-size: 3rem; margin-bottom: 24px; font-weight: 850;">Page Title</h1>
+        <div id="custom-page-body" style="font-size: 1.1rem; line-height: 1.8; color: var(--text-secondary);">
+          Page content...
+        </div>
+      </article>
+    </main>
+
+    <!-- Footer -->
+    <footer class="landing-footer" id="custom-page-footer">
+      <div class="footer-top">
+        <div class="footer-brand">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+            <i data-lucide="terminal" style="color: var(--accent-purple); width: 20px; height: 20px;"></i>
+            <h3 style="font-size: 1.2rem; margin: 0;">Zannat.me</h3>
+          </div>
+          <p>WordPress specialist available globally for emergency repairs.</p>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; 2026 Zannat.me. All rights reserved.</p>
+      </div>
+    </footer>
+  <!-- Modal: Custom Confirmation -->
+  <div class="modal-overlay hidden" id="modal-confirm">
+    <div class="modal-card" style="max-width: 420px; text-align: center; padding: 32px 24px;">
+      <h3 id="confirm-title" style="margin-bottom: 12px; font-size: 1.3rem; font-weight: 750;">Confirm Action</h3>
+      <p id="confirm-message" class="text-muted" style="margin-bottom: 24px; font-size: 0.95rem; line-height: 1.5;">Are you sure you want to proceed?</p>
+      <div style="display: flex; justify-content: center; gap: 16px;">
+        <button type="button" class="btn btn-secondary" id="confirm-cancel-btn" style="padding: 10px 20px;">Cancel</button>
+        <button type="button" class="btn btn-primary" id="confirm-ok-btn" style="padding: 10px 20px;">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Invoice Preview -->
+  <div class="modal-overlay hidden" id="modal-invoice-preview">
+    <div class="modal-card" style="max-width: 840px; max-height: 90vh; overflow-y: auto; padding: 0;">
+      <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; border-bottom: 1px solid var(--border-color); flex-wrap: wrap; gap: 12px;">
+        <h3 style="font-weight: 700;">Invoice Preview</h3>
+        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+          <div style="display: flex; align-items: center; gap: 6px; background: rgba(255, 255, 255, 0.05); padding: 4px 10px; border-radius: 6px; border: 1px solid var(--glass-border);">
+            <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;">Status:</span>
+            <select id="preview-invoice-status-select" class="form-control" style="padding: 4px 8px; font-size: 0.8rem; width: auto; height: 32px; font-weight: 700;" onchange="app.changeInvoiceStatusFromPreview(this.value)">
+              <option value="Paid">Paid</option>
+              <option value="Unpaid">Unpaid</option>
+              <option value="Due">Due</option>
+            </select>
+          </div>
+          <button class="btn btn-outline btn-icon-text" onclick="window.print()">
+            <i data-lucide="printer" style="width: 14px; height: 14px;"></i> Print
+          </button>
+          <button class="btn btn-primary btn-icon-text" onclick="app.downloadCurrentInvoicePDF()">
+            <i data-lucide="download" style="width: 14px; height: 14px;"></i> Download PDF
+          </button>
+          <button class="btn btn-secondary btn-icon" onclick="app.closeModal('modal-invoice-preview')">
+            <i data-lucide="x" style="width: 16px; height: 16px;"></i>
+          </button>
+        </div>
+      </div>
+      <div id="invoice-preview-content" class="invoice-paper" style="padding: 40px;">
+        <!-- Rendered invoice HTML goes here -->
+      </div>
+    </div>
+  </div>
+
+  <!-- App Main Scripts -->
+  <script src="/app.js?v=10"></script>
+</body>
+</html>

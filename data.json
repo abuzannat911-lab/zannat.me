@@ -1,0 +1,204 @@
+{
+  "users": [
+    {
+      "username": "admin",
+      "password": "zannatbugfix"
+    },
+    {
+      "username": "wpdev",
+      "password": "specialpassword"
+    }
+  ],
+  "tickets": [
+    {
+      "id": "TKT-2026-012",
+      "clientName": "Sarah Jones",
+      "clientEmail": "sarah@wpfix.com",
+      "siteUrl": "http://wpfix.com",
+      "bugType": "WooCommerce",
+      "description": "Cart page is completely blank after theme update.",
+      "severity": "High",
+      "status": "Pending",
+      "date": "2026-06-22",
+      "adminNotes": ""
+    },
+    {
+      "id": "TKT-2026-013",
+      "clientName": "Sarah Jones",
+      "clientEmail": "sarah@wpfix.com",
+      "siteUrl": "http://wpfix.com",
+      "bugType": "WooCommerce",
+      "description": "Cart page is completely blank after theme update.",
+      "severity": "High",
+      "status": "Pending",
+      "date": "2026-06-22",
+      "adminNotes": ""
+    },
+    {
+      "id": "TKT-2026-014",
+      "clientName": "Sarah Jones",
+      "clientEmail": "sarah@wpfix.com",
+      "siteUrl": "http://wpfix.com",
+      "bugType": "WooCommerce",
+      "description": "Cart page is completely blank after theme update.",
+      "severity": "High",
+      "status": "Pending",
+      "date": "2026-06-22",
+      "adminNotes": ""
+    }
+  ],
+  "earnings": [
+    {
+      "month": "March",
+      "amount": 42000
+    },
+    {
+      "month": "April",
+      "amount": 49000
+    },
+    {
+      "month": "May",
+      "amount": 58000
+    },
+    {
+      "month": "June",
+      "amount": 71000
+    }
+  ],
+  "bugTypes": [
+    {
+      "type": "Plugin Crash",
+      "count": 14
+    },
+    {
+      "type": "WooCommerce",
+      "count": 18
+    },
+    {
+      "type": "Malware/Security",
+      "count": 11
+    },
+    {
+      "type": "Database/PHP",
+      "count": 6
+    },
+    {
+      "type": "CSS/Theme",
+      "count": 12
+    }
+  ],
+  "homepageContent": {
+    "name": "Abu Zannat (WP Specialist)",
+    "title": "WordPress Specialist & Web Developer",
+    "avatar": "assets/photo1.jpg",
+    "about": "Hi, I am Abu Zannat, a WordPress expert..."
+  },
+  "pages": [
+    {
+      "title": "My Setup",
+      "slug": "my-setup",
+      "layout": "standard",
+      "content": "<h1>Welcome to My Setup</h1><p>Here is where I build awesome WordPress plugins.</p>"
+    }
+  ],
+  "smtpConfig": {},
+  "invoices": [
+    {
+      "clientName": "Test Client",
+      "clientCompany": "Test Corp",
+      "clientAddress": "123 Main St",
+      "items": [
+        {
+          "desc": "WordPress Fix",
+          "qty": 1,
+          "rate": 200
+        }
+      ],
+      "currency": "USD",
+      "subtotal": 200,
+      "taxRate": 0,
+      "taxAmount": 0,
+      "total": 200,
+      "id": "inv_1786399479284_p4r5",
+      "number": "INV-1001",
+      "createdAt": "2026-08-10T22:04:39.284Z"
+    },
+    {
+      "number": "INV-1002",
+      "date": "2026-08-10",
+      "dueDate": "",
+      "currency": "USD",
+      "myAddress": "Astha Building\nDorshona Mor, Rangpur City Bypass\nRangpur city, Rangpur\nBangladesh",
+      "myLogo": "assets/photo1.jpg",
+      "clientName": "Claudio Campesato",
+      "clientCompany": "Claudio Campesato",
+      "clientEmail": "Claudio@collrock.com",
+      "clientAddress": "2001 N. Ocean Blvd. 905S\n905S",
+      "items": [
+        {
+          "desc": "WordPress Core & Plugin Bug Diagnostics",
+          "qty": 1,
+          "rate": 150
+        }
+      ],
+      "subtotal": 150,
+      "taxRate": 0,
+      "taxAmount": 0,
+      "total": 150,
+      "notes": "",
+      "status": "Unpaid",
+      "id": "inv_1786400162262_z2ni",
+      "createdAt": "2026-08-10T22:16:02.262Z",
+      "paymentMethod": "Bank Transfer",
+      "updatedAt": "2026-08-10T22:34:48.853Z"
+    },
+    {
+      "number": "INV-1003",
+      "date": "2026-08-10",
+      "dueDate": "",
+      "currency": "USD",
+      "myAddress": "Astha Building\nDorshona Mor, Rangpur City Bypass\nRangpur city, Rangpur\nBangladesh",
+      "myLogo": "assets/photo1.jpg",
+      "clientName": "Claudio Campesato",
+      "clientCompany": "Tycoon Machine LLC",
+      "clientEmail": "admin@ivylead.io",
+      "clientAddress": "2001 N. Ocean Blvd. 905S\n905S",
+      "items": [
+        {
+          "desc": "WordPress Core & Plugin Bug Diagnostics",
+          "qty": 1,
+          "rate": 150
+        }
+      ],
+      "subtotal": 150,
+      "taxRate": 0,
+      "taxAmount": 0,
+      "total": 150,
+      "notes": "",
+      "status": "Paid",
+      "id": "inv_1786400381134_m8sg",
+      "createdAt": "2026-08-10T22:19:41.134Z"
+    },
+    {
+      "clientName": "Acme Corporation",
+      "items": [
+        {
+          "desc": "WordPress Custom Plugin Bug Fix & WooCommerce Checkout Debug",
+          "qty": 1,
+          "rate": 250
+        }
+      ],
+      "currency": "USD",
+      "paymentMethod": "MFS (bKash / Nagad / Rocket)",
+      "status": "Paid",
+      "subtotal": 250,
+      "taxRate": 5,
+      "taxAmount": 12.5,
+      "total": 262.5,
+      "id": "inv_1786400647974_qxmr",
+      "number": "INV-1004",
+      "createdAt": "2026-08-10T22:24:07.974Z"
+    }
+  ],
+  "nextInvoiceNum": 1005
+}

@@ -1,0 +1,17 @@
+# zannat.me — Apache config for cPanel + Node.js (Passenger)
+# This file enables SPA routing so zannat.me/page-name works correctly
+
+Options -MultiViews
+RewriteEngine On
+
+# If the request is for a real file or directory, serve it directly
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+
+# Proxy everything else to the Node.js app (Passenger handles this automatically)
+# For non-Passenger setups using ProxyPass:
+# RewriteRule ^ http://127.0.0.1:8080%{REQUEST_URI} [P,L]
+
+# For Passenger-based cPanel Node.js App (standard):
+# Passenger auto-proxies — just rewrite to index for SPA
+RewriteRule ^ index.html [L]
