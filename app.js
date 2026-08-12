@@ -1967,6 +1967,9 @@
                 return;
             }
 
+            let savedInvoice = null;
+            let nextNum = null;
+
             try {
                 const response = await fetch(this.getApiUrl('/api/invoices'), {
                     method: 'POST',
@@ -1974,36 +1977,76 @@
                     body: JSON.stringify(invoiceData)
                 });
 
-                const result = await response.json();
-                if (response.ok && result.success) {
-                    this.showToast(`Invoice ${result.invoice.number} saved! Generating PDF...`, 'success');
-                    
-                    // Update local state
-                    const idx = this.state.invoices.findIndex(i => i.id === result.invoice.id);
-                    if (idx !== -1) {
-                        this.state.invoices[idx] = result.invoice;
-                    } else {
-                        this.state.invoices.unshift(result.invoice);
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result.success) {
+                        savedInvoice = result.invoice;
+                        nextNum = result.nextNum;
                     }
-
-                    if (result.nextNum) {
-                        this.state.nextInvoiceNum = result.nextNum;
-                    }
-
-                    this.renderInvoicesList();
-                    this.renderInvoicePreview(result.invoice);
-                    this.openModal('modal-invoice-preview');
-
-                    // Auto-trigger PDF generation and print readiness
-                    setTimeout(() => {
-                        this.downloadCurrentInvoicePDF();
-                    }, 400);
-                } else {
-                    this.showToast(result.error || 'Failed to save invoice.', 'error');
                 }
             } catch (err) {
-                console.error('Save invoice error:', err);
-                this.showToast('Server error while saving invoice.', 'error');
+                console.warn('Backend API unavailable. Saving invoice locally in static mode.', err);
+            }
+
+            // Fallback: local storage invoice handling
+            if (!savedInvoice) {
+                let existingIndex = -1;
+                if (invoiceData.id) {
+                    existingIndex = this.state.invoices.findIndex(inv => inv.id === invoiceData.id);
+                }
+
+                if (existingIndex !== -1) {
+                    this.state.invoices[existingIndex] = {
+                        ...this.state.invoices[existingIndex],
+                        ...invoiceData,
+                        updatedAt: new Date().toISOString()
+                    };
+                    savedInvoice = this.state.invoices[existingIndex];
+                } else {
+                    const num = this.state.nextInvoiceNum || 1001;
+                    this.state.nextInvoiceNum = num + 1;
+                    savedInvoice = {
+                        ...invoiceData,
+                        id: 'inv_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+                        number: `INV-${num}`,
+                        createdAt: new Date().toISOString()
+                    };
+                    this.state.invoices.unshift(savedInvoice);
+                    nextNum = this.state.nextInvoiceNum;
+                }
+
+                // Persist state to local storage
+                try {
+                    localStorage.setItem('zannat_app_state', JSON.stringify({
+                        tickets: this.state.tickets,
+                        earnings: this.state.earnings,
+                        bugTypes: this.state.bugTypes,
+                        pages: this.state.pages,
+                        users: this.state.users,
+                        invoices: this.state.invoices,
+                        nextInvoiceNum: this.state.nextInvoiceNum,
+                        homepageContent: this.state.homepageContent
+                    }));
+                } catch(e) {}
+            }
+
+            if (savedInvoice) {
+                this.showToast(`Invoice ${savedInvoice.number} saved! Generating PDF...`, 'success');
+
+                if (nextNum) {
+                    this.state.nextInvoiceNum = nextNum;
+                }
+
+                this.renderInvoicesList();
+                this.renderInvoicePreview(savedInvoice);
+                this.openModal('modal-invoice-preview');
+
+                // Auto-trigger PDF generation and print readiness
+                setTimeout(() => {
+                    this.downloadCurrentInvoicePDF();
+                }, 400);
+            } else {
+                this.showToast('Failed to save invoice.', 'error');
             }
         },
 
