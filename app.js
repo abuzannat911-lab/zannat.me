@@ -1,61 +1,8 @@
 // app.js - Client-Side Controller for zannat.me
 (function() {
-    function sendToServerLog(type, args) {
-        const msg = args.map(a => {
-            try {
-                return typeof a === 'object' ? JSON.stringify(a) : String(a);
-            } catch(e) {
-                return String(a);
-            }
-        }).join(' ');
-        fetch('/api/logs', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({
-                message: `[BROWSER ${type}] ${msg}`,
-                stack: ''
-            })
-        }).catch(err => {});
-    }
-
     const originalLog = console.log;
-    console.log = function(...args) {
-        originalLog.apply(console, args);
-        sendToServerLog('LOG', args);
-    };
-
     const originalWarn = console.warn;
-    console.warn = function(...args) {
-        originalWarn.apply(console, args);
-        sendToServerLog('WARN', args);
-    };
-
     const originalError = console.error;
-    console.error = function(...args) {
-        originalError.apply(console, args);
-        sendToServerLog('ERROR', args);
-    };
-
-    window.onerror = function(message, source, lineno, colno, error) {
-        fetch('/api/logs', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({
-                message: message + ' at ' + source + ':' + lineno + ':' + colno,
-                stack: error ? error.stack : ''
-            })
-        }).catch(err => {});
-    };
-    window.onunhandledrejection = function(event) {
-        fetch('/api/logs', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({
-                message: 'Unhandled Promise Rejection: ' + event.reason,
-                stack: event.reason ? event.reason.stack : ''
-            })
-        }).catch(err => {});
-    };
 
     const app = {
         state: {
