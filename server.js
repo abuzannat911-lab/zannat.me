@@ -36,12 +36,12 @@ const DEFAULT_DATA = {
     clients: [],
     nextInvoiceNum: 1001,
     bankDetails: {
-        bankName: "Eastern Bank PLC",
-        accountName: "Abu Zannat",
-        accountNumber: "1234567890",
-        routingNumber: "091000019",
-        swiftCode: "EBLDBDDH",
-        branch: "Rangpur Branch, Bangladesh"
+        bankName: "Dutch Bangla Bank PLC",
+        accountName: "Abu Zannat Md Mosaddek",
+        accountNumber: "1621010088950",
+        routingNumber: "090851456",
+        swiftCode: "DBBLBDDH",
+        branch: "Rangpur Branch"
     }
 };
 

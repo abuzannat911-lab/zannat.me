@@ -182,12 +182,12 @@
             this.state.clients = data.clients || [];
             this.state.nextInvoiceNum = data.nextInvoiceNum || 1001;
             this.state.bankDetails = data.bankDetails || {
-                bankName: "Eastern Bank PLC",
-                accountName: "Abu Zannat",
-                accountNumber: "1234567890",
-                routingNumber: "091000019",
-                swiftCode: "EBLDBDDH",
-                branch: "Rangpur Branch, Bangladesh"
+                bankName: "Dutch Bangla Bank PLC",
+                accountName: "Abu Zannat Md Mosaddek",
+                accountNumber: "1621010088950",
+                routingNumber: "090851456",
+                swiftCode: "DBBLBDDH",
+                branch: "Rangpur Branch"
             };
             const localSavedBank = localStorage.getItem('zannat_bank_details');
             if (localSavedBank) {
@@ -2329,12 +2329,12 @@
 `SERVICES DELIVERED:\n` +
 `${itemsSummary || '  • WordPress Diagnostics & Bug Fixing'}\n\n` +
 `PAYMENT & WIRE TRANSFER DETAILS:\n` +
-`Bank Name: ${invoice.bankName || 'Eastern Bank PLC'}\n` +
-`Beneficiary Name: ${invoice.bankAccountName || 'Abu Zannat'}\n` +
-`Account # / IBAN: ${invoice.bankAccountNo || '1234567890'}\n` +
-(invoice.bankRouting || invoice.bankRoutingNumber ? `Routing Number (USA ACH): ${invoice.bankRouting || invoice.bankRoutingNumber}\n` : '') +
-`SWIFT / BIC (Wire): ${invoice.bankSwift || 'EBLDBDDH'}\n` +
-`Branch: ${invoice.bankBranch || 'Rangpur Branch, Bangladesh'}\n` +
+`Bank Name: ${invoice.bankName || 'Dutch Bangla Bank PLC'}\n` +
+`Beneficiary Name: ${invoice.bankAccountName || 'Abu Zannat Md Mosaddek'}\n` +
+`Account # / IBAN: ${invoice.bankAccountNo || '1621010088950'}\n` +
+(invoice.bankRouting || invoice.bankRoutingNumber ? `Routing Number (USA ACH): ${invoice.bankRouting || invoice.bankRoutingNumber}\n` : `Routing Number: 090851456\n`) +
+`SWIFT / BIC (Wire): ${invoice.bankSwift || 'DBBLBDDH'}\n` +
+`Branch: ${invoice.bankBranch || 'Rangpur Branch'}\n` +
 `Payment Reference: ${invoice.number}\n\n` +
 `TAX & COMPLIANCE NOTE:\n` +
 `Services provided remotely by a non-US foreign independent contractor. Form W-8BEN (US) or EU Reverse Charge documentation available upon request.\n\n` +

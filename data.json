@@ -312,12 +312,12 @@
   ],
   "nextInvoiceNum": 1007,
   "bankDetails": {
-    "bankName": "Eastern Bank PLC",
-    "accountName": "Md Abu Zannat",
-    "accountNumber": "123456789012",
-    "routingNumber": "021000021",
-    "swiftCode": "EBLDBDDH",
-    "branch": "Rangpur Branch, Bangladesh",
-    "updatedAt": "2026-09-04T07:37:16.283Z"
+    "bankName": "Dutch Bangla Bank PLC",
+    "accountName": "Abu Zannat Md Mosaddek",
+    "accountNumber": "1621010088950",
+    "routingNumber": "090851456",
+    "swiftCode": "DBBLBDDH",
+    "branch": "Rangpur Branch",
+    "updatedAt": "2026-09-04T07:38:00.000Z"
   }
 }
