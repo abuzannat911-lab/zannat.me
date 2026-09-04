@@ -1097,8 +1097,12 @@ Bangladesh</textarea>
                 </div>
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-top: 12px;">
                   <div class="form-group">
-                    <label>SWIFT / BIC / ABA Routing Code</label>
-                    <input type="text" id="inv-bank-swift" class="form-control" placeholder="e.g. EBLDBDDH (SWIFT) or 9-digit Routing #">
+                    <label>Routing Number (USA 9-digit ABA / ACH / Sort Code)</label>
+                    <input type="text" id="inv-bank-routing" class="form-control" placeholder="e.g. 021000021 (9-digit ABA Routing)">
+                  </div>
+                  <div class="form-group">
+                    <label>SWIFT / BIC Code (International Wire)</label>
+                    <input type="text" id="inv-bank-swift" class="form-control" placeholder="e.g. EBLDBDDH (SWIFT / BIC)">
                   </div>
                   <div class="form-group">
                     <label>Branch / Bank Country</label>

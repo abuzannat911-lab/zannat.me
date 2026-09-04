@@ -39,6 +39,7 @@ const DEFAULT_DATA = {
         bankName: "Eastern Bank PLC",
         accountName: "Abu Zannat",
         accountNumber: "1234567890",
+        routingNumber: "091000019",
         swiftCode: "EBLDBDDH",
         branch: "Rangpur Branch, Bangladesh"
     }
@@ -641,11 +642,12 @@ app.get('/api/bank-details', (req, res) => {
 app.post('/api/bank-details', (req, res) => {
     try {
         const data = loadData();
-        const { bankName, accountName, accountNumber, swiftCode, branch } = req.body;
+        const { bankName, accountName, accountNumber, routingNumber, swiftCode, branch } = req.body;
         data.bankDetails = {
             bankName: (bankName || '').trim(),
             accountName: (accountName || '').trim(),
             accountNumber: (accountNumber || '').trim(),
+            routingNumber: (routingNumber || '').trim(),
             swiftCode: (swiftCode || '').trim(),
             branch: (branch || '').trim(),
             updatedAt: new Date().toISOString()

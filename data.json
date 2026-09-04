@@ -243,9 +243,51 @@
       "status": "Paid",
       "id": "inv_1788507149345_durj",
       "createdAt": "2026-09-04T07:32:29.345Z"
+    },
+    {
+      "clientPhone": "+1 555 123 4567",
+      "subtotal": 250,
+      "total": 250,
+      "clientEmail": "billing@acme.com",
+      "taxRate": 0,
+      "bankAccountNo": "123456789012",
+      "currency": "USD",
+      "number": "INV-1006",
+      "bankBranch": "Rangpur Branch, Bangladesh",
+      "clientCompany": "Acme Inc",
+      "clientName": "Acme US Corp",
+      "clientVat": "EIN 12-3456789",
+      "poNumber": "PO-2026-99",
+      "bankRouting": "021000021",
+      "items": [
+        {
+          "rate": 250,
+          "desc": "WordPress Performance Optimization",
+          "qty": 1
+        }
+      ],
+      "bankName": "Eastern Bank PLC",
+      "bankAccountName": "Md Abu Zannat",
+      "clientAddress": "100 Broadway, NY, USA",
+      "paymentTerms": "Net 15",
+      "taxAmount": 0,
+      "bankSwift": "EBLDBDDH",
+      "id": "inv_1788507442671_cai0",
+      "createdAt": "2026-09-04T07:37:22.671Z"
     }
   ],
   "clients": [
+    {
+      "id": "cli_1788507442671_bj40",
+      "name": "Acme US Corp",
+      "company": "Acme Inc",
+      "email": "billing@acme.com",
+      "phone": "+1 555 123 4567",
+      "vat": "EIN 12-3456789",
+      "address": "100 Broadway, NY, USA",
+      "updatedAt": "2026-09-04T07:37:22.671Z",
+      "createdAt": "2026-09-04T07:37:22.671Z"
+    },
     {
       "id": "cli_1",
       "name": "Claudio Campesato",
@@ -268,13 +310,14 @@
       "createdAt": "2026-06-22T10:00:00.000Z"
     }
   ],
-  "nextInvoiceNum": 1006,
+  "nextInvoiceNum": 1007,
   "bankDetails": {
     "bankName": "Eastern Bank PLC",
     "accountName": "Md Abu Zannat",
     "accountNumber": "123456789012",
+    "routingNumber": "021000021",
     "swiftCode": "EBLDBDDH",
     "branch": "Rangpur Branch, Bangladesh",
-    "updatedAt": "2026-09-04T07:21:02.165Z"
+    "updatedAt": "2026-09-04T07:37:16.283Z"
   }
 }

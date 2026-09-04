@@ -185,6 +185,7 @@
                 bankName: "Eastern Bank PLC",
                 accountName: "Abu Zannat",
                 accountNumber: "1234567890",
+                routingNumber: "091000019",
                 swiftCode: "EBLDBDDH",
                 branch: "Rangpur Branch, Bangladesh"
             };
@@ -1892,6 +1893,7 @@
             const invBankNameEl = document.getElementById('inv-bank-name');
             const invBankAccountNameEl = document.getElementById('inv-bank-account-name');
             const invBankAccountNoEl = document.getElementById('inv-bank-account-no');
+            const invBankRoutingEl = document.getElementById('inv-bank-routing');
             const invBankSwiftEl = document.getElementById('inv-bank-swift');
             const invBankBranchEl = document.getElementById('inv-bank-branch');
 
@@ -1920,6 +1922,7 @@
             if (invBankNameEl) invBankNameEl.value = defaultBank.bankName || '';
             if (invBankAccountNameEl) invBankAccountNameEl.value = defaultBank.accountName || '';
             if (invBankAccountNoEl) invBankAccountNoEl.value = defaultBank.accountNumber || '';
+            if (invBankRoutingEl) invBankRoutingEl.value = defaultBank.routingNumber || '';
             if (invBankSwiftEl) invBankSwiftEl.value = defaultBank.swiftCode || '';
             if (invBankBranchEl) invBankBranchEl.value = defaultBank.branch || '';
 
@@ -1936,12 +1939,14 @@
             const invBankNameEl = document.getElementById('inv-bank-name');
             const invBankAccountNameEl = document.getElementById('inv-bank-account-name');
             const invBankAccountNoEl = document.getElementById('inv-bank-account-no');
+            const invBankRoutingEl = document.getElementById('inv-bank-routing');
             const invBankSwiftEl = document.getElementById('inv-bank-swift');
             const invBankBranchEl = document.getElementById('inv-bank-branch');
 
             if (invBankNameEl) invBankNameEl.value = bank.bankName || '';
             if (invBankAccountNameEl) invBankAccountNameEl.value = bank.accountName || '';
             if (invBankAccountNoEl) invBankAccountNoEl.value = bank.accountNumber || '';
+            if (invBankRoutingEl) invBankRoutingEl.value = bank.routingNumber || '';
             if (invBankSwiftEl) invBankSwiftEl.value = bank.swiftCode || '';
             if (invBankBranchEl) invBankBranchEl.value = bank.branch || '';
 
@@ -1953,6 +1958,7 @@
                 bankName: (document.getElementById('inv-bank-name')?.value || '').trim(),
                 accountName: (document.getElementById('inv-bank-account-name')?.value || '').trim(),
                 accountNumber: (document.getElementById('inv-bank-account-no')?.value || '').trim(),
+                routingNumber: (document.getElementById('inv-bank-routing')?.value || '').trim(),
                 swiftCode: (document.getElementById('inv-bank-swift')?.value || '').trim(),
                 branch: (document.getElementById('inv-bank-branch')?.value || '').trim()
             };
@@ -2094,6 +2100,7 @@
                 bankName: document.getElementById('inv-bank-name')?.value || '',
                 bankAccountName: document.getElementById('inv-bank-account-name')?.value || '',
                 bankAccountNo: document.getElementById('inv-bank-account-no')?.value || '',
+                bankRouting: document.getElementById('inv-bank-routing')?.value || '',
                 bankSwift: document.getElementById('inv-bank-swift')?.value || '',
                 bankBranch: document.getElementById('inv-bank-branch')?.value || '',
                 saveClient: document.getElementById('inv-save-client-checkbox')?.checked ?? true,
@@ -2325,7 +2332,8 @@
 `Bank Name: ${invoice.bankName || 'Eastern Bank PLC'}\n` +
 `Beneficiary Name: ${invoice.bankAccountName || 'Abu Zannat'}\n` +
 `Account # / IBAN: ${invoice.bankAccountNo || '1234567890'}\n` +
-`SWIFT / BIC / Routing: ${invoice.bankSwift || 'EBLDBDDH'}\n` +
+(invoice.bankRouting || invoice.bankRoutingNumber ? `Routing Number (USA ACH): ${invoice.bankRouting || invoice.bankRoutingNumber}\n` : '') +
+`SWIFT / BIC (Wire): ${invoice.bankSwift || 'EBLDBDDH'}\n` +
 `Branch: ${invoice.bankBranch || 'Rangpur Branch, Bangladesh'}\n` +
 `Payment Reference: ${invoice.number}\n\n` +
 `TAX & COMPLIANCE NOTE:\n` +
@@ -2431,7 +2439,7 @@
             const taxAmountVal = typeof invoice.taxAmount === 'number' ? invoice.taxAmount : (parseFloat(invoice.taxAmount) || 0);
             const totalVal = typeof invoice.total === 'number' ? invoice.total : (parseFloat(invoice.total) || (subtotalVal + taxAmountVal));
             const vatDisplay = invoice.clientVat || invoice.clientTaxId;
-            const hasBank = invoice.bankName || invoice.bankAccountName || invoice.bankAccountNo || invoice.bankSwift || invoice.bankBranch;
+            const hasBank = invoice.bankName || invoice.bankAccountName || invoice.bankAccountNo || invoice.bankRouting || invoice.bankRoutingNumber || invoice.bankSwift || invoice.bankBranch;
 
             previewEl.innerHTML = `
                 <!-- International Invoice Header -->
@@ -2524,7 +2532,8 @@
                         ${invoice.bankName ? `<div><span style="color: #64748b; font-size: 0.72rem; text-transform: uppercase; font-weight: 700; display: block; margin-bottom: 2px;">Bank Name</span><strong style="color: #0f172a;">${invoice.bankName}</strong></div>` : ''}
                         ${invoice.bankAccountName ? `<div><span style="color: #64748b; font-size: 0.72rem; text-transform: uppercase; font-weight: 700; display: block; margin-bottom: 2px;">Beneficiary / Account Holder</span><strong style="color: #0f172a;">${invoice.bankAccountName}</strong></div>` : ''}
                         ${invoice.bankAccountNo ? `<div><span style="color: #64748b; font-size: 0.72rem; text-transform: uppercase; font-weight: 700; display: block; margin-bottom: 2px;">Account # / IBAN</span><strong style="color: #0f172a; font-family: monospace; font-size: 0.92rem;">${invoice.bankAccountNo}</strong></div>` : ''}
-                        ${invoice.bankSwift ? `<div><span style="color: #64748b; font-size: 0.72rem; text-transform: uppercase; font-weight: 700; display: block; margin-bottom: 2px;">SWIFT / BIC / ABA Routing</span><strong style="color: #0f172a; font-family: monospace; font-size: 0.92rem;">${invoice.bankSwift}</strong></div>` : ''}
+                        ${(invoice.bankRouting || invoice.bankRoutingNumber) ? `<div><span style="color: #64748b; font-size: 0.72rem; text-transform: uppercase; font-weight: 700; display: block; margin-bottom: 2px;">ABA Routing # (USA / ACH)</span><strong style="color: #0f172a; font-family: monospace; font-size: 0.92rem;">${invoice.bankRouting || invoice.bankRoutingNumber}</strong></div>` : ''}
+                        ${invoice.bankSwift ? `<div><span style="color: #64748b; font-size: 0.72rem; text-transform: uppercase; font-weight: 700; display: block; margin-bottom: 2px;">SWIFT / BIC (International Wire)</span><strong style="color: #0f172a; font-family: monospace; font-size: 0.92rem;">${invoice.bankSwift}</strong></div>` : ''}
                         ${invoice.bankBranch ? `<div><span style="color: #64748b; font-size: 0.72rem; text-transform: uppercase; font-weight: 700; display: block; margin-bottom: 2px;">Bank Location / Country</span><strong style="color: #0f172a;">${invoice.bankBranch}</strong></div>` : ''}
                     </div>
                     <div style="font-size: 0.75rem; color: #166534; margin-top: 10px; border-top: 1px dashed #86efac; padding-top: 6px;">
@@ -2670,6 +2679,7 @@
             const invBankNameEl = document.getElementById('inv-bank-name');
             const invBankAccountNameEl = document.getElementById('inv-bank-account-name');
             const invBankAccountNoEl = document.getElementById('inv-bank-account-no');
+            const invBankRoutingEl = document.getElementById('inv-bank-routing');
             const invBankSwiftEl = document.getElementById('inv-bank-swift');
             const invBankBranchEl = document.getElementById('inv-bank-branch');
             const invTaxEl = document.getElementById('inv-tax-rate');
@@ -2698,6 +2708,7 @@
             if (invBankNameEl) invBankNameEl.value = invoice.bankName !== undefined ? invoice.bankName : (defaultBank.bankName || '');
             if (invBankAccountNameEl) invBankAccountNameEl.value = invoice.bankAccountName !== undefined ? invoice.bankAccountName : (defaultBank.accountName || '');
             if (invBankAccountNoEl) invBankAccountNoEl.value = invoice.bankAccountNo !== undefined ? invoice.bankAccountNo : (defaultBank.accountNumber || '');
+            if (invBankRoutingEl) invBankRoutingEl.value = invoice.bankRouting !== undefined ? invoice.bankRouting : (invoice.bankRoutingNumber !== undefined ? invoice.bankRoutingNumber : (defaultBank.routingNumber || ''));
             if (invBankSwiftEl) invBankSwiftEl.value = invoice.bankSwift !== undefined ? invoice.bankSwift : (defaultBank.swiftCode || '');
             if (invBankBranchEl) invBankBranchEl.value = invoice.bankBranch !== undefined ? invoice.bankBranch : (defaultBank.branch || '');
 
@@ -2754,7 +2765,7 @@
             const statusColor = status === 'Unpaid' ? '#991b1b' : (status === 'Due' ? '#92400e' : '#166534');
             const statusBg = status === 'Unpaid' ? '#fee2e2' : (status === 'Due' ? '#fef3c7' : '#dcfce7');
             const vatDisplay = invoice.clientVat || invoice.clientTaxId;
-            const hasBank = invoice.bankName || invoice.bankAccountName || invoice.bankAccountNo || invoice.bankSwift || invoice.bankBranch;
+            const hasBank = invoice.bankName || invoice.bankAccountName || invoice.bankAccountNo || invoice.bankRouting || invoice.bankRoutingNumber || invoice.bankSwift || invoice.bankBranch;
 
             let itemsRows = '';
             const items = Array.isArray(invoice.items) && invoice.items.length > 0 ? invoice.items : [
@@ -2899,7 +2910,8 @@
                 ${invoice.bankName ? `<div><span style="color: #64748b; font-size: 0.72rem; text-transform: uppercase; font-weight: 700; display: block; margin-bottom: 2px;">Bank Name</span><strong style="color: #0f172a;">${invoice.bankName}</strong></div>` : ''}
                 ${invoice.bankAccountName ? `<div><span style="color: #64748b; font-size: 0.72rem; text-transform: uppercase; font-weight: 700; display: block; margin-bottom: 2px;">Beneficiary / Account Holder</span><strong style="color: #0f172a;">${invoice.bankAccountName}</strong></div>` : ''}
                 ${invoice.bankAccountNo ? `<div><span style="color: #64748b; font-size: 0.72rem; text-transform: uppercase; font-weight: 700; display: block; margin-bottom: 2px;">Account # / IBAN</span><strong style="color: #0f172a; font-family: monospace; font-size: 0.92rem;">${invoice.bankAccountNo}</strong></div>` : ''}
-                ${invoice.bankSwift ? `<div><span style="color: #64748b; font-size: 0.72rem; text-transform: uppercase; font-weight: 700; display: block; margin-bottom: 2px;">SWIFT / BIC / ABA Routing</span><strong style="color: #0f172a; font-family: monospace; font-size: 0.92rem;">${invoice.bankSwift}</strong></div>` : ''}
+                ${(invoice.bankRouting || invoice.bankRoutingNumber) ? `<div><span style="color: #64748b; font-size: 0.72rem; text-transform: uppercase; font-weight: 700; display: block; margin-bottom: 2px;">ABA Routing # (USA / ACH)</span><strong style="color: #0f172a; font-family: monospace; font-size: 0.92rem;">${invoice.bankRouting || invoice.bankRoutingNumber}</strong></div>` : ''}
+                ${invoice.bankSwift ? `<div><span style="color: #64748b; font-size: 0.72rem; text-transform: uppercase; font-weight: 700; display: block; margin-bottom: 2px;">SWIFT / BIC (International Wire)</span><strong style="color: #0f172a; font-family: monospace; font-size: 0.92rem;">${invoice.bankSwift}</strong></div>` : ''}
                 ${invoice.bankBranch ? `<div><span style="color: #64748b; font-size: 0.72rem; text-transform: uppercase; font-weight: 700; display: block; margin-bottom: 2px;">Bank Location / Country</span><strong style="color: #0f172a;">${invoice.bankBranch}</strong></div>` : ''}
             </div>
             <div style="font-size: 0.75rem; color: #166534; margin-top: 10px; border-top: 1px dashed #86efac; padding-top: 6px;">
