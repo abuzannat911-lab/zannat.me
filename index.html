@@ -1049,10 +1049,51 @@ Bangladesh</textarea>
                 </div>
               </div>
 
+              <!-- Bank Details -->
+              <div class="card" style="padding: 24px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
+                  <h3 style="font-size: 1.1rem; font-weight: 700; color: var(--accent-purple); display: flex; align-items: center; gap: 8px; margin: 0;">
+                    <i data-lucide="landmark" style="width: 18px; height: 18px;"></i> Your Bank Account & Payment Details
+                  </h3>
+                  <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <button type="button" class="btn btn-outline btn-sm" onclick="app.loadDefaultBankDetails()" title="Load your saved default bank details into this invoice" style="padding: 6px 12px; font-size: 0.8rem; display: flex; align-items: center; gap: 5px;">
+                      <i data-lucide="rotate-ccw" style="width: 13px; height: 13px;"></i> Load Defaults
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="app.saveDefaultBankDetails()" title="Save current bank info as global default for future invoices" style="padding: 6px 12px; font-size: 0.8rem; display: flex; align-items: center; gap: 5px;">
+                      <i data-lucide="bookmark-check" style="width: 13px; height: 13px; color: var(--accent-green);"></i> Save as Default
+                    </button>
+                  </div>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+                  <div class="form-group">
+                    <label>Bank Name</label>
+                    <input type="text" id="inv-bank-name" class="form-control" placeholder="e.g. Eastern Bank PLC / Chase Bank">
+                  </div>
+                  <div class="form-group">
+                    <label>Account / Beneficiary Name</label>
+                    <input type="text" id="inv-bank-account-name" class="form-control" placeholder="e.g. Abu Zannat">
+                  </div>
+                  <div class="form-group">
+                    <label>Account Number / IBAN</label>
+                    <input type="text" id="inv-bank-account-no" class="form-control" placeholder="e.g. 1234567890 or GB29...">
+                  </div>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-top: 12px;">
+                  <div class="form-group">
+                    <label>SWIFT / BIC / Routing Code</label>
+                    <input type="text" id="inv-bank-swift" class="form-control" placeholder="e.g. EBLDBDDH or Routing #">
+                  </div>
+                  <div class="form-group">
+                    <label>Branch / Country</label>
+                    <input type="text" id="inv-bank-branch" class="form-control" placeholder="e.g. Rangpur Branch, Bangladesh">
+                  </div>
+                </div>
+              </div>
+
               <!-- Notes & Actions -->
               <div class="card" style="padding: 24px;">
                 <div class="form-group">
-                  <label>Notes / Payment Instructions</label>
+                  <label>Notes / Additional Payment Instructions</label>
                   <textarea id="inv-notes" class="form-control" rows="3" placeholder="Payment via bank transfer, PayPal, etc."></textarea>
                 </div>
               </div>

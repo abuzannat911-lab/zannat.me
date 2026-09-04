@@ -231,5 +231,13 @@
       "createdAt": "2026-06-22T10:00:00.000Z"
     }
   ],
-  "nextInvoiceNum": 1005
+  "nextInvoiceNum": 1005,
+  "bankDetails": {
+    "bankName": "Eastern Bank PLC",
+    "accountName": "Md Abu Zannat",
+    "accountNumber": "123456789012",
+    "swiftCode": "EBLDBDDH",
+    "branch": "Rangpur Branch, Bangladesh",
+    "updatedAt": "2026-09-04T07:21:02.165Z"
+  }
 }

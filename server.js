@@ -34,7 +34,14 @@ const DEFAULT_DATA = {
     smtpConfig: {},
     invoices: [],
     clients: [],
-    nextInvoiceNum: 1001
+    nextInvoiceNum: 1001,
+    bankDetails: {
+        bankName: "Eastern Bank PLC",
+        accountName: "Abu Zannat",
+        accountNumber: "1234567890",
+        swiftCode: "EBLDBDDH",
+        branch: "Rangpur Branch, Bangladesh"
+    }
 };
 
 // Nodemailer dynamic transporter helper
@@ -120,6 +127,10 @@ function loadData() {
         }
         if (!data.smtpConfig) {
             data.smtpConfig = {};
+            modified = true;
+        }
+        if (!data.bankDetails) {
+            data.bankDetails = JSON.parse(JSON.stringify(DEFAULT_DATA.bankDetails));
             modified = true;
         }
         if (modified) {
@@ -612,6 +623,35 @@ app.post('/api/clients/delete', (req, res) => {
         data.clients = data.clients.filter(c => c.id !== id);
         saveData(data);
         res.json({ success: true, clients: data.clients });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ============ BANK DETAILS API ============
+app.get('/api/bank-details', (req, res) => {
+    try {
+        const data = loadData();
+        res.json({ success: true, bankDetails: data.bankDetails || DEFAULT_DATA.bankDetails });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/bank-details', (req, res) => {
+    try {
+        const data = loadData();
+        const { bankName, accountName, accountNumber, swiftCode, branch } = req.body;
+        data.bankDetails = {
+            bankName: (bankName || '').trim(),
+            accountName: (accountName || '').trim(),
+            accountNumber: (accountNumber || '').trim(),
+            swiftCode: (swiftCode || '').trim(),
+            branch: (branch || '').trim(),
+            updatedAt: new Date().toISOString()
+        };
+        saveData(data);
+        res.json({ success: true, bankDetails: data.bankDetails });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

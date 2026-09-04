@@ -14,6 +14,13 @@
             invoices: [],
             clients: [],
             nextInvoiceNum: 1001,
+            bankDetails: {
+                bankName: "Eastern Bank PLC",
+                accountName: "Abu Zannat",
+                accountNumber: "1234567890",
+                swiftCode: "EBLDBDDH",
+                branch: "Rangpur Branch, Bangladesh"
+            },
             smtpConfig: {},
             homepageContent: {},
             isAuthenticated: false,
@@ -174,6 +181,17 @@
             this.state.invoices = data.invoices || [];
             this.state.clients = data.clients || [];
             this.state.nextInvoiceNum = data.nextInvoiceNum || 1001;
+            this.state.bankDetails = data.bankDetails || {
+                bankName: "Eastern Bank PLC",
+                accountName: "Abu Zannat",
+                accountNumber: "1234567890",
+                swiftCode: "EBLDBDDH",
+                branch: "Rangpur Branch, Bangladesh"
+            };
+            const localSavedBank = localStorage.getItem('zannat_bank_details');
+            if (localSavedBank) {
+                try { this.state.bankDetails = JSON.parse(localSavedBank); } catch (e) {}
+            }
             this.state.homepageContent = data.homepageContent || {};
             this.state.smtpConfig = data.smtpConfig || {};
 
@@ -1869,6 +1887,11 @@
             const invClientTaxEl = document.getElementById('inv-client-tax-id');
             const invClientAddressEl = document.getElementById('inv-client-address');
             const invClientSelectEl = document.getElementById('inv-client-select');
+            const invBankNameEl = document.getElementById('inv-bank-name');
+            const invBankAccountNameEl = document.getElementById('inv-bank-account-name');
+            const invBankAccountNoEl = document.getElementById('inv-bank-account-no');
+            const invBankSwiftEl = document.getElementById('inv-bank-swift');
+            const invBankBranchEl = document.getElementById('inv-bank-branch');
 
             if (invIdEl) invIdEl.value = '';
             if (invNumEl) invNumEl.value = `INV-${this.state.nextInvoiceNum || 1001}`;
@@ -1888,12 +1911,66 @@
                 invAddressEl.value = `Astha Building\nDorshona Mor, Rangpur City Bypass\nRangpur city, Rangpur\nBangladesh`;
             }
 
+            // Populate default bank details
+            const defaultBank = this.state.bankDetails || {};
+            if (invBankNameEl) invBankNameEl.value = defaultBank.bankName || '';
+            if (invBankAccountNameEl) invBankAccountNameEl.value = defaultBank.accountName || '';
+            if (invBankAccountNoEl) invBankAccountNoEl.value = defaultBank.accountNumber || '';
+            if (invBankSwiftEl) invBankSwiftEl.value = defaultBank.swiftCode || '';
+            if (invBankBranchEl) invBankBranchEl.value = defaultBank.branch || '';
+
             // Clear items table and add initial row
             const tbody = document.getElementById('invoice-items-tbody');
             if (tbody) tbody.innerHTML = '';
             
             this.addInvoiceItemRow('WordPress Core & Plugin Bug Diagnostics', 1, 150);
             this.calculateInvoiceTotals();
+        },
+
+        loadDefaultBankDetails() {
+            const bank = this.state.bankDetails || {};
+            const invBankNameEl = document.getElementById('inv-bank-name');
+            const invBankAccountNameEl = document.getElementById('inv-bank-account-name');
+            const invBankAccountNoEl = document.getElementById('inv-bank-account-no');
+            const invBankSwiftEl = document.getElementById('inv-bank-swift');
+            const invBankBranchEl = document.getElementById('inv-bank-branch');
+
+            if (invBankNameEl) invBankNameEl.value = bank.bankName || '';
+            if (invBankAccountNameEl) invBankAccountNameEl.value = bank.accountName || '';
+            if (invBankAccountNoEl) invBankAccountNoEl.value = bank.accountNumber || '';
+            if (invBankSwiftEl) invBankSwiftEl.value = bank.swiftCode || '';
+            if (invBankBranchEl) invBankBranchEl.value = bank.branch || '';
+
+            this.showToast('Default bank details loaded into form', 'info');
+        },
+
+        async saveDefaultBankDetails() {
+            const bankData = {
+                bankName: (document.getElementById('inv-bank-name')?.value || '').trim(),
+                accountName: (document.getElementById('inv-bank-account-name')?.value || '').trim(),
+                accountNumber: (document.getElementById('inv-bank-account-no')?.value || '').trim(),
+                swiftCode: (document.getElementById('inv-bank-swift')?.value || '').trim(),
+                branch: (document.getElementById('inv-bank-branch')?.value || '').trim()
+            };
+
+            this.state.bankDetails = bankData;
+            localStorage.setItem('zannat_bank_details', JSON.stringify(bankData));
+
+            try {
+                const res = await fetch(this.getApiUrl('/api/bank-details'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(bankData)
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.bankDetails) this.state.bankDetails = data.bankDetails;
+                }
+            } catch (err) {
+                console.warn('Bank details saved to local storage mode.', err);
+            }
+
+            this.showToast('Bank details saved as default successfully!', 'success');
         },
 
         getCurrencySymbol(currency = 'USD') {
@@ -2008,6 +2085,11 @@
                 clientPhone: document.getElementById('inv-client-phone')?.value || '',
                 clientVat: document.getElementById('inv-client-tax-id')?.value || '',
                 clientAddress: document.getElementById('inv-client-address')?.value || '',
+                bankName: document.getElementById('inv-bank-name')?.value || '',
+                bankAccountName: document.getElementById('inv-bank-account-name')?.value || '',
+                bankAccountNo: document.getElementById('inv-bank-account-no')?.value || '',
+                bankSwift: document.getElementById('inv-bank-swift')?.value || '',
+                bankBranch: document.getElementById('inv-bank-branch')?.value || '',
                 saveClient: document.getElementById('inv-save-client-checkbox')?.checked ?? true,
                 items: items,
                 subtotal: subtotal,
@@ -2313,6 +2395,22 @@
                     </div>
                 </div>
 
+                <!-- Bank Transfer Details -->
+                ${(invoice.bankName || invoice.bankAccountName || invoice.bankAccountNo || invoice.bankSwift || invoice.bankBranch) ? `
+                <div style="margin-bottom: 24px; padding: 16px 20px; background: #f0fdf4; border: 1px solid #bbf7d0; border-left: 4px solid #16a34a; border-radius: 8px;">
+                    <div style="font-weight: 800; font-size: 0.9rem; color: #166534; margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+                        <span>🏦 Bank & Wire Payment Information</span>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; font-size: 0.85rem;">
+                        ${invoice.bankName ? `<div><span style="color: #64748b; font-size: 0.72rem; text-transform: uppercase; font-weight: 700; display: block; margin-bottom: 2px;">Bank Name</span><strong style="color: #0f172a;">${invoice.bankName}</strong></div>` : ''}
+                        ${invoice.bankAccountName ? `<div><span style="color: #64748b; font-size: 0.72rem; text-transform: uppercase; font-weight: 700; display: block; margin-bottom: 2px;">Beneficiary / Name</span><strong style="color: #0f172a;">${invoice.bankAccountName}</strong></div>` : ''}
+                        ${invoice.bankAccountNo ? `<div><span style="color: #64748b; font-size: 0.72rem; text-transform: uppercase; font-weight: 700; display: block; margin-bottom: 2px;">Account No / IBAN</span><strong style="color: #0f172a; font-family: monospace;">${invoice.bankAccountNo}</strong></div>` : ''}
+                        ${invoice.bankSwift ? `<div><span style="color: #64748b; font-size: 0.72rem; text-transform: uppercase; font-weight: 700; display: block; margin-bottom: 2px;">SWIFT / Routing</span><strong style="color: #0f172a; font-family: monospace;">${invoice.bankSwift}</strong></div>` : ''}
+                        ${invoice.bankBranch ? `<div><span style="color: #64748b; font-size: 0.72rem; text-transform: uppercase; font-weight: 700; display: block; margin-bottom: 2px;">Branch / Location</span><strong style="color: #0f172a;">${invoice.bankBranch}</strong></div>` : ''}
+                    </div>
+                </div>
+                ` : ''}
+
                 <!-- Notes / Footer -->
                 ${invoice.notes ? `
                 <div style="padding: 16px; background: #f8fafc; border-radius: 6px; border-left: 4px solid #6366f1; font-size: 0.85rem; color: #475569;">
@@ -2429,6 +2527,11 @@
             const invClientTaxEl = document.getElementById('inv-client-tax-id');
             const invClientAddressEl = document.getElementById('inv-client-address');
             const invClientSelectEl = document.getElementById('inv-client-select');
+            const invBankNameEl = document.getElementById('inv-bank-name');
+            const invBankAccountNameEl = document.getElementById('inv-bank-account-name');
+            const invBankAccountNoEl = document.getElementById('inv-bank-account-no');
+            const invBankSwiftEl = document.getElementById('inv-bank-swift');
+            const invBankBranchEl = document.getElementById('inv-bank-branch');
             const invTaxEl = document.getElementById('inv-tax-rate');
             const invNotesEl = document.getElementById('inv-notes');
 
@@ -2446,6 +2549,14 @@
             if (invClientPhoneEl) invClientPhoneEl.value = invoice.clientPhone || '';
             if (invClientTaxEl) invClientTaxEl.value = invoice.clientVat || invoice.clientTaxId || '';
             if (invClientAddressEl) invClientAddressEl.value = invoice.clientAddress || '';
+
+            const defaultBank = this.state.bankDetails || {};
+            if (invBankNameEl) invBankNameEl.value = invoice.bankName !== undefined ? invoice.bankName : (defaultBank.bankName || '');
+            if (invBankAccountNameEl) invBankAccountNameEl.value = invoice.bankAccountName !== undefined ? invoice.bankAccountName : (defaultBank.accountName || '');
+            if (invBankAccountNoEl) invBankAccountNoEl.value = invoice.bankAccountNo !== undefined ? invoice.bankAccountNo : (defaultBank.accountNumber || '');
+            if (invBankSwiftEl) invBankSwiftEl.value = invoice.bankSwift !== undefined ? invoice.bankSwift : (defaultBank.swiftCode || '');
+            if (invBankBranchEl) invBankBranchEl.value = invoice.bankBranch !== undefined ? invoice.bankBranch : (defaultBank.branch || '');
+
             if (invTaxEl) invTaxEl.value = invoice.taxRate !== undefined ? invoice.taxRate : 0;
             if (invNotesEl) invNotesEl.value = invoice.notes || '';
 
@@ -2620,6 +2731,22 @@
                 </div>
             </div>
         </div>
+
+        <!-- Bank Transfer Details -->
+        ${(invoice.bankName || invoice.bankAccountName || invoice.bankAccountNo || invoice.bankSwift || invoice.bankBranch) ? `
+        <div style="margin-bottom: 24px; padding: 16px 20px; background: #f0fdf4; border: 1px solid #bbf7d0; border-left: 4px solid #16a34a; border-radius: 8px;">
+            <div style="font-weight: 800; font-size: 0.9rem; color: #166534; margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+                <span>🏦 Bank & Wire Payment Information</span>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; font-size: 0.85rem;">
+                ${invoice.bankName ? `<div><span style="color: #64748b; font-size: 0.72rem; text-transform: uppercase; font-weight: 700; display: block; margin-bottom: 2px;">Bank Name</span><strong style="color: #0f172a;">${invoice.bankName}</strong></div>` : ''}
+                ${invoice.bankAccountName ? `<div><span style="color: #64748b; font-size: 0.72rem; text-transform: uppercase; font-weight: 700; display: block; margin-bottom: 2px;">Beneficiary / Name</span><strong style="color: #0f172a;">${invoice.bankAccountName}</strong></div>` : ''}
+                ${invoice.bankAccountNo ? `<div><span style="color: #64748b; font-size: 0.72rem; text-transform: uppercase; font-weight: 700; display: block; margin-bottom: 2px;">Account No / IBAN</span><strong style="color: #0f172a; font-family: monospace;">${invoice.bankAccountNo}</strong></div>` : ''}
+                ${invoice.bankSwift ? `<div><span style="color: #64748b; font-size: 0.72rem; text-transform: uppercase; font-weight: 700; display: block; margin-bottom: 2px;">SWIFT / Routing</span><strong style="color: #0f172a; font-family: monospace;">${invoice.bankSwift}</strong></div>` : ''}
+                ${invoice.bankBranch ? `<div><span style="color: #64748b; font-size: 0.72rem; text-transform: uppercase; font-weight: 700; display: block; margin-bottom: 2px;">Branch / Location</span><strong style="color: #0f172a;">${invoice.bankBranch}</strong></div>` : ''}
+            </div>
+        </div>
+        ` : ''}
 
         ${invoice.notes ? `
         <div style="padding: 16px; background: #f8fafc; border-radius: 6px; border-left: 4px solid #6366f1; font-size: 0.85rem; color: #475569;">
