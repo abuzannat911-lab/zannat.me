@@ -904,7 +904,7 @@ Bangladesh</textarea>
                 <!-- Invoice Meta -->
                 <div class="card" style="padding: 24px;">
                   <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 16px; color: var(--accent-cyan); display: flex; align-items: center; gap: 8px;">
-                    <i data-lucide="hash" style="width: 18px; height: 18px;"></i> Invoice Details
+                    <i data-lucide="hash" style="width: 18px; height: 18px;"></i> Invoice Details & Compliance
                   </h3>
                   <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
                     <div class="form-group">
@@ -912,31 +912,45 @@ Bangladesh</textarea>
                       <input type="text" id="inv-number" class="form-control" readonly style="opacity: 0.7; cursor: not-allowed;">
                     </div>
                     <div class="form-group">
-                      <label>Date</label>
+                      <label>Issue Date</label>
                       <input type="date" id="inv-date" class="form-control">
+                    </div>
+                    <div class="form-group">
+                      <label>Payment Terms</label>
+                      <select id="inv-payment-terms" class="form-control">
+                        <option value="Due on Receipt">Due on Receipt</option>
+                        <option value="Net 7 Days">Net 7 Days</option>
+                        <option value="Net 14 Days">Net 14 Days</option>
+                        <option value="Net 30 Days">Net 30 Days</option>
+                        <option value="Net 60 Days">Net 60 Days</option>
+                      </select>
                     </div>
                     <div class="form-group">
                       <label>Due Date</label>
                       <input type="date" id="inv-due-date" class="form-control">
                     </div>
                     <div class="form-group">
+                      <label>PO / Project Ref # (Optional)</label>
+                      <input type="text" id="inv-po-number" class="form-control" placeholder="e.g. PO-9821 or Project #">
+                    </div>
+                    <div class="form-group">
                       <label>Currency</label>
                       <select id="inv-currency" class="form-control" onchange="app.calculateInvoiceTotals()">
-                        <option value="USD">USD ($)</option>
-                        <option value="EUR">EUR (€)</option>
-                        <option value="GBP">GBP (£)</option>
-                        <option value="BDT">BDT (৳)</option>
-                        <option value="CAD">CAD (CA$)</option>
-                        <option value="AUD">AUD (AU$)</option>
+                        <option value="USD">USD ($) - United States</option>
+                        <option value="EUR">EUR (€) - European Union</option>
+                        <option value="GBP">GBP (£) - United Kingdom</option>
+                        <option value="CAD">CAD (CA$) - Canada</option>
+                        <option value="AUD">AUD (AU$) - Australia</option>
+                        <option value="BDT">BDT (৳) - Bangladesh</option>
                       </select>
                     </div>
                     <div class="form-group">
                       <label>Payment Method</label>
                       <select id="inv-payment-method" class="form-control">
-                        <option value="Bank Transfer">Bank Transfer</option>
-                        <option value="MFS (bKash / Nagad / Rocket)">MFS (bKash / Nagad / Rocket)</option>
+                        <option value="International Wire / ACH / SEPA">International Wire / ACH / SEPA</option>
+                        <option value="Wise / Remitly / Xoom">Wise / Remitly / Xoom</option>
                         <option value="Payoneer">Payoneer</option>
-                        <option value="Xoom / Remitly / Wise">Xoom / Remitly / Wise</option>
+                        <option value="MFS (bKash / Nagad / Rocket)">MFS (bKash / Nagad / Rocket)</option>
                       </select>
                     </div>
                     <div class="form-group">
@@ -1052,9 +1066,12 @@ Bangladesh</textarea>
               <!-- Bank Details -->
               <div class="card" style="padding: 24px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
-                  <h3 style="font-size: 1.1rem; font-weight: 700; color: var(--accent-purple); display: flex; align-items: center; gap: 8px; margin: 0;">
-                    <i data-lucide="landmark" style="width: 18px; height: 18px;"></i> Your Bank Account & Payment Details
-                  </h3>
+                  <div>
+                    <h3 style="font-size: 1.1rem; font-weight: 700; color: var(--accent-purple); display: flex; align-items: center; gap: 8px; margin: 0;">
+                      <i data-lucide="landmark" style="width: 18px; height: 18px;"></i> International Bank Wire & Payment Details (USA / Europe Ready)
+                    </h3>
+                    <p style="font-size: 0.8rem; color: var(--text-muted); margin: 4px 0 0 0;">Formatted for USA Wire/ACH, Europe/UK SEPA & IBAN, and global wire transfers.</p>
+                  </div>
                   <div style="display: flex; gap: 8px; flex-wrap: wrap;">
                     <button type="button" class="btn btn-outline btn-sm" onclick="app.loadDefaultBankDetails()" title="Load your saved default bank details into this invoice" style="padding: 6px 12px; font-size: 0.8rem; display: flex; align-items: center; gap: 5px;">
                       <i data-lucide="rotate-ccw" style="width: 13px; height: 13px;"></i> Load Defaults
@@ -1067,24 +1084,24 @@ Bangladesh</textarea>
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
                   <div class="form-group">
                     <label>Bank Name</label>
-                    <input type="text" id="inv-bank-name" class="form-control" placeholder="e.g. Eastern Bank PLC / Chase Bank">
+                    <input type="text" id="inv-bank-name" class="form-control" placeholder="e.g. Eastern Bank PLC / Chase Bank / Wise">
                   </div>
                   <div class="form-group">
-                    <label>Account / Beneficiary Name</label>
+                    <label>Account / Beneficiary Holder</label>
                     <input type="text" id="inv-bank-account-name" class="form-control" placeholder="e.g. Abu Zannat">
                   </div>
                   <div class="form-group">
-                    <label>Account Number / IBAN</label>
-                    <input type="text" id="inv-bank-account-no" class="form-control" placeholder="e.g. 1234567890 or GB29...">
+                    <label>Account # / IBAN (Europe & USA)</label>
+                    <input type="text" id="inv-bank-account-no" class="form-control" placeholder="e.g. 1234567890 (USA) or GB29... (EU/UK)">
                   </div>
                 </div>
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-top: 12px;">
                   <div class="form-group">
-                    <label>SWIFT / BIC / Routing Code</label>
-                    <input type="text" id="inv-bank-swift" class="form-control" placeholder="e.g. EBLDBDDH or Routing #">
+                    <label>SWIFT / BIC / ABA Routing Code</label>
+                    <input type="text" id="inv-bank-swift" class="form-control" placeholder="e.g. EBLDBDDH (SWIFT) or 9-digit Routing #">
                   </div>
                   <div class="form-group">
-                    <label>Branch / Country</label>
+                    <label>Branch / Bank Country</label>
                     <input type="text" id="inv-bank-branch" class="form-control" placeholder="e.g. Rangpur Branch, Bangladesh">
                   </div>
                 </div>
@@ -1094,7 +1111,7 @@ Bangladesh</textarea>
               <div class="card" style="padding: 24px;">
                 <div class="form-group">
                   <label>Notes / Additional Payment Instructions</label>
-                  <textarea id="inv-notes" class="form-control" rows="3" placeholder="Payment via bank transfer, PayPal, etc."></textarea>
+                  <textarea id="inv-notes" class="form-control" rows="3" placeholder="Payment via International Wire, Wise (email), Payoneer, etc."></textarea>
                 </div>
               </div>
 
@@ -1107,6 +1124,10 @@ Bangladesh</textarea>
                 <button type="button" class="btn btn-outline btn-icon-text" onclick="app.handlePrintInvoice(event)" style="padding: 11px 20px;">
                   <i data-lucide="printer" style="width: 16px; height: 16px; color: var(--accent-amber);"></i>
                   <span>Print</span>
+                </button>
+                <button type="button" class="btn btn-outline btn-icon-text" onclick="app.handleOpenEmailModalFromForm(event)" style="padding: 11px 20px;">
+                  <i data-lucide="mail" style="width: 16px; height: 16px; color: var(--accent-cyan);"></i>
+                  <span>Email to Client</span>
                 </button>
                 <button type="button" class="btn btn-primary btn-icon-text" onclick="app.handleSaveInvoice(event)" style="padding: 11px 24px;">
                   <i data-lucide="save" style="width: 16px; height: 16px;"></i>
@@ -1295,6 +1316,9 @@ Bangladesh</textarea>
           <button class="btn btn-outline btn-icon-text" onclick="window.print()">
             <i data-lucide="printer" style="width: 14px; height: 14px;"></i> Print
           </button>
+          <button class="btn btn-outline btn-icon-text" onclick="app.openEmailInvoiceModal(app.currentPreviewInvoice)">
+            <i data-lucide="mail" style="width: 14px; height: 14px; color: var(--accent-cyan);"></i> Email Client
+          </button>
           <button class="btn btn-primary btn-icon-text" onclick="app.downloadCurrentInvoicePDF()">
             <i data-lucide="download" style="width: 14px; height: 14px;"></i> Download PDF
           </button>
@@ -1306,6 +1330,48 @@ Bangladesh</textarea>
       <div id="invoice-preview-content" class="invoice-paper" style="padding: 40px;">
         <!-- Rendered invoice HTML goes here -->
       </div>
+    </div>
+  </div>
+
+  <!-- Modal: Email Invoice to Client -->
+  <div class="modal-overlay hidden" id="modal-email-invoice">
+    <div class="modal-card" style="max-width: 600px; padding: 24px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 14px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="width: 36px; height: 36px; border-radius: 8px; background: rgba(99, 102, 241, 0.12); display: flex; align-items: center; justify-content: center; color: var(--accent-cyan);">
+            <i data-lucide="mail-check" style="width: 20px; height: 20px;"></i>
+          </div>
+          <div>
+            <h3 style="font-weight: 750; margin: 0; font-size: 1.2rem;">Send Invoice via Email</h3>
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin: 2px 0 0 0;">Deliver professional invoice details directly to your USA / European client.</p>
+          </div>
+        </div>
+        <button class="btn btn-secondary btn-icon" onclick="app.closeModal('modal-email-invoice')">
+          <i data-lucide="x" style="width: 16px; height: 16px;"></i>
+        </button>
+      </div>
+
+      <form onsubmit="app.submitSendInvoiceEmail(event)">
+        <div class="form-group" style="margin-bottom: 14px;">
+          <label>Recipient Client Email *</label>
+          <input type="email" id="email-inv-to" class="form-control" required placeholder="client@company.com">
+        </div>
+        <div class="form-group" style="margin-bottom: 14px;">
+          <label>Email Subject</label>
+          <input type="text" id="email-inv-subject" class="form-control" required placeholder="Commercial Invoice from Abu Zannat">
+        </div>
+        <div class="form-group" style="margin-bottom: 16px;">
+          <label>Email Body / Message</label>
+          <textarea id="email-inv-body" class="form-control" rows="8" style="font-family: inherit; font-size: 0.88rem; line-height: 1.5;"></textarea>
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 10px;">
+          <button type="button" class="btn btn-secondary" onclick="app.closeModal('modal-email-invoice')">Cancel</button>
+          <button type="submit" class="btn btn-primary btn-icon-text" id="btn-send-invoice-email">
+            <i data-lucide="send" style="width: 15px; height: 15px;"></i>
+            <span>Send Invoice Email</span>
+          </button>
+        </div>
+      </form>
     </div>
   </div>
 

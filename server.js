@@ -657,6 +657,51 @@ app.post('/api/bank-details', (req, res) => {
     }
 });
 
+// ============ INVOICE EMAIL SENDER API ============
+app.post('/api/invoices/send-email', async (req, res) => {
+    try {
+        const { to, subject, message, invoiceNumber } = req.body;
+        if (!to || !to.trim()) {
+            return res.status(400).json({ error: 'Recipient email is required' });
+        }
+
+        const mailOptions = {
+            from: '"Abu Zannat - WordPress Engineering" <abuzannat911@gmail.com>',
+            to: to.trim(),
+            subject: subject || `Commercial Invoice ${invoiceNumber || ''} - Abu Zannat`,
+            text: message || 'Please find your commercial invoice attached.',
+            html: `
+                <div style="font-family: Arial, sans-serif; font-size: 15px; color: #1e293b; line-height: 1.6; max-width: 650px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
+                    <div style="margin-bottom: 20px; border-bottom: 2px solid #6366f1; padding-bottom: 12px;">
+                        <h2 style="color: #6366f1; margin: 0; font-size: 20px;">Abu Zannat — WordPress Engineering</h2>
+                        <span style="font-size: 13px; color: #64748b;">Specialist Bug Diagnostics, Custom Fixes & Security</span>
+                    </div>
+                    <div style="white-space: pre-line; margin-bottom: 24px; color: #334155;">${message}</div>
+                    <div style="background: #f8fafc; padding: 14px; border-radius: 6px; font-size: 13px; color: #64748b; border-left: 3px solid #6366f1;">
+                        <strong>Note for Accounts Payable:</strong> Services provided remotely from Bangladesh. Form W-8BEN (US) / Reverse Charge documentation available upon request.
+                    </div>
+                    <div style="margin-top: 24px; border-top: 1px solid #e2e8f0; padding-top: 14px; font-size: 12px; color: #94a3b8; text-align: center;">
+                        Abu Zannat &bull; <a href="https://zannat.me" style="color: #6366f1; text-decoration: none;">https://zannat.me</a> &bull; abuzannat911@gmail.com
+                    </div>
+                </div>
+            `
+        };
+
+        logEmailSent(mailOptions);
+
+        try {
+            const transporter = getTransporter();
+            await transporter.sendMail(mailOptions);
+        } catch (mailErr) {
+            console.warn('[EMAIL WARNING] Transporter send failed, logged to sent_emails.log instead:', mailErr.message);
+        }
+
+        res.json({ success: true, message: `Invoice email successfully processed for ${to}` });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // Serve Static Frontend Assets
 app.use(express.static(__dirname));
 

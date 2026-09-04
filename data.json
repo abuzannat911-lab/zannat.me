@@ -207,6 +207,42 @@
       "id": "inv_1786400647974_qxmr",
       "number": "INV-1004",
       "createdAt": "2026-08-10T22:24:07.974Z"
+    },
+    {
+      "number": "INV-1005",
+      "date": "2026-09-04",
+      "dueDate": "2026-09-04",
+      "currency": "EUR",
+      "myAddress": "Astha Building\nDorshona Mor, Rangpur City Bypass\nRangpur city, Rangpur\nBangladesh",
+      "myLogo": "/assets/zannat_inner_symbol_icon.png",
+      "clientName": "Claudio Campesato",
+      "clientCompany": "Tycoon Machine LLC",
+      "clientEmail": "admin@ivylead.io",
+      "clientPhone": "",
+      "clientVat": "",
+      "clientAddress": "2001 N. Ocean Blvd. 905S\n905S",
+      "bankName": "Dutch Bangla Bank PLC",
+      "bankAccountName": "Abu Zannat Md Mosaddek",
+      "bankAccountNo": "090851456 - 1621010088950",
+      "bankSwift": "DBBLBDDH",
+      "bankBranch": "Rangpur Branch",
+      "saveClient": true,
+      "items": [
+        {
+          "desc": "WordPress Core & Plugin Bug Diagnostics",
+          "qty": 1,
+          "rate": 50
+        }
+      ],
+      "subtotal": 50,
+      "taxRate": 0,
+      "taxAmount": 0,
+      "total": 50,
+      "notes": "",
+      "paymentMethod": "Xoom / Remitly / Wise",
+      "status": "Paid",
+      "id": "inv_1788507149345_durj",
+      "createdAt": "2026-09-04T07:32:29.345Z"
     }
   ],
   "clients": [
@@ -218,7 +254,8 @@
       "phone": "",
       "vat": "",
       "address": "2001 N. Ocean Blvd. 905S\n905S",
-      "createdAt": "2026-08-10T22:19:41.134Z"
+      "createdAt": "2026-08-10T22:19:41.134Z",
+      "updatedAt": "2026-09-04T07:32:29.345Z"
     },
     {
       "id": "cli_2",
@@ -231,7 +268,7 @@
       "createdAt": "2026-06-22T10:00:00.000Z"
     }
   ],
-  "nextInvoiceNum": 1005,
+  "nextInvoiceNum": 1006,
   "bankDetails": {
     "bankName": "Eastern Bank PLC",
     "accountName": "Md Abu Zannat",
