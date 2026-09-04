@@ -274,6 +274,45 @@
       "bankSwift": "EBLDBDDH",
       "id": "inv_1788507442671_cai0",
       "createdAt": "2026-09-04T07:37:22.671Z"
+    },
+    {
+      "number": "INV-1007",
+      "date": "2026-09-04",
+      "dueDate": "2026-09-04",
+      "paymentTerms": "Due on Receipt",
+      "poNumber": "",
+      "currency": "EUR",
+      "myAddress": "Astha Building\nDorshona Mor, Rangpur City Bypass\nRangpur city, Rangpur\nBangladesh",
+      "myLogo": "/assets/zannat_inner_symbol_icon.png",
+      "clientName": "Claudio Campesato ",
+      "clientCompany": "CAMPES S.r.l.",
+      "clientEmail": "info@campes.it",
+      "clientPhone": "",
+      "clientVat": "IT05496370262",
+      "clientAddress": "Via Noalese 84/E - 31100 Treviso Italy",
+      "bankName": "Dutch Bangla Bank PLC",
+      "bankAccountName": "Abu Zannat Md Mosaddek",
+      "bankAccountNo": "1621010088950",
+      "bankRouting": "090851456",
+      "bankSwift": "DBBLBDDH",
+      "bankBranch": "Rangpur Branch",
+      "saveClient": true,
+      "items": [
+        {
+          "desc": "WordPress Core & Plugin Bug Diagnostics",
+          "qty": 1,
+          "rate": 50
+        }
+      ],
+      "subtotal": 50,
+      "taxRate": 0,
+      "taxAmount": 0,
+      "total": 50,
+      "notes": "",
+      "paymentMethod": "International Wire / ACH / SEPA",
+      "status": "Paid",
+      "id": "inv_1788508044845_h20e",
+      "createdAt": "2026-09-04T07:47:24.845Z"
     }
   ],
   "clients": [
@@ -291,13 +330,13 @@
     {
       "id": "cli_1",
       "name": "Claudio Campesato",
-      "company": "Tycoon Machine LLC",
-      "email": "admin@ivylead.io",
+      "company": "CAMPES S.r.l.",
+      "email": "info@campes.it",
       "phone": "",
-      "vat": "",
-      "address": "2001 N. Ocean Blvd. 905S\n905S",
+      "vat": "IT05496370262",
+      "address": "Via Noalese 84/E - 31100 Treviso Italy",
       "createdAt": "2026-08-10T22:19:41.134Z",
-      "updatedAt": "2026-09-04T07:32:29.345Z"
+      "updatedAt": "2026-09-04T07:47:24.845Z"
     },
     {
       "id": "cli_2",
@@ -310,7 +349,7 @@
       "createdAt": "2026-06-22T10:00:00.000Z"
     }
   ],
-  "nextInvoiceNum": 1007,
+  "nextInvoiceNum": 1008,
   "bankDetails": {
     "bankName": "Dutch Bangla Bank PLC",
     "accountName": "Abu Zannat Md Mosaddek",

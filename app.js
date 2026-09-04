@@ -2426,10 +2426,10 @@
                 const rowBg = index % 2 === 1 ? '#f8fafc' : '#ffffff';
                 itemsRows += `
                     <tr style="background: ${rowBg};">
-                        <td style="padding: 12px 14px; border-bottom: 1px solid #e2e8f0; font-weight: 500; color: #1e293b;">${item.desc || 'WordPress Service'}</td>
-                        <td style="padding: 12px 14px; border-bottom: 1px solid #e2e8f0; text-align: center; color: #475569;">${qtyNum}</td>
-                        <td style="padding: 12px 14px; border-bottom: 1px solid #e2e8f0; text-align: right; color: #475569;">${symbol}${rateNum.toFixed(2)}</td>
-                        <td style="padding: 12px 14px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 700; color: #0f172a;">${symbol}${amount.toFixed(2)}</td>
+                        <td style="padding: 7px 10px; border-bottom: 1px solid #e2e8f0; font-weight: 500; color: #1e293b; font-size: 0.78rem;">${item.desc || 'WordPress Service'}</td>
+                        <td style="padding: 7px 10px; border-bottom: 1px solid #e2e8f0; text-align: center; color: #475569; font-size: 0.78rem;">${qtyNum}</td>
+                        <td style="padding: 7px 10px; border-bottom: 1px solid #e2e8f0; text-align: right; color: #475569; font-size: 0.78rem;">${symbol}${rateNum.toFixed(2)}</td>
+                        <td style="padding: 7px 10px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 700; color: #0f172a; font-size: 0.78rem;">${symbol}${amount.toFixed(2)}</td>
                     </tr>
                 `;
             });
@@ -2443,59 +2443,59 @@
 
             previewEl.innerHTML = `
                 <!-- International Invoice Header -->
-                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 28px; border-bottom: 2px solid #6366f1; padding-bottom: 20px;">
-                    <div style="display: flex; gap: 16px; align-items: center;">
-                        <img src="${logoSrc}" alt="Logo" style="width: 58px; height: 58px; object-fit: contain; filter: drop-shadow(0 2px 6px rgba(99,102,241,0.25));">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; border-bottom: 2px solid #6366f1; padding-bottom: 10px;">
+                    <div style="display: flex; gap: 12px; align-items: center;">
+                        <img src="${logoSrc}" alt="Logo" style="width: 46px; height: 46px; object-fit: contain;">
                         <div>
-                            <h2 style="font-size: 1.5rem; font-weight: 800; color: #0f172a; margin: 0; letter-spacing: -0.01em;">Abu Zannat</h2>
-                            <div style="font-size: 0.85rem; color: #6366f1; font-weight: 700; margin-top: 2px;">WordPress Specialist & Web Developer</div>
-                            <div style="font-size: 0.75rem; color: #64748b; margin-top: 2px;">Independent Contractor &bull; Non-US Person &bull; https://zannat.me</div>
+                            <h2 style="font-size: 1.25rem; font-weight: 800; color: #0f172a; margin: 0; letter-spacing: -0.01em;">Abu Zannat</h2>
+                            <div style="font-size: 0.76rem; color: #6366f1; font-weight: 700; margin-top: 1px;">WordPress Specialist & Web Developer</div>
+                            <div style="font-size: 0.68rem; color: #64748b; margin-top: 1px;">Independent Contractor &bull; Non-US Person &bull; https://zannat.me</div>
                         </div>
                     </div>
                     <div style="text-align: right;">
-                        <h1 style="font-size: 1.75rem; font-weight: 900; color: #0f172a; margin: 0; letter-spacing: -0.02em;">COMMERCIAL INVOICE</h1>
-                        <div style="font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 2px;">TAX INVOICE / EXPORT OF SERVICES</div>
-                        <div style="font-size: 1.15rem; font-weight: 800; color: #6366f1; margin-top: 4px;">${invoice.number}</div>
-                        <div style="margin-top: 6px;"><span style="background: ${statusBg}; color: ${statusColor}; padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 800;">STATUS: ${status.toUpperCase()}</span></div>
+                        <h1 style="font-size: 1.35rem; font-weight: 900; color: #0f172a; margin: 0; letter-spacing: -0.02em;">COMMERCIAL INVOICE</h1>
+                        <div style="font-size: 0.68rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 1px;">TAX INVOICE / EXPORT OF SERVICES</div>
+                        <div style="font-size: 1.05rem; font-weight: 800; color: #6366f1; margin-top: 2px;">${invoice.number}</div>
+                        <div style="margin-top: 4px;"><span style="background: ${statusBg}; color: ${statusColor}; padding: 2px 8px; border-radius: 12px; font-size: 0.68rem; font-weight: 800;">STATUS: ${status.toUpperCase()}</span></div>
                     </div>
                 </div>
 
                 <!-- Document Meta Grid -->
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 24px; padding: 12px 18px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; font-size: 0.82rem;">
-                    <div><span style="color: #64748b; font-size: 0.72rem; text-transform: uppercase; font-weight: 700; display: block;">Issue Date</span><strong style="color: #0f172a;">${invoice.date || 'N/A'}</strong></div>
-                    <div><span style="color: #64748b; font-size: 0.72rem; text-transform: uppercase; font-weight: 700; display: block;">Payment Terms</span><strong style="color: #0f172a;">${invoice.paymentTerms || 'Due on Receipt'}</strong></div>
-                    <div><span style="color: #64748b; font-size: 0.72rem; text-transform: uppercase; font-weight: 700; display: block;">Due Date</span><strong style="color: #0f172a;">${invoice.dueDate || 'Upon Receipt'}</strong></div>
-                    <div><span style="color: #64748b; font-size: 0.72rem; text-transform: uppercase; font-weight: 700; display: block;">Currency</span><strong style="color: #0f172a;">${invoice.currency} (${symbol})</strong></div>
-                    ${invoice.poNumber ? `<div><span style="color: #64748b; font-size: 0.72rem; text-transform: uppercase; font-weight: 700; display: block;">PO / Ref #</span><strong style="color: #6366f1;">${invoice.poNumber}</strong></div>` : ''}
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; margin-bottom: 10px; padding: 6px 14px; background: #f8fafc; border-radius: 6px; border: 1px solid #e2e8f0; font-size: 0.75rem;">
+                    <div><span style="color: #64748b; font-size: 0.64rem; text-transform: uppercase; font-weight: 700; display: block;">Issue Date</span><strong style="color: #0f172a;">${invoice.date || 'N/A'}</strong></div>
+                    <div><span style="color: #64748b; font-size: 0.64rem; text-transform: uppercase; font-weight: 700; display: block;">Payment Terms</span><strong style="color: #0f172a;">${invoice.paymentTerms || 'Due on Receipt'}</strong></div>
+                    <div><span style="color: #64748b; font-size: 0.64rem; text-transform: uppercase; font-weight: 700; display: block;">Due Date</span><strong style="color: #0f172a;">${invoice.dueDate || 'Upon Receipt'}</strong></div>
+                    <div><span style="color: #64748b; font-size: 0.64rem; text-transform: uppercase; font-weight: 700; display: block;">Currency</span><strong style="color: #0f172a;">${invoice.currency} (${symbol})</strong></div>
+                    ${invoice.poNumber ? `<div><span style="color: #64748b; font-size: 0.64rem; text-transform: uppercase; font-weight: 700; display: block;">PO / Ref #</span><strong style="color: #6366f1;">${invoice.poNumber}</strong></div>` : ''}
                 </div>
 
                 <!-- Addresses Row -->
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 28px;">
-                    <div style="padding: 18px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px;">
-                        <h4 style="font-size: 0.72rem; text-transform: uppercase; color: #64748b; font-weight: 800; letter-spacing: 0.05em; margin-bottom: 8px; border-bottom: 1px solid #f1f5f9; padding-bottom: 6px;">Service Provider (From)</h4>
-                        <div style="font-weight: 800; font-size: 0.95rem; color: #0f172a;">Abu Zannat</div>
-                        <div style="white-space: pre-line; font-size: 0.85rem; color: #334155; line-height: 1.45; margin-top: 4px;">${invoice.myAddress || 'Astha Building\nDorshona Mor, Rangpur City Bypass\nRangpur city, Rangpur\nBangladesh'}</div>
-                        <div style="font-size: 0.82rem; color: #6366f1; margin-top: 6px;">abuzannat911@gmail.com</div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 10px;">
+                    <div style="padding: 10px 14px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 6px;">
+                        <h4 style="font-size: 0.65rem; text-transform: uppercase; color: #64748b; font-weight: 800; letter-spacing: 0.05em; margin-bottom: 4px; border-bottom: 1px solid #f1f5f9; padding-bottom: 3px;">Service Provider (From)</h4>
+                        <div style="font-weight: 800; font-size: 0.88rem; color: #0f172a;">Abu Zannat</div>
+                        <div style="white-space: pre-line; font-size: 0.76rem; color: #334155; line-height: 1.35; margin-top: 2px;">${invoice.myAddress || 'Astha Building\nDorshona Mor, Rangpur City Bypass\nRangpur city, Rangpur\nBangladesh'}</div>
+                        <div style="font-size: 0.74rem; color: #6366f1; margin-top: 3px;">abuzannat911@gmail.com</div>
                     </div>
-                    <div style="padding: 18px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px;">
-                        <h4 style="font-size: 0.72rem; text-transform: uppercase; color: #64748b; font-weight: 800; letter-spacing: 0.05em; margin-bottom: 8px; border-bottom: 1px solid #f1f5f9; padding-bottom: 6px;">Billed To (Client / Organization)</h4>
-                        <div style="font-weight: 800; font-size: 1rem; color: #0f172a;">${invoice.clientName || 'Client'}</div>
-                        ${invoice.clientCompany ? `<div style="font-size: 0.88rem; color: #475569; font-weight: 700; margin-top: 2px;">${invoice.clientCompany}</div>` : ''}
-                        ${invoice.clientEmail ? `<div style="font-size: 0.82rem; color: #6366f1; margin-top: 3px;">${invoice.clientEmail}</div>` : ''}
-                        ${invoice.clientPhone ? `<div style="font-size: 0.82rem; color: #475569; margin-top: 3px;">📞 ${invoice.clientPhone}</div>` : ''}
-                        ${vatDisplay ? `<div style="font-size: 0.82rem; color: #166534; font-weight: 700; margin-top: 3px; background: #f0fdf4; display: inline-block; padding: 2px 6px; border-radius: 4px;">VAT / Tax ID / EIN: <span style="font-weight: 600; font-family: monospace;">${vatDisplay}</span></div>` : ''}
-                        <div style="white-space: pre-line; font-size: 0.85rem; color: #475569; margin-top: 4px; line-height: 1.4;">${invoice.clientAddress || ''}</div>
+                    <div style="padding: 10px 14px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 6px;">
+                        <h4 style="font-size: 0.65rem; text-transform: uppercase; color: #64748b; font-weight: 800; letter-spacing: 0.05em; margin-bottom: 4px; border-bottom: 1px solid #f1f5f9; padding-bottom: 3px;">Billed To (Client / Organization)</h4>
+                        <div style="font-weight: 800; font-size: 0.9rem; color: #0f172a;">${invoice.clientName || 'Client'}</div>
+                        ${invoice.clientCompany ? `<div style="font-size: 0.78rem; color: #475569; font-weight: 700; margin-top: 1px;">${invoice.clientCompany}</div>` : ''}
+                        ${invoice.clientEmail ? `<div style="font-size: 0.74rem; color: #6366f1; margin-top: 2px;">${invoice.clientEmail}</div>` : ''}
+                        ${invoice.clientPhone ? `<div style="font-size: 0.74rem; color: #475569; margin-top: 2px;">📞 ${invoice.clientPhone}</div>` : ''}
+                        ${vatDisplay ? `<div style="font-size: 0.74rem; color: #166534; font-weight: 700; margin-top: 2px; background: #f0fdf4; display: inline-block; padding: 1px 5px; border-radius: 4px;">VAT / Tax ID: <span style="font-weight: 600; font-family: monospace;">${vatDisplay}</span></div>` : ''}
+                        <div style="white-space: pre-line; font-size: 0.76rem; color: #475569; margin-top: 2px; line-height: 1.3;">${invoice.clientAddress || ''}</div>
                     </div>
                 </div>
 
                 <!-- Line Items Table -->
-                <table style="width: 100%; border-collapse: collapse; margin-bottom: 24px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
+                <table style="width: 100%; border-collapse: collapse; margin-bottom: 10px; border: 1px solid #e2e8f0; border-radius: 6px; overflow: hidden;">
                     <thead>
-                        <tr style="background: #0f172a; text-transform: uppercase; font-size: 0.72rem; color: #ffffff; letter-spacing: 0.04em;">
-                            <th style="padding: 12px 14px; text-align: left;">Scope of Services / Deliverables</th>
-                            <th style="padding: 12px 14px; text-align: center; width: 12%;">Qty / Hrs</th>
-                            <th style="padding: 12px 14px; text-align: right; width: 20%;">Unit Rate</th>
-                            <th style="padding: 12px 14px; text-align: right; width: 20%;">Amount (${symbol})</th>
+                        <tr style="background: #0f172a; text-transform: uppercase; font-size: 0.68rem; color: #ffffff; letter-spacing: 0.04em;">
+                            <th style="padding: 7px 10px; text-align: left;">Scope of Services / Deliverables</th>
+                            <th style="padding: 7px 10px; text-align: center; width: 12%;">Qty / Hrs</th>
+                            <th style="padding: 7px 10px; text-align: right; width: 20%;">Unit Rate</th>
+                            <th style="padding: 7px 10px; text-align: right; width: 20%;">Amount (${symbol})</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -2504,17 +2504,17 @@
                 </table>
 
                 <!-- Summary Totals -->
-                <div style="display: flex; justify-content: flex-end; margin-bottom: 28px;">
-                    <div style="width: 300px; font-size: 0.9rem; background: #f8fafc; padding: 16px; border-radius: 8px; border: 1px solid #e2e8f0;">
-                        <div style="display: flex; justify-content: space-between; padding: 5px 0; color: #475569;">
+                <div style="display: flex; justify-content: flex-end; margin-bottom: 10px;">
+                    <div style="width: 250px; font-size: 0.8rem; background: #f8fafc; padding: 8px 12px; border-radius: 6px; border: 1px solid #e2e8f0;">
+                        <div style="display: flex; justify-content: space-between; padding: 2px 0; color: #475569;">
                             <span>Subtotal:</span>
                             <span style="font-weight: 600; color: #0f172a;">${symbol}${subtotalVal.toFixed(2)}</span>
                         </div>
-                        <div style="display: flex; justify-content: space-between; padding: 5px 0; color: #475569;">
+                        <div style="display: flex; justify-content: space-between; padding: 2px 0; color: #475569;">
                             <span>Tax / VAT (${taxRateVal > 0 ? taxRateVal + '%' : '0% Non-US/Reverse Charge'}):</span>
                             <span style="font-weight: 600; color: #0f172a;">${symbol}${taxAmountVal.toFixed(2)}</span>
                         </div>
-                        <div style="display: flex; justify-content: space-between; padding: 10px 0 4px 0; border-top: 2px solid #0f172a; font-weight: 800; font-size: 1.15rem; color: #0f172a; margin-top: 6px;">
+                        <div style="display: flex; justify-content: space-between; padding: 6px 0 2px 0; border-top: 2px solid #0f172a; font-weight: 800; font-size: 1rem; color: #0f172a; margin-top: 3px;">
                             <span>Total Due:</span>
                             <span style="color: #16a34a;">${symbol}${totalVal.toFixed(2)}</span>
                         </div>
@@ -2523,49 +2523,48 @@
 
                 <!-- International Wire & Banking Details (USA & EU Ready) -->
                 ${hasBank ? `
-                <div style="margin-bottom: 24px; padding: 18px 20px; background: #f0fdf4; border: 1px solid #bbf7d0; border-left: 5px solid #166534; border-radius: 8px;">
-                    <div style="font-weight: 800; font-size: 0.92rem; color: #166534; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+                <div style="margin-bottom: 10px; padding: 10px 14px; background: #f0fdf4; border: 1px solid #bbf7d0; border-left: 4px solid #166534; border-radius: 6px;">
+                    <div style="font-weight: 800; font-size: 0.8rem; color: #166534; margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 4px;">
                         <span>🏦 International Wire Transfer & Banking Instructions</span>
-                        <span style="font-size: 0.75rem; background: #dcfce7; color: #15803d; padding: 2px 8px; border-radius: 12px; font-weight: 700;">USA (ACH/Wire) & EU (SEPA/IBAN) Ready</span>
+                        <span style="font-size: 0.68rem; background: #dcfce7; color: #15803d; padding: 1px 6px; border-radius: 10px; font-weight: 700;">USA & EU Ready</span>
                     </div>
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; font-size: 0.85rem;">
-                        ${invoice.bankName ? `<div><span style="color: #64748b; font-size: 0.72rem; text-transform: uppercase; font-weight: 700; display: block; margin-bottom: 2px;">Bank Name</span><strong style="color: #0f172a;">${invoice.bankName}</strong></div>` : ''}
-                        ${invoice.bankAccountName ? `<div><span style="color: #64748b; font-size: 0.72rem; text-transform: uppercase; font-weight: 700; display: block; margin-bottom: 2px;">Beneficiary / Account Holder</span><strong style="color: #0f172a;">${invoice.bankAccountName}</strong></div>` : ''}
-                        ${invoice.bankAccountNo ? `<div><span style="color: #64748b; font-size: 0.72rem; text-transform: uppercase; font-weight: 700; display: block; margin-bottom: 2px;">Account # / IBAN</span><strong style="color: #0f172a; font-family: monospace; font-size: 0.92rem;">${invoice.bankAccountNo}</strong></div>` : ''}
-                        ${(invoice.bankRouting || invoice.bankRoutingNumber) ? `<div><span style="color: #64748b; font-size: 0.72rem; text-transform: uppercase; font-weight: 700; display: block; margin-bottom: 2px;">ABA Routing # (USA / ACH)</span><strong style="color: #0f172a; font-family: monospace; font-size: 0.92rem;">${invoice.bankRouting || invoice.bankRoutingNumber}</strong></div>` : ''}
-                        ${invoice.bankSwift ? `<div><span style="color: #64748b; font-size: 0.72rem; text-transform: uppercase; font-weight: 700; display: block; margin-bottom: 2px;">SWIFT / BIC (International Wire)</span><strong style="color: #0f172a; font-family: monospace; font-size: 0.92rem;">${invoice.bankSwift}</strong></div>` : ''}
-                        ${invoice.bankBranch ? `<div><span style="color: #64748b; font-size: 0.72rem; text-transform: uppercase; font-weight: 700; display: block; margin-bottom: 2px;">Bank Location / Country</span><strong style="color: #0f172a;">${invoice.bankBranch}</strong></div>` : ''}
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 6px 10px; font-size: 0.75rem;">
+                        ${invoice.bankName ? `<div><span style="color: #64748b; font-size: 0.62rem; text-transform: uppercase; font-weight: 700; display: block;">Bank Name</span><strong style="color: #0f172a;">${invoice.bankName}</strong></div>` : ''}
+                        ${invoice.bankAccountName ? `<div><span style="color: #64748b; font-size: 0.62rem; text-transform: uppercase; font-weight: 700; display: block;">Beneficiary Holder</span><strong style="color: #0f172a;">${invoice.bankAccountName}</strong></div>` : ''}
+                        ${invoice.bankAccountNo ? `<div><span style="color: #64748b; font-size: 0.62rem; text-transform: uppercase; font-weight: 700; display: block;">Account # / IBAN</span><strong style="color: #0f172a; font-family: monospace; font-size: 0.8rem;">${invoice.bankAccountNo}</strong></div>` : ''}
+                        ${(invoice.bankRouting || invoice.bankRoutingNumber) ? `<div><span style="color: #64748b; font-size: 0.62rem; text-transform: uppercase; font-weight: 700; display: block;">Routing # (USA/ACH)</span><strong style="color: #0f172a; font-family: monospace; font-size: 0.8rem;">${invoice.bankRouting || invoice.bankRoutingNumber}</strong></div>` : ''}
+                        ${invoice.bankSwift ? `<div><span style="color: #64748b; font-size: 0.62rem; text-transform: uppercase; font-weight: 700; display: block;">SWIFT / BIC</span><strong style="color: #0f172a; font-family: monospace; font-size: 0.8rem;">${invoice.bankSwift}</strong></div>` : ''}
+                        ${invoice.bankBranch ? `<div><span style="color: #64748b; font-size: 0.62rem; text-transform: uppercase; font-weight: 700; display: block;">Branch / Country</span><strong style="color: #0f172a;">${invoice.bankBranch}</strong></div>` : ''}
                     </div>
-                    <div style="font-size: 0.75rem; color: #166534; margin-top: 10px; border-top: 1px dashed #86efac; padding-top: 6px;">
-                        <strong>Wire Payment Reference:</strong> Please quote invoice number <code style="background: #ffffff; padding: 2px 6px; border-radius: 4px; font-weight: 700; color: #0f172a;">${invoice.number}</code> in your wire transfer payment description.
+                    <div style="font-size: 0.68rem; color: #166534; margin-top: 6px; border-top: 1px dashed #86efac; padding-top: 4px;">
+                        <strong>Wire Payment Reference:</strong> Quote <code style="background: #ffffff; padding: 1px 4px; border-radius: 3px; font-weight: 700; color: #0f172a;">${invoice.number}</code> in wire transfer description.
                     </div>
                 </div>
                 ` : ''}
 
                 <!-- Notes / Additional Instructions -->
                 ${invoice.notes ? `
-                <div style="padding: 14px 18px; background: #f8fafc; border-radius: 6px; border-left: 4px solid #6366f1; font-size: 0.85rem; color: #475569; margin-bottom: 24px;">
-                    <strong style="color: #1e293b;">Notes & Additional Instructions:</strong>
-                    <div style="white-space: pre-line; margin-top: 4px;">${invoice.notes}</div>
+                <div style="padding: 6px 10px; background: #f8fafc; border-radius: 5px; border-left: 3px solid #6366f1; font-size: 0.72rem; color: #475569; margin-bottom: 8px;">
+                    <strong style="color: #1e293b;">Notes:</strong> <span style="white-space: pre-line;">${invoice.notes}</span>
                 </div>
                 ` : ''}
 
                 <!-- Tax & Legal Compliance Box -->
-                <div style="padding: 12px 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 0.75rem; color: #64748b; line-height: 1.5; margin-bottom: 28px;">
-                    <strong style="color: #334155; display: block; margin-bottom: 4px;">International Tax & Legal Notice:</strong>
-                    &bull; <strong>USA Clients:</strong> Services rendered remotely outside the United States by a foreign independent contractor. Form W-8BEN (Certificate of Foreign Status) is available upon request.<br>
-                    &bull; <strong>European Union / UK Clients:</strong> Cross-border B2B supply of services. Zero-rated VAT / Out of scope for local VAT pursuant to the Reverse Charge Mechanism (Article 196, EU VAT Directive).
+                <div style="padding: 6px 10px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 5px; font-size: 0.65rem; color: #64748b; line-height: 1.35; margin-bottom: 8px;">
+                    <strong style="color: #334155;">International Notice:</strong>
+                    &bull; <strong>USA:</strong> Services rendered remotely outside US (Foreign Contractor, W-8BEN available).
+                    &bull; <strong>EU/UK:</strong> B2B Reverse Charge Mechanism (Art. 196, EU VAT Directive).
                 </div>
 
                 <!-- Signoff & Footer -->
-                <div style="display: flex; justify-content: space-between; align-items: flex-end; border-top: 1px solid #e2e8f0; padding-top: 18px; font-size: 0.8rem; color: #64748b;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-end; border-top: 1px solid #e2e8f0; padding-top: 6px; font-size: 0.7rem; color: #64748b;">
                     <div>
                         <div style="font-weight: 700; color: #0f172a;">Abu Zannat</div>
-                        <div style="font-size: 0.75rem; color: #64748b;">WordPress Bug Fixer & Specialist Developer</div>
+                        <div style="font-size: 0.65rem; color: #64748b;">WordPress Bug Fixer & Specialist Developer</div>
                     </div>
                     <div style="text-align: right;">
-                        <div style="font-size: 0.75rem; color: #166534; font-weight: 700;">&check; Verified Electronic Commercial Invoice</div>
-                        <div style="font-size: 0.72rem; color: #94a3b8;">Issued via Zannat.me Engine</div>
+                        <div style="font-size: 0.68rem; color: #166534; font-weight: 700;">&check; Verified Electronic Commercial Invoice</div>
+                        <div style="font-size: 0.62rem; color: #94a3b8;">Issued via Zannat.me Engine</div>
                     </div>
                 </div>
             `;
@@ -2779,10 +2778,10 @@
                 const rowBg = index % 2 === 1 ? '#f8fafc' : '#ffffff';
                 itemsRows += `
                     <tr style="background: ${rowBg};">
-                        <td style="padding: 12px 14px; border-bottom: 1px solid #e2e8f0; font-weight: 500; color: #1e293b;">${item.desc || 'WordPress Service'}</td>
-                        <td style="padding: 12px 14px; border-bottom: 1px solid #e2e8f0; text-align: center; color: #475569;">${qtyNum}</td>
-                        <td style="padding: 12px 14px; border-bottom: 1px solid #e2e8f0; text-align: right; color: #475569;">${symbol}${rateNum.toFixed(2)}</td>
-                        <td style="padding: 12px 14px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 700; color: #0f172a;">${symbol}${amount.toFixed(2)}</td>
+                        <td style="padding: 7px 10px; border-bottom: 1px solid #e2e8f0; font-weight: 500; color: #1e293b; font-size: 0.78rem;">${item.desc || 'WordPress Service'}</td>
+                        <td style="padding: 7px 10px; border-bottom: 1px solid #e2e8f0; text-align: center; color: #475569; font-size: 0.78rem;">${qtyNum}</td>
+                        <td style="padding: 7px 10px; border-bottom: 1px solid #e2e8f0; text-align: right; color: #475569; font-size: 0.78rem;">${symbol}${rateNum.toFixed(2)}</td>
+                        <td style="padding: 7px 10px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 700; color: #0f172a; font-size: 0.78rem;">${symbol}${amount.toFixed(2)}</td>
                     </tr>
                 `;
             });
@@ -2801,16 +2800,62 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background: #f8fafc; color: #1e293b; margin: 0; padding: 40px 20px; }
-        .paper { max-width: 820px; margin: 0 auto; background: #ffffff; padding: 44px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.06); border: 1px solid #e2e8f0; }
-        .actions { max-width: 820px; margin: 0 auto 20px auto; display: flex; justify-content: flex-end; gap: 12px; }
-        .btn { padding: 10px 20px; font-size: 0.9rem; font-weight: 700; border-radius: 6px; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+        * { box-sizing: border-box; }
+        @page {
+            size: A4 portrait;
+            margin: 6mm 8mm;
+        }
+        body {
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #f1f5f9;
+            color: #1e293b;
+            margin: 0;
+            padding: 20px 10px;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+        .paper {
+            width: 100%;
+            max-width: 794px;
+            margin: 0 auto;
+            background: #ffffff;
+            padding: 24px 28px;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+            border: 1px solid #e2e8f0;
+            page-break-after: avoid !important;
+            page-break-inside: avoid !important;
+        }
+        .actions {
+            max-width: 794px;
+            margin: 0 auto 14px auto;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+        .btn {
+            padding: 8px 18px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
         .btn-primary { background: #6366f1; color: #ffffff; }
         .btn-outline { background: #ffffff; color: #334155; border: 1px solid #cbd5e1; }
-        @media print { 
-            .actions { display: none !important; } 
-            body { padding: 0; background: #fff; } 
-            .paper { box-shadow: none; border: none; padding: 0; } 
+        @media print {
+            body { padding: 0 !important; background: #ffffff !important; }
+            .actions { display: none !important; }
+            .paper {
+                box-shadow: none !important;
+                border: none !important;
+                padding: 0 !important;
+                width: 100% !important;
+                max-width: 100% !important;
+            }
         }
     </style>
 </head>
@@ -2821,59 +2866,59 @@
     </div>
     <div id="invoice-doc" class="paper">
         <!-- International Invoice Header -->
-        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 28px; border-bottom: 2px solid #6366f1; padding-bottom: 20px;">
-            <div style="display: flex; gap: 16px; align-items: center;">
-                <img src="${logoSrc}" alt="Logo" style="width: 58px; height: 58px; object-fit: contain;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; border-bottom: 2px solid #6366f1; padding-bottom: 10px;">
+            <div style="display: flex; gap: 12px; align-items: center;">
+                <img src="${logoSrc}" alt="Logo" style="width: 46px; height: 46px; object-fit: contain;">
                 <div>
-                    <h2 style="font-size: 1.5rem; font-weight: 800; color: #0f172a; margin: 0; letter-spacing: -0.01em;">Abu Zannat</h2>
-                    <div style="font-size: 0.85rem; color: #6366f1; font-weight: 700; margin-top: 2px;">WordPress Specialist & Web Developer</div>
-                    <div style="font-size: 0.75rem; color: #64748b; margin-top: 2px;">Independent Contractor &bull; Non-US Person &bull; https://zannat.me</div>
+                    <h2 style="font-size: 1.25rem; font-weight: 800; color: #0f172a; margin: 0; letter-spacing: -0.01em;">Abu Zannat</h2>
+                    <div style="font-size: 0.76rem; color: #6366f1; font-weight: 700; margin-top: 1px;">WordPress Specialist & Web Developer</div>
+                    <div style="font-size: 0.68rem; color: #64748b; margin-top: 1px;">Independent Contractor &bull; Non-US Person &bull; https://zannat.me</div>
                 </div>
             </div>
             <div style="text-align: right;">
-                <h1 style="font-size: 1.75rem; font-weight: 900; color: #0f172a; margin: 0; letter-spacing: -0.02em;">COMMERCIAL INVOICE</h1>
-                <div style="font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 2px;">TAX INVOICE / EXPORT OF SERVICES</div>
-                <div style="font-size: 1.15rem; font-weight: 800; color: #6366f1; margin-top: 4px;">${invoice.number}</div>
-                <div style="margin-top: 6px;"><span style="background: ${statusBg}; color: ${statusColor}; padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 800;">STATUS: ${status.toUpperCase()}</span></div>
+                <h1 style="font-size: 1.35rem; font-weight: 900; color: #0f172a; margin: 0; letter-spacing: -0.02em;">COMMERCIAL INVOICE</h1>
+                <div style="font-size: 0.68rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 1px;">TAX INVOICE / EXPORT OF SERVICES</div>
+                <div style="font-size: 1.05rem; font-weight: 800; color: #6366f1; margin-top: 2px;">${invoice.number}</div>
+                <div style="margin-top: 4px;"><span style="background: ${statusBg}; color: ${statusColor}; padding: 2px 8px; border-radius: 12px; font-size: 0.68rem; font-weight: 800;">STATUS: ${status.toUpperCase()}</span></div>
             </div>
         </div>
 
         <!-- Document Meta Grid -->
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 24px; padding: 12px 18px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; font-size: 0.82rem;">
-            <div><span style="color: #64748b; font-size: 0.72rem; text-transform: uppercase; font-weight: 700; display: block;">Issue Date</span><strong style="color: #0f172a;">${invoice.date || 'N/A'}</strong></div>
-            <div><span style="color: #64748b; font-size: 0.72rem; text-transform: uppercase; font-weight: 700; display: block;">Payment Terms</span><strong style="color: #0f172a;">${invoice.paymentTerms || 'Due on Receipt'}</strong></div>
-            <div><span style="color: #64748b; font-size: 0.72rem; text-transform: uppercase; font-weight: 700; display: block;">Due Date</span><strong style="color: #0f172a;">${invoice.dueDate || 'Upon Receipt'}</strong></div>
-            <div><span style="color: #64748b; font-size: 0.72rem; text-transform: uppercase; font-weight: 700; display: block;">Currency</span><strong style="color: #0f172a;">${invoice.currency} (${symbol})</strong></div>
-            ${invoice.poNumber ? `<div><span style="color: #64748b; font-size: 0.72rem; text-transform: uppercase; font-weight: 700; display: block;">PO / Ref #</span><strong style="color: #6366f1;">${invoice.poNumber}</strong></div>` : ''}
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; margin-bottom: 10px; padding: 6px 14px; background: #f8fafc; border-radius: 6px; border: 1px solid #e2e8f0; font-size: 0.75rem;">
+            <div><span style="color: #64748b; font-size: 0.64rem; text-transform: uppercase; font-weight: 700; display: block;">Issue Date</span><strong style="color: #0f172a;">${invoice.date || 'N/A'}</strong></div>
+            <div><span style="color: #64748b; font-size: 0.64rem; text-transform: uppercase; font-weight: 700; display: block;">Payment Terms</span><strong style="color: #0f172a;">${invoice.paymentTerms || 'Due on Receipt'}</strong></div>
+            <div><span style="color: #64748b; font-size: 0.64rem; text-transform: uppercase; font-weight: 700; display: block;">Due Date</span><strong style="color: #0f172a;">${invoice.dueDate || 'Upon Receipt'}</strong></div>
+            <div><span style="color: #64748b; font-size: 0.64rem; text-transform: uppercase; font-weight: 700; display: block;">Currency</span><strong style="color: #0f172a;">${invoice.currency} (${symbol})</strong></div>
+            ${invoice.poNumber ? `<div><span style="color: #64748b; font-size: 0.64rem; text-transform: uppercase; font-weight: 700; display: block;">PO / Ref #</span><strong style="color: #6366f1;">${invoice.poNumber}</strong></div>` : ''}
         </div>
 
         <!-- Addresses Row -->
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 28px;">
-            <div style="padding: 18px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px;">
-                <h4 style="font-size: 0.72rem; text-transform: uppercase; color: #64748b; font-weight: 800; letter-spacing: 0.05em; margin-bottom: 8px; border-bottom: 1px solid #f1f5f9; padding-bottom: 6px;">Service Provider (From)</h4>
-                <div style="font-weight: 800; font-size: 0.95rem; color: #0f172a;">Abu Zannat</div>
-                <div style="white-space: pre-line; font-size: 0.85rem; color: #334155; line-height: 1.45; margin-top: 4px;">${invoice.myAddress || 'Astha Building\nDorshona Mor, Rangpur City Bypass\nRangpur city, Rangpur\nBangladesh'}</div>
-                <div style="font-size: 0.82rem; color: #6366f1; margin-top: 6px;">abuzannat911@gmail.com</div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 10px;">
+            <div style="padding: 10px 14px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 6px;">
+                <h4 style="font-size: 0.65rem; text-transform: uppercase; color: #64748b; font-weight: 800; letter-spacing: 0.05em; margin-bottom: 4px; border-bottom: 1px solid #f1f5f9; padding-bottom: 3px;">Service Provider (From)</h4>
+                <div style="font-weight: 800; font-size: 0.88rem; color: #0f172a;">Abu Zannat</div>
+                <div style="white-space: pre-line; font-size: 0.76rem; color: #334155; line-height: 1.35; margin-top: 2px;">${invoice.myAddress || 'Astha Building\nDorshona Mor, Rangpur City Bypass\nRangpur city, Rangpur\nBangladesh'}</div>
+                <div style="font-size: 0.74rem; color: #6366f1; margin-top: 3px;">abuzannat911@gmail.com</div>
             </div>
-            <div style="padding: 18px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px;">
-                <h4 style="font-size: 0.72rem; text-transform: uppercase; color: #64748b; font-weight: 800; letter-spacing: 0.05em; margin-bottom: 8px; border-bottom: 1px solid #f1f5f9; padding-bottom: 6px;">Billed To (Client / Organization)</h4>
-                <div style="font-weight: 800; font-size: 1rem; color: #0f172a;">${invoice.clientName || 'Client'}</div>
-                ${invoice.clientCompany ? `<div style="font-size: 0.88rem; color: #475569; font-weight: 700; margin-top: 2px;">${invoice.clientCompany}</div>` : ''}
-                ${invoice.clientEmail ? `<div style="font-size: 0.82rem; color: #6366f1; margin-top: 3px;">${invoice.clientEmail}</div>` : ''}
-                ${invoice.clientPhone ? `<div style="font-size: 0.82rem; color: #475569; margin-top: 3px;">📞 ${invoice.clientPhone}</div>` : ''}
-                ${vatDisplay ? `<div style="font-size: 0.82rem; color: #166534; font-weight: 700; margin-top: 3px; background: #f0fdf4; display: inline-block; padding: 2px 6px; border-radius: 4px;">VAT / Tax ID / EIN: <span style="font-weight: 600; font-family: monospace;">${vatDisplay}</span></div>` : ''}
-                <div style="white-space: pre-line; font-size: 0.85rem; color: #475569; margin-top: 4px; line-height: 1.4;">${invoice.clientAddress || ''}</div>
+            <div style="padding: 10px 14px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 6px;">
+                <h4 style="font-size: 0.65rem; text-transform: uppercase; color: #64748b; font-weight: 800; letter-spacing: 0.05em; margin-bottom: 4px; border-bottom: 1px solid #f1f5f9; padding-bottom: 3px;">Billed To (Client / Organization)</h4>
+                <div style="font-weight: 800; font-size: 0.9rem; color: #0f172a;">${invoice.clientName || 'Client'}</div>
+                ${invoice.clientCompany ? `<div style="font-size: 0.78rem; color: #475569; font-weight: 700; margin-top: 1px;">${invoice.clientCompany}</div>` : ''}
+                ${invoice.clientEmail ? `<div style="font-size: 0.74rem; color: #6366f1; margin-top: 2px;">${invoice.clientEmail}</div>` : ''}
+                ${invoice.clientPhone ? `<div style="font-size: 0.74rem; color: #475569; margin-top: 2px;">📞 ${invoice.clientPhone}</div>` : ''}
+                ${vatDisplay ? `<div style="font-size: 0.74rem; color: #166534; font-weight: 700; margin-top: 2px; background: #f0fdf4; display: inline-block; padding: 1px 5px; border-radius: 4px;">VAT / Tax ID: <span style="font-weight: 600; font-family: monospace;">${vatDisplay}</span></div>` : ''}
+                <div style="white-space: pre-line; font-size: 0.76rem; color: #475569; margin-top: 2px; line-height: 1.3;">${invoice.clientAddress || ''}</div>
             </div>
         </div>
 
         <!-- Line Items Table -->
-        <table style="width: 100%; border-collapse: collapse; margin-bottom: 24px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 10px; border: 1px solid #e2e8f0; border-radius: 6px; overflow: hidden;">
             <thead>
-                <tr style="background: #0f172a; text-transform: uppercase; font-size: 0.72rem; color: #ffffff; letter-spacing: 0.04em;">
-                    <th style="padding: 12px 14px; text-align: left;">Scope of Services / Deliverables</th>
-                    <th style="padding: 12px 14px; text-align: center; width: 12%;">Qty / Hrs</th>
-                    <th style="padding: 12px 14px; text-align: right; width: 20%;">Unit Rate</th>
-                    <th style="padding: 12px 14px; text-align: right; width: 20%;">Amount (${symbol})</th>
+                <tr style="background: #0f172a; text-transform: uppercase; font-size: 0.68rem; color: #ffffff; letter-spacing: 0.04em;">
+                    <th style="padding: 7px 10px; text-align: left;">Scope of Services / Deliverables</th>
+                    <th style="padding: 7px 10px; text-align: center; width: 12%;">Qty / Hrs</th>
+                    <th style="padding: 7px 10px; text-align: right; width: 20%;">Unit Rate</th>
+                    <th style="padding: 7px 10px; text-align: right; width: 20%;">Amount (${symbol})</th>
                 </tr>
             </thead>
             <tbody>
@@ -2882,17 +2927,17 @@
         </table>
 
         <!-- Summary Totals -->
-        <div style="display: flex; justify-content: flex-end; margin-bottom: 28px;">
-            <div style="width: 300px; font-size: 0.9rem; background: #f8fafc; padding: 16px; border-radius: 8px; border: 1px solid #e2e8f0;">
-                <div style="display: flex; justify-content: space-between; padding: 5px 0; color: #475569;">
+        <div style="display: flex; justify-content: flex-end; margin-bottom: 10px;">
+            <div style="width: 250px; font-size: 0.8rem; background: #f8fafc; padding: 8px 12px; border-radius: 6px; border: 1px solid #e2e8f0;">
+                <div style="display: flex; justify-content: space-between; padding: 2px 0; color: #475569;">
                     <span>Subtotal:</span>
                     <span style="font-weight: 600; color: #0f172a;">${symbol}${subtotalVal.toFixed(2)}</span>
                 </div>
-                <div style="display: flex; justify-content: space-between; padding: 5px 0; color: #475569;">
+                <div style="display: flex; justify-content: space-between; padding: 2px 0; color: #475569;">
                     <span>Tax / VAT (${taxRateVal > 0 ? taxRateVal + '%' : '0% Non-US/Reverse Charge'}):</span>
                     <span style="font-weight: 600; color: #0f172a;">${symbol}${taxAmountVal.toFixed(2)}</span>
                 </div>
-                <div style="display: flex; justify-content: space-between; padding: 10px 0 4px 0; border-top: 2px solid #0f172a; font-weight: 800; font-size: 1.15rem; color: #0f172a; margin-top: 6px;">
+                <div style="display: flex; justify-content: space-between; padding: 6px 0 2px 0; border-top: 2px solid #0f172a; font-weight: 800; font-size: 1rem; color: #0f172a; margin-top: 3px;">
                     <span>Total Due:</span>
                     <span style="color: #16a34a;">${symbol}${totalVal.toFixed(2)}</span>
                 </div>
@@ -2901,49 +2946,48 @@
 
         <!-- International Wire & Banking Details (USA & EU Ready) -->
         ${hasBank ? `
-        <div style="margin-bottom: 24px; padding: 18px 20px; background: #f0fdf4; border: 1px solid #bbf7d0; border-left: 5px solid #166534; border-radius: 8px;">
-            <div style="font-weight: 800; font-size: 0.92rem; color: #166534; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+        <div style="margin-bottom: 10px; padding: 10px 14px; background: #f0fdf4; border: 1px solid #bbf7d0; border-left: 4px solid #166534; border-radius: 6px;">
+            <div style="font-weight: 800; font-size: 0.8rem; color: #166534; margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 4px;">
                 <span>🏦 International Wire Transfer & Banking Instructions</span>
-                <span style="font-size: 0.75rem; background: #dcfce7; color: #15803d; padding: 2px 8px; border-radius: 12px; font-weight: 700;">USA (ACH/Wire) & EU (SEPA/IBAN) Ready</span>
+                <span style="font-size: 0.68rem; background: #dcfce7; color: #15803d; padding: 1px 6px; border-radius: 10px; font-weight: 700;">USA & EU Ready</span>
             </div>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; font-size: 0.85rem;">
-                ${invoice.bankName ? `<div><span style="color: #64748b; font-size: 0.72rem; text-transform: uppercase; font-weight: 700; display: block; margin-bottom: 2px;">Bank Name</span><strong style="color: #0f172a;">${invoice.bankName}</strong></div>` : ''}
-                ${invoice.bankAccountName ? `<div><span style="color: #64748b; font-size: 0.72rem; text-transform: uppercase; font-weight: 700; display: block; margin-bottom: 2px;">Beneficiary / Account Holder</span><strong style="color: #0f172a;">${invoice.bankAccountName}</strong></div>` : ''}
-                ${invoice.bankAccountNo ? `<div><span style="color: #64748b; font-size: 0.72rem; text-transform: uppercase; font-weight: 700; display: block; margin-bottom: 2px;">Account # / IBAN</span><strong style="color: #0f172a; font-family: monospace; font-size: 0.92rem;">${invoice.bankAccountNo}</strong></div>` : ''}
-                ${(invoice.bankRouting || invoice.bankRoutingNumber) ? `<div><span style="color: #64748b; font-size: 0.72rem; text-transform: uppercase; font-weight: 700; display: block; margin-bottom: 2px;">ABA Routing # (USA / ACH)</span><strong style="color: #0f172a; font-family: monospace; font-size: 0.92rem;">${invoice.bankRouting || invoice.bankRoutingNumber}</strong></div>` : ''}
-                ${invoice.bankSwift ? `<div><span style="color: #64748b; font-size: 0.72rem; text-transform: uppercase; font-weight: 700; display: block; margin-bottom: 2px;">SWIFT / BIC (International Wire)</span><strong style="color: #0f172a; font-family: monospace; font-size: 0.92rem;">${invoice.bankSwift}</strong></div>` : ''}
-                ${invoice.bankBranch ? `<div><span style="color: #64748b; font-size: 0.72rem; text-transform: uppercase; font-weight: 700; display: block; margin-bottom: 2px;">Bank Location / Country</span><strong style="color: #0f172a;">${invoice.bankBranch}</strong></div>` : ''}
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 6px 10px; font-size: 0.75rem;">
+                ${invoice.bankName ? `<div><span style="color: #64748b; font-size: 0.62rem; text-transform: uppercase; font-weight: 700; display: block;">Bank Name</span><strong style="color: #0f172a;">${invoice.bankName}</strong></div>` : ''}
+                ${invoice.bankAccountName ? `<div><span style="color: #64748b; font-size: 0.62rem; text-transform: uppercase; font-weight: 700; display: block;">Beneficiary Holder</span><strong style="color: #0f172a;">${invoice.bankAccountName}</strong></div>` : ''}
+                ${invoice.bankAccountNo ? `<div><span style="color: #64748b; font-size: 0.62rem; text-transform: uppercase; font-weight: 700; display: block;">Account # / IBAN</span><strong style="color: #0f172a; font-family: monospace; font-size: 0.8rem;">${invoice.bankAccountNo}</strong></div>` : ''}
+                ${(invoice.bankRouting || invoice.bankRoutingNumber) ? `<div><span style="color: #64748b; font-size: 0.62rem; text-transform: uppercase; font-weight: 700; display: block;">Routing # (USA/ACH)</span><strong style="color: #0f172a; font-family: monospace; font-size: 0.8rem;">${invoice.bankRouting || invoice.bankRoutingNumber}</strong></div>` : ''}
+                ${invoice.bankSwift ? `<div><span style="color: #64748b; font-size: 0.62rem; text-transform: uppercase; font-weight: 700; display: block;">SWIFT / BIC</span><strong style="color: #0f172a; font-family: monospace; font-size: 0.8rem;">${invoice.bankSwift}</strong></div>` : ''}
+                ${invoice.bankBranch ? `<div><span style="color: #64748b; font-size: 0.62rem; text-transform: uppercase; font-weight: 700; display: block;">Branch / Country</span><strong style="color: #0f172a;">${invoice.bankBranch}</strong></div>` : ''}
             </div>
-            <div style="font-size: 0.75rem; color: #166534; margin-top: 10px; border-top: 1px dashed #86efac; padding-top: 6px;">
-                <strong>Wire Payment Reference:</strong> Please quote invoice number <code style="background: #ffffff; padding: 2px 6px; border-radius: 4px; font-weight: 700; color: #0f172a;">${invoice.number}</code> in your wire transfer payment description.
+            <div style="font-size: 0.68rem; color: #166534; margin-top: 6px; border-top: 1px dashed #86efac; padding-top: 4px;">
+                <strong>Wire Payment Reference:</strong> Quote <code style="background: #ffffff; padding: 1px 4px; border-radius: 3px; font-weight: 700; color: #0f172a;">${invoice.number}</code> in wire transfer description.
             </div>
         </div>
         ` : ''}
 
         <!-- Notes / Additional Instructions -->
         ${invoice.notes ? `
-        <div style="padding: 14px 18px; background: #f8fafc; border-radius: 6px; border-left: 4px solid #6366f1; font-size: 0.85rem; color: #475569; margin-bottom: 24px;">
-            <strong style="color: #1e293b;">Notes & Additional Instructions:</strong>
-            <div style="white-space: pre-line; margin-top: 4px;">${invoice.notes}</div>
+        <div style="padding: 6px 10px; background: #f8fafc; border-radius: 5px; border-left: 3px solid #6366f1; font-size: 0.72rem; color: #475569; margin-bottom: 8px;">
+            <strong style="color: #1e293b;">Notes:</strong> <span style="white-space: pre-line;">${invoice.notes}</span>
         </div>
         ` : ''}
 
         <!-- Tax & Legal Compliance Box -->
-        <div style="padding: 12px 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 0.75rem; color: #64748b; line-height: 1.5; margin-bottom: 28px;">
-            <strong style="color: #334155; display: block; margin-bottom: 4px;">International Tax & Legal Notice:</strong>
-            &bull; <strong>USA Clients:</strong> Services rendered remotely outside the United States by a foreign independent contractor. Form W-8BEN (Certificate of Foreign Status) is available upon request.<br>
-            &bull; <strong>European Union / UK Clients:</strong> Cross-border B2B supply of services. Zero-rated VAT / Out of scope for local VAT pursuant to the Reverse Charge Mechanism (Article 196, EU VAT Directive).
+        <div style="padding: 6px 10px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 5px; font-size: 0.65rem; color: #64748b; line-height: 1.35; margin-bottom: 8px;">
+            <strong style="color: #334155;">International Notice:</strong>
+            &bull; <strong>USA:</strong> Services rendered remotely outside US (Foreign Contractor, W-8BEN available).
+            &bull; <strong>EU/UK:</strong> B2B Reverse Charge Mechanism (Art. 196, EU VAT Directive).
         </div>
 
         <!-- Signoff & Footer -->
-        <div style="display: flex; justify-content: space-between; align-items: flex-end; border-top: 1px solid #e2e8f0; padding-top: 18px; font-size: 0.8rem; color: #64748b;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-end; border-top: 1px solid #e2e8f0; padding-top: 6px; font-size: 0.7rem; color: #64748b;">
             <div>
                 <div style="font-weight: 700; color: #0f172a;">Abu Zannat</div>
-                <div style="font-size: 0.75rem; color: #64748b;">WordPress Bug Fixer & Specialist Developer</div>
+                <div style="font-size: 0.65rem; color: #64748b;">WordPress Bug Fixer & Specialist Developer</div>
             </div>
             <div style="text-align: right;">
-                <div style="font-size: 0.75rem; color: #166534; font-weight: 700;">&check; Verified Electronic Commercial Invoice</div>
-                <div style="font-size: 0.72rem; color: #94a3b8;">Issued via Zannat.me Engine</div>
+                <div style="font-size: 0.68rem; color: #166534; font-weight: 700;">&check; Verified Electronic Commercial Invoice</div>
+                <div style="font-size: 0.62rem; color: #94a3b8;">Issued via Zannat.me Engine</div>
             </div>
         </div>
     </div>
@@ -2952,11 +2996,12 @@
         function downloadPDF() {
             const element = document.getElementById('invoice-doc');
             const opt = {
-                margin: 10,
+                margin: [6, 8, 6, 8],
                 filename: '${invoice.number}.pdf',
                 image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 3, useCORS: true },
-                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                html2canvas: { scale: 2.5, useCORS: true, logging: false },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
             };
             html2pdf().set(opt).from(element).save();
         }
@@ -2986,12 +3031,14 @@
                 return;
             }
 
+            const invNum = this.currentPreviewInvoice?.number || `Invoice_${Date.now()}`;
             const opt = {
-                margin:       10,
-                filename:     `Invoice_${Date.now()}.pdf`,
+                margin:       [6, 8, 6, 8],
+                filename:     `${invNum}.pdf`,
                 image:        { type: 'jpeg', quality: 0.98 },
-                html2canvas:  { scale: 3, useCORS: true },
-                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                html2canvas:  { scale: 2.5, useCORS: true, logging: false },
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
             };
 
             html2pdf().set(opt).from(element).save();
