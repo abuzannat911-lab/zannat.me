@@ -1084,6 +1084,10 @@
             const overlay = document.getElementById(modalId);
             if (overlay) {
                 overlay.classList.remove('hidden');
+                overlay.style.display = 'flex';
+                overlay.style.opacity = '1';
+                overlay.style.pointerEvents = 'auto';
+                if (window.lucide) window.lucide.createIcons();
             }
         },
 
@@ -1092,6 +1096,9 @@
             const overlay = document.getElementById(modalId);
             if (overlay) {
                 overlay.classList.add('hidden');
+                overlay.style.display = 'none';
+                overlay.style.opacity = '0';
+                overlay.style.pointerEvents = 'none';
                 
                 // If canceling admin login overlay, redirect to portfolio
                 if (modalId === 'login-overlay' && !this.state.isAuthenticated) {
@@ -2160,26 +2167,35 @@
 
         handlePreviewInvoice(event) {
             if (event) event.preventDefault();
-            const invoiceData = this.getInvoiceFormData();
-            if (!invoiceData.clientName || invoiceData.clientName.trim() === '') {
-                this.showToast('Please enter client name to preview invoice.', 'error');
-                return;
+            try {
+                const invoiceData = this.getInvoiceFormData();
+                if (!invoiceData.clientName || invoiceData.clientName.trim() === '') {
+                    invoiceData.clientName = 'Client Name';
+                }
+                this.renderInvoicePreview(invoiceData);
+                this.openModal('modal-invoice-preview');
+            } catch (err) {
+                console.error('Invoice preview error:', err);
+                this.showToast('Could not open preview: ' + err.message, 'error');
             }
-            this.renderInvoicePreview(invoiceData);
-            this.openModal('modal-invoice-preview');
         },
 
         handlePrintInvoice(event) {
             if (event) event.preventDefault();
-            const invoiceData = this.getInvoiceFormData();
-            if (!invoiceData.clientName || invoiceData.clientName.trim() === '') {
-                this.showToast('Please enter client name to print invoice.', 'error');
-                return;
+            try {
+                const invoiceData = this.getInvoiceFormData();
+                if (!invoiceData.clientName || invoiceData.clientName.trim() === '') {
+                    invoiceData.clientName = 'Client Name';
+                }
+                this.renderStandalonePrintInvoice(invoiceData);
+            } catch (err) {
+                console.error('Invoice print error:', err);
+                this.showToast('Could not generate print page: ' + err.message, 'error');
             }
-            this.renderStandalonePrintInvoice(invoiceData);
         },
 
         renderInvoicePreview(invoice) {
+            if (!invoice) return;
             this.currentPreviewInvoice = invoice;
 
             const previewEl = document.getElementById('invoice-preview-content');
@@ -2194,18 +2210,28 @@
             const badgeClass = status === 'Unpaid' ? 'badge-unpaid' : (status === 'Due' ? 'badge-due' : 'badge-paid');
 
             let itemsRows = '';
-            (invoice.items || []).forEach(item => {
-                const amount = item.qty * item.rate;
+            const items = Array.isArray(invoice.items) && invoice.items.length > 0 ? invoice.items : [
+                { desc: 'WordPress Core & Plugin Bug Diagnostics', qty: 1, rate: 150 }
+            ];
+
+            items.forEach(item => {
+                const qtyNum = parseFloat(item.qty) || 1;
+                const rateNum = parseFloat(item.rate) || 0;
+                const amount = qtyNum * rateNum;
                 itemsRows += `
                     <tr>
-                        <td style="padding: 12px; border-bottom: 1px solid #f1f5f9;">${item.desc}</td>
-                        <td style="padding: 12px; border-bottom: 1px solid #f1f5f9; text-align: center;">${item.qty}</td>
-                        <td style="padding: 12px; border-bottom: 1px solid #f1f5f9; text-align: right;">${symbol}${item.rate.toFixed(2)}</td>
+                        <td style="padding: 12px; border-bottom: 1px solid #f1f5f9;">${item.desc || 'WordPress Service'}</td>
+                        <td style="padding: 12px; border-bottom: 1px solid #f1f5f9; text-align: center;">${qtyNum}</td>
+                        <td style="padding: 12px; border-bottom: 1px solid #f1f5f9; text-align: right;">${symbol}${rateNum.toFixed(2)}</td>
                         <td style="padding: 12px; border-bottom: 1px solid #f1f5f9; text-align: right; font-weight: 700;">${symbol}${amount.toFixed(2)}</td>
                     </tr>
                 `;
             });
 
+            const subtotalVal = typeof invoice.subtotal === 'number' ? invoice.subtotal : (parseFloat(invoice.subtotal) || 0);
+            const taxRateVal = typeof invoice.taxRate === 'number' ? invoice.taxRate : (parseFloat(invoice.taxRate) || 0);
+            const taxAmountVal = typeof invoice.taxAmount === 'number' ? invoice.taxAmount : (parseFloat(invoice.taxAmount) || 0);
+            const totalVal = typeof invoice.total === 'number' ? invoice.total : (parseFloat(invoice.total) || (subtotalVal + taxAmountVal));
             const vatDisplay = invoice.clientVat || invoice.clientTaxId;
 
             previewEl.innerHTML = `
@@ -2272,17 +2298,17 @@
                     <div style="width: 260px; font-size: 0.9rem;">
                         <div style="display: flex; justify-content: space-between; padding: 6px 0; color: #475569;">
                             <span>Subtotal:</span>
-                            <span>${symbol}${(invoice.subtotal || 0).toFixed(2)}</span>
+                            <span>${symbol}${subtotalVal.toFixed(2)}</span>
                         </div>
-                        ${invoice.taxRate > 0 ? `
+                        ${taxRateVal > 0 ? `
                         <div style="display: flex; justify-content: space-between; padding: 6px 0; color: #475569;">
-                            <span>Tax (${invoice.taxRate}%):</span>
-                            <span>${symbol}${(invoice.taxAmount || 0).toFixed(2)}</span>
+                            <span>Tax (${taxRateVal}%):</span>
+                            <span>${symbol}${taxAmountVal.toFixed(2)}</span>
                         </div>
                         ` : ''}
                         <div style="display: flex; justify-content: space-between; padding: 10px 0; border-top: 2px solid #0f172a; font-weight: 800; font-size: 1.1rem; color: #0f172a; margin-top: 4px;">
                             <span>Total Paid:</span>
-                            <span style="color: #16a34a;">${symbol}${(invoice.total || 0).toFixed(2)}</span>
+                            <span style="color: #16a34a;">${symbol}${totalVal.toFixed(2)}</span>
                         </div>
                     </div>
                 </div>
@@ -2475,17 +2501,28 @@
             const vatDisplay = invoice.clientVat || invoice.clientTaxId;
 
             let itemsRows = '';
-            (invoice.items || []).forEach(item => {
-                const amount = item.qty * item.rate;
+            const items = Array.isArray(invoice.items) && invoice.items.length > 0 ? invoice.items : [
+                { desc: 'WordPress Core & Plugin Bug Diagnostics', qty: 1, rate: 150 }
+            ];
+
+            items.forEach(item => {
+                const qtyNum = parseFloat(item.qty) || 1;
+                const rateNum = parseFloat(item.rate) || 0;
+                const amount = qtyNum * rateNum;
                 itemsRows += `
                     <tr>
-                        <td style="padding: 12px; border-bottom: 1px solid #f1f5f9;">${item.desc}</td>
-                        <td style="padding: 12px; border-bottom: 1px solid #f1f5f9; text-align: center;">${item.qty}</td>
-                        <td style="padding: 12px; border-bottom: 1px solid #f1f5f9; text-align: right;">${symbol}${item.rate.toFixed(2)}</td>
+                        <td style="padding: 12px; border-bottom: 1px solid #f1f5f9;">${item.desc || 'WordPress Service'}</td>
+                        <td style="padding: 12px; border-bottom: 1px solid #f1f5f9; text-align: center;">${qtyNum}</td>
+                        <td style="padding: 12px; border-bottom: 1px solid #f1f5f9; text-align: right;">${symbol}${rateNum.toFixed(2)}</td>
                         <td style="padding: 12px; border-bottom: 1px solid #f1f5f9; text-align: right; font-weight: 700;">${symbol}${amount.toFixed(2)}</td>
                     </tr>
                 `;
             });
+
+            const subtotalVal = typeof invoice.subtotal === 'number' ? invoice.subtotal : (parseFloat(invoice.subtotal) || 0);
+            const taxRateVal = typeof invoice.taxRate === 'number' ? invoice.taxRate : (parseFloat(invoice.taxRate) || 0);
+            const taxAmountVal = typeof invoice.taxAmount === 'number' ? invoice.taxAmount : (parseFloat(invoice.taxAmount) || 0);
+            const totalVal = typeof invoice.total === 'number' ? invoice.total : (parseFloat(invoice.total) || (subtotalVal + taxAmountVal));
 
             const htmlContent = `
 <!DOCTYPE html>
