@@ -1057,11 +1057,19 @@ Bangladesh</textarea>
                 </div>
               </div>
 
-              <div style="display: flex; gap: 12px; justify-content: flex-end;">
+              <div style="display: flex; gap: 12px; justify-content: flex-end; align-items: center; flex-wrap: wrap;">
                 <button type="button" class="btn btn-secondary" onclick="app.toggleInvoiceView('list')">Cancel</button>
-                <button type="submit" class="btn btn-primary btn-icon-text" style="padding: 12px 24px;">
+                <button type="button" class="btn btn-outline btn-icon-text" onclick="app.handlePreviewInvoice(event)" style="padding: 11px 20px;">
+                  <i data-lucide="eye" style="width: 16px; height: 16px; color: var(--accent-blue);"></i>
+                  <span>Preview</span>
+                </button>
+                <button type="button" class="btn btn-outline btn-icon-text" onclick="app.handlePrintInvoice(event)" style="padding: 11px 20px;">
+                  <i data-lucide="printer" style="width: 16px; height: 16px; color: var(--accent-amber);"></i>
+                  <span>Print</span>
+                </button>
+                <button type="button" class="btn btn-primary btn-icon-text" onclick="app.handleSaveInvoice(event)" style="padding: 11px 24px;">
                   <i data-lucide="save" style="width: 16px; height: 16px;"></i>
-                  <span>Save & Preview Invoice</span>
+                  <span>Save</span>
                 </button>
               </div>
             </form>
@@ -1258,6 +1266,8 @@ Bangladesh</textarea>
         <!-- Rendered invoice HTML goes here -->
       </div>
     </div>
+  </div>
+
   <!-- Modal: Manage Saved Clients Directory -->
   <div class="modal-overlay hidden" id="modal-manage-clients">
     <div class="modal-card" style="max-width: 860px; max-height: 90vh; overflow-y: auto; padding: 24px;">

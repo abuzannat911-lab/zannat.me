@@ -2013,13 +2013,13 @@
             };
         },
 
-        async saveInvoice(event) {
+        async saveInvoice(event, options = { showToast: true, openPreview: false, autoDownload: false, switchToList: true }) {
             if (event) event.preventDefault();
             const invoiceData = this.getInvoiceFormData();
 
             if (!invoiceData.clientName || invoiceData.clientName.trim() === '') {
                 this.showToast('Please provide client name.', 'error');
-                return;
+                return null;
             }
 
             let savedInvoice = null;
@@ -2124,23 +2124,59 @@
             }
 
             if (savedInvoice) {
-                this.showToast(`Invoice ${savedInvoice.number} saved! Generating PDF...`, 'success');
-
                 if (nextNum) {
                     this.state.nextInvoiceNum = nextNum;
                 }
 
                 this.renderInvoicesList();
-                this.renderInvoicePreview(savedInvoice);
-                this.openModal('modal-invoice-preview');
 
-                // Auto-trigger PDF generation and print readiness
-                setTimeout(() => {
-                    this.downloadCurrentInvoicePDF();
-                }, 400);
+                if (options.showToast !== false) {
+                    this.showToast(`Invoice ${savedInvoice.number} saved successfully!`, 'success');
+                }
+
+                if (options.openPreview) {
+                    this.renderInvoicePreview(savedInvoice);
+                    this.openModal('modal-invoice-preview');
+                    if (options.autoDownload) {
+                        setTimeout(() => {
+                            this.downloadCurrentInvoicePDF();
+                        }, 400);
+                    }
+                } else if (options.switchToList) {
+                    this.toggleInvoiceView('list');
+                }
+
+                return savedInvoice;
             } else {
                 this.showToast('Failed to save invoice.', 'error');
+                return null;
             }
+        },
+
+        async handleSaveInvoice(event) {
+            if (event) event.preventDefault();
+            return await this.saveInvoice(event, { showToast: true, openPreview: false, autoDownload: false, switchToList: true });
+        },
+
+        handlePreviewInvoice(event) {
+            if (event) event.preventDefault();
+            const invoiceData = this.getInvoiceFormData();
+            if (!invoiceData.clientName || invoiceData.clientName.trim() === '') {
+                this.showToast('Please enter client name to preview invoice.', 'error');
+                return;
+            }
+            this.renderInvoicePreview(invoiceData);
+            this.openModal('modal-invoice-preview');
+        },
+
+        handlePrintInvoice(event) {
+            if (event) event.preventDefault();
+            const invoiceData = this.getInvoiceFormData();
+            if (!invoiceData.clientName || invoiceData.clientName.trim() === '') {
+                this.showToast('Please enter client name to print invoice.', 'error');
+                return;
+            }
+            this.renderStandalonePrintInvoice(invoiceData);
         },
 
         renderInvoicePreview(invoice) {
@@ -2424,7 +2460,13 @@
             this.renderInvoicePreview(invoice);
             this.openModal('modal-invoice-preview');
 
-            // Build standalone printable document for next tab
+            // Render standalone print page
+            this.renderStandalonePrintInvoice(invoice);
+        },
+
+        renderStandalonePrintInvoice(invoice) {
+            if (!invoice) return;
+
             const symbol = this.getCurrencySymbol(invoice.currency);
             const logoSrc = '/assets/zannat_inner_symbol_icon.png';
             const status = invoice.status || 'Paid';
