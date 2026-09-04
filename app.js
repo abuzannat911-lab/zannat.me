@@ -12,6 +12,7 @@
             pages: [],
             users: [],
             invoices: [],
+            clients: [],
             nextInvoiceNum: 1001,
             smtpConfig: {},
             homepageContent: {},
@@ -171,9 +172,30 @@
             this.state.pages = data.pages || [];
             this.state.users = data.users || [{ username: "admin", password: "zannatbugfix" }];
             this.state.invoices = data.invoices || [];
+            this.state.clients = data.clients || [];
             this.state.nextInvoiceNum = data.nextInvoiceNum || 1001;
             this.state.homepageContent = data.homepageContent || {};
             this.state.smtpConfig = data.smtpConfig || {};
+
+            // Seed clients from existing invoices if clients directory is empty
+            if (this.state.clients.length === 0 && this.state.invoices.length > 0) {
+                const seenEmails = new Set();
+                this.state.invoices.forEach(inv => {
+                    if (inv.clientName && (!inv.clientEmail || !seenEmails.has(inv.clientEmail.toLowerCase()))) {
+                        if (inv.clientEmail) seenEmails.add(inv.clientEmail.toLowerCase());
+                        this.state.clients.push({
+                            id: 'cli_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+                            name: inv.clientName,
+                            company: inv.clientCompany || '',
+                            email: inv.clientEmail || '',
+                            phone: inv.clientPhone || '',
+                            vat: inv.clientVat || '',
+                            address: inv.clientAddress || '',
+                            createdAt: inv.createdAt || new Date().toISOString()
+                        });
+                    }
+                });
+            }
 
             // Save local copy
             try {
@@ -184,6 +206,7 @@
                     pages: this.state.pages,
                     users: this.state.users,
                     invoices: this.state.invoices,
+                    clients: this.state.clients,
                     nextInvoiceNum: this.state.nextInvoiceNum,
                     homepageContent: this.state.homepageContent
                 }));
@@ -198,6 +221,7 @@
             this.renderHomepageContent();
             this.renderSMTPConfig();
             this.renderInvoicesList();
+            this.renderClientSelectOptions();
 
             // Check routing paths dynamically if loaded
             if (typeof this.router === 'function') {
@@ -1826,18 +1850,33 @@
             const invIdEl = document.getElementById('inv-id');
             const invNumEl = document.getElementById('inv-number');
             const invDateEl = document.getElementById('inv-date');
+            const invDueDateEl = document.getElementById('inv-due-date');
             const invAddressEl = document.getElementById('inv-my-address');
             const invTaxEl = document.getElementById('inv-tax-rate');
-
             const invPaymentEl = document.getElementById('inv-payment-method');
             const invStatusEl = document.getElementById('inv-status');
+            const invClientNameEl = document.getElementById('inv-client-name');
+            const invClientCompanyEl = document.getElementById('inv-client-company');
+            const invClientEmailEl = document.getElementById('inv-client-email');
+            const invClientPhoneEl = document.getElementById('inv-client-phone');
+            const invClientTaxEl = document.getElementById('inv-client-tax-id');
+            const invClientAddressEl = document.getElementById('inv-client-address');
+            const invClientSelectEl = document.getElementById('inv-client-select');
 
             if (invIdEl) invIdEl.value = '';
             if (invNumEl) invNumEl.value = `INV-${this.state.nextInvoiceNum || 1001}`;
             if (invDateEl) invDateEl.value = new Date().toISOString().split('T')[0];
+            if (invDueDateEl) invDueDateEl.value = '';
             if (invTaxEl) invTaxEl.value = '0';
             if (invPaymentEl) invPaymentEl.value = 'Bank Transfer';
             if (invStatusEl) invStatusEl.value = 'Paid';
+            if (invClientNameEl) invClientNameEl.value = '';
+            if (invClientCompanyEl) invClientCompanyEl.value = '';
+            if (invClientEmailEl) invClientEmailEl.value = '';
+            if (invClientPhoneEl) invClientPhoneEl.value = '';
+            if (invClientTaxEl) invClientTaxEl.value = '';
+            if (invClientAddressEl) invClientAddressEl.value = '';
+            if (invClientSelectEl) invClientSelectEl.value = '';
             if (invAddressEl) {
                 invAddressEl.value = `Astha Building\nDorshona Mor, Rangpur City Bypass\nRangpur city, Rangpur\nBangladesh`;
             }
@@ -1850,12 +1889,25 @@
             this.calculateInvoiceTotals();
         },
 
+        getCurrencySymbol(currency = 'USD') {
+            switch ((currency || '').toUpperCase()) {
+                case 'EUR': return '€';
+                case 'GBP': return '£';
+                case 'BDT': return '৳';
+                case 'CAD': return 'CA$';
+                case 'AUD': return 'AU$';
+                case 'USD':
+                default: return '$';
+            }
+        },
+
         addInvoiceItemRow(description = '', qty = 1, rate = 0) {
             const tbody = document.getElementById('invoice-items-tbody');
             if (!tbody) return;
 
             const tr = document.createElement('tr');
-            const currencySymbol = (document.getElementById('inv-currency')?.value === 'BDT') ? '৳' : '$';
+            const currency = document.getElementById('inv-currency')?.value || 'USD';
+            const currencySymbol = this.getCurrencySymbol(currency);
 
             tr.innerHTML = `
                 <td>
@@ -1884,7 +1936,7 @@
 
         calculateInvoiceTotals() {
             const currency = document.getElementById('inv-currency')?.value || 'USD';
-            const symbol = currency === 'BDT' ? '৳' : '$';
+            const symbol = this.getCurrencySymbol(currency);
 
             // Update header symbol labels
             document.querySelectorAll('.inv-currency-symbol').forEach(el => {
@@ -1946,7 +1998,10 @@
                 clientName: document.getElementById('inv-client-name')?.value || '',
                 clientCompany: document.getElementById('inv-client-company')?.value || '',
                 clientEmail: document.getElementById('inv-client-email')?.value || '',
+                clientPhone: document.getElementById('inv-client-phone')?.value || '',
+                clientVat: document.getElementById('inv-client-tax-id')?.value || '',
                 clientAddress: document.getElementById('inv-client-address')?.value || '',
+                saveClient: document.getElementById('inv-save-client-checkbox')?.checked ?? true,
                 items: items,
                 subtotal: subtotal,
                 taxRate: taxRate,
@@ -1982,6 +2037,10 @@
                     if (result.success) {
                         savedInvoice = result.invoice;
                         nextNum = result.nextNum;
+                        if (result.clients) {
+                            this.state.clients = result.clients;
+                            this.renderClientSelectOptions();
+                        }
                     }
                 }
             } catch (err) {
@@ -2015,6 +2074,39 @@
                     nextNum = this.state.nextInvoiceNum;
                 }
 
+                // Handle local client saving
+                if (invoiceData.clientName && invoiceData.saveClient !== false) {
+                    if (!this.state.clients) this.state.clients = [];
+                    const cleanName = invoiceData.clientName.trim();
+                    const cleanEmail = (invoiceData.clientEmail || '').trim();
+                    let cIdx = -1;
+                    if (cleanEmail) {
+                        cIdx = this.state.clients.findIndex(c => c.email && c.email.toLowerCase() === cleanEmail.toLowerCase());
+                    }
+                    if (cIdx === -1) {
+                        cIdx = this.state.clients.findIndex(c => c.name && c.name.toLowerCase() === cleanName.toLowerCase());
+                    }
+
+                    const cliObj = {
+                        id: cIdx !== -1 ? this.state.clients[cIdx].id : 'cli_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+                        name: cleanName,
+                        company: invoiceData.clientCompany || '',
+                        email: cleanEmail,
+                        phone: invoiceData.clientPhone || '',
+                        vat: invoiceData.clientVat || '',
+                        address: invoiceData.clientAddress || '',
+                        updatedAt: new Date().toISOString()
+                    };
+
+                    if (cIdx !== -1) {
+                        this.state.clients[cIdx] = { ...this.state.clients[cIdx], ...cliObj };
+                    } else {
+                        cliObj.createdAt = new Date().toISOString();
+                        this.state.clients.unshift(cliObj);
+                    }
+                    this.renderClientSelectOptions();
+                }
+
                 // Persist state to local storage
                 try {
                     localStorage.setItem('zannat_app_state', JSON.stringify({
@@ -2024,6 +2116,7 @@
                         pages: this.state.pages,
                         users: this.state.users,
                         invoices: this.state.invoices,
+                        clients: this.state.clients,
                         nextInvoiceNum: this.state.nextInvoiceNum,
                         homepageContent: this.state.homepageContent
                     }));
@@ -2059,7 +2152,7 @@
             const previewStatusSelect = document.getElementById('preview-invoice-status-select');
             if (previewStatusSelect) previewStatusSelect.value = invoice.status || 'Paid';
 
-            const symbol = invoice.currency === 'BDT' ? '৳' : '$';
+            const symbol = this.getCurrencySymbol(invoice.currency);
             const logoSrc = '/assets/zannat_inner_symbol_icon.png';
             const status = invoice.status || 'Paid';
             const badgeClass = status === 'Unpaid' ? 'badge-unpaid' : (status === 'Due' ? 'badge-due' : 'badge-paid');
@@ -2076,6 +2169,8 @@
                     </tr>
                 `;
             });
+
+            const vatDisplay = invoice.clientVat || invoice.clientTaxId;
 
             previewEl.innerHTML = `
                 <!-- Invoice Header -->
@@ -2105,8 +2200,10 @@
                     <div>
                         <h4 style="font-size: 0.75rem; text-transform: uppercase; color: #64748b; font-weight: 700; margin-bottom: 8px;">Billed To</h4>
                         <div style="font-weight: 700; font-size: 1rem; color: #0f172a;">${invoice.clientName || 'Client'}</div>
-                        ${invoice.clientCompany ? `<div style="font-size: 0.85rem; color: #475569; font-weight: 600;">${invoice.clientCompany}</div>` : ''}
-                        ${invoice.clientEmail ? `<div style="font-size: 0.85rem; color: #6366f1;">${invoice.clientEmail}</div>` : ''}
+                        ${invoice.clientCompany ? `<div style="font-size: 0.85rem; color: #475569; font-weight: 600; margin-top: 2px;">${invoice.clientCompany}</div>` : ''}
+                        ${invoice.clientEmail ? `<div style="font-size: 0.85rem; color: #6366f1; margin-top: 2px;">${invoice.clientEmail}</div>` : ''}
+                        ${invoice.clientPhone ? `<div style="font-size: 0.85rem; color: #475569; margin-top: 2px; display: flex; align-items: center; gap: 4px;"><span>📞</span> ${invoice.clientPhone}</div>` : ''}
+                        ${vatDisplay ? `<div style="font-size: 0.85rem; color: #475569; font-weight: 600; margin-top: 2px;">VAT / Tax ID: <span style="font-weight: 500;">${vatDisplay}</span></div>` : ''}
                         <div style="white-space: pre-line; font-size: 0.85rem; color: #475569; margin-top: 4px; line-height: 1.4;">${invoice.clientAddress || ''}</div>
                     </div>
                 </div>
@@ -2214,7 +2311,7 @@
             tbody.innerHTML = '';
             this.state.invoices.forEach(inv => {
                 const tr = document.createElement('tr');
-                const symbol = inv.currency === 'BDT' ? '৳' : '$';
+                const symbol = this.getCurrencySymbol(inv.currency);
                 const status = inv.status || 'Paid';
                 const badgeClass = status === 'Unpaid' ? 'badge-unpaid' : (status === 'Due' ? 'badge-due' : 'badge-paid');
 
@@ -2266,7 +2363,10 @@
             const invClientNameEl = document.getElementById('inv-client-name');
             const invClientCompanyEl = document.getElementById('inv-client-company');
             const invClientEmailEl = document.getElementById('inv-client-email');
+            const invClientPhoneEl = document.getElementById('inv-client-phone');
+            const invClientTaxEl = document.getElementById('inv-client-tax-id');
             const invClientAddressEl = document.getElementById('inv-client-address');
+            const invClientSelectEl = document.getElementById('inv-client-select');
             const invTaxEl = document.getElementById('inv-tax-rate');
             const invNotesEl = document.getElementById('inv-notes');
 
@@ -2281,9 +2381,20 @@
             if (invClientNameEl) invClientNameEl.value = invoice.clientName || '';
             if (invClientCompanyEl) invClientCompanyEl.value = invoice.clientCompany || '';
             if (invClientEmailEl) invClientEmailEl.value = invoice.clientEmail || '';
+            if (invClientPhoneEl) invClientPhoneEl.value = invoice.clientPhone || '';
+            if (invClientTaxEl) invClientTaxEl.value = invoice.clientVat || invoice.clientTaxId || '';
             if (invClientAddressEl) invClientAddressEl.value = invoice.clientAddress || '';
             if (invTaxEl) invTaxEl.value = invoice.taxRate !== undefined ? invoice.taxRate : 0;
             if (invNotesEl) invNotesEl.value = invoice.notes || '';
+
+            // Match client dropdown if exists
+            if (invClientSelectEl && this.state.clients) {
+                const matched = this.state.clients.find(c => 
+                    (c.email && invoice.clientEmail && c.email.toLowerCase() === invoice.clientEmail.toLowerCase()) ||
+                    (c.name && invoice.clientName && c.name.toLowerCase() === invoice.clientName.toLowerCase())
+                );
+                invClientSelectEl.value = matched ? matched.id : '';
+            }
 
             // Populate line items
             const tbody = document.getElementById('invoice-items-tbody');
@@ -2314,11 +2425,12 @@
             this.openModal('modal-invoice-preview');
 
             // Build standalone printable document for next tab
-            const symbol = invoice.currency === 'BDT' ? '৳' : '$';
+            const symbol = this.getCurrencySymbol(invoice.currency);
             const logoSrc = '/assets/zannat_inner_symbol_icon.png';
             const status = invoice.status || 'Paid';
             const statusColor = status === 'Unpaid' ? '#991b1b' : (status === 'Due' ? '#92400e' : '#166534');
             const statusBg = status === 'Unpaid' ? '#fee2e2' : (status === 'Due' ? '#fef3c7' : '#dcfce7');
+            const vatDisplay = invoice.clientVat || invoice.clientTaxId;
 
             let itemsRows = '';
             (invoice.items || []).forEach(item => {
@@ -2382,8 +2494,10 @@
             <div>
                 <h4 style="font-size: 0.75rem; text-transform: uppercase; color: #64748b; font-weight: 700; margin-bottom: 8px;">Billed To</h4>
                 <div style="font-weight: 700; font-size: 1rem; color: #0f172a;">${invoice.clientName || 'Client'}</div>
-                ${invoice.clientCompany ? `<div style="font-size: 0.85rem; color: #475569; font-weight: 600;">${invoice.clientCompany}</div>` : ''}
-                ${invoice.clientEmail ? `<div style="font-size: 0.85rem; color: #6366f1;">${invoice.clientEmail}</div>` : ''}
+                ${invoice.clientCompany ? `<div style="font-size: 0.85rem; color: #475569; font-weight: 600; margin-top: 2px;">${invoice.clientCompany}</div>` : ''}
+                ${invoice.clientEmail ? `<div style="font-size: 0.85rem; color: #6366f1; margin-top: 2px;">${invoice.clientEmail}</div>` : ''}
+                ${invoice.clientPhone ? `<div style="font-size: 0.85rem; color: #475569; margin-top: 2px;">📞 ${invoice.clientPhone}</div>` : ''}
+                ${vatDisplay ? `<div style="font-size: 0.85rem; color: #475569; font-weight: 600; margin-top: 2px;">VAT / Tax ID: <span style="font-weight: 500;">${vatDisplay}</span></div>` : ''}
                 <div style="white-space: pre-line; font-size: 0.85rem; color: #475569; margin-top: 4px; line-height: 1.4;">${invoice.clientAddress || ''}</div>
             </div>
         </div>
@@ -2511,6 +2625,365 @@
                 console.error('Delete invoice error:', err);
                 this.showToast('Server connection error.', 'error');
             }
+        },
+
+        // =============================================
+        // CLIENT DIRECTORY & SAVED CLIENTS METHODS
+        // =============================================
+        renderClientSelectOptions(selectedId = '') {
+            const selectEl = document.getElementById('inv-client-select');
+            if (!selectEl) return;
+
+            const clients = this.state.clients || [];
+            selectEl.innerHTML = '<option value="">-- Choose Saved Client --</option>';
+
+            clients.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c.id;
+                opt.textContent = `${c.name}${c.company ? ` (${c.company})` : ''}${c.phone ? ` • ${c.phone}` : ''}`;
+                if (selectedId && c.id === selectedId) {
+                    opt.selected = true;
+                }
+                selectEl.appendChild(opt);
+            });
+        },
+
+        onSelectSavedClient(clientId) {
+            if (!clientId) return;
+
+            const client = (this.state.clients || []).find(c => c.id === clientId);
+            if (!client) return;
+
+            const invClientNameEl = document.getElementById('inv-client-name');
+            const invClientCompanyEl = document.getElementById('inv-client-company');
+            const invClientEmailEl = document.getElementById('inv-client-email');
+            const invClientPhoneEl = document.getElementById('inv-client-phone');
+            const invClientTaxEl = document.getElementById('inv-client-tax-id');
+            const invClientAddressEl = document.getElementById('inv-client-address');
+
+            if (invClientNameEl) invClientNameEl.value = client.name || '';
+            if (invClientCompanyEl) invClientCompanyEl.value = client.company || '';
+            if (invClientEmailEl) invClientEmailEl.value = client.email || '';
+            if (invClientPhoneEl) invClientPhoneEl.value = client.phone || '';
+            if (invClientTaxEl) invClientTaxEl.value = client.vat || client.taxId || '';
+            if (invClientAddressEl) invClientAddressEl.value = client.address || '';
+
+            this.showToast(`Autofilled client: ${client.name}`, 'success');
+        },
+
+        async saveClient(clientData) {
+            if (!clientData.name || clientData.name.trim() === '') {
+                this.showToast('Client name is required.', 'error');
+                return null;
+            }
+
+            try {
+                const response = await fetch(this.getApiUrl('/api/clients'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(clientData)
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result.success && result.clients) {
+                        this.state.clients = result.clients;
+                        this.renderClientSelectOptions(result.client?.id);
+                        this.renderSavedClientsTable();
+                        return result.client;
+                    }
+                }
+            } catch (err) {
+                console.warn('Backend API unavailable. Saving client locally.', err);
+            }
+
+            // Fallback for local storage mode
+            if (!this.state.clients) this.state.clients = [];
+            const cleanName = clientData.name.trim();
+            const cleanEmail = (clientData.email || '').trim();
+
+            let idx = -1;
+            if (clientData.id) {
+                idx = this.state.clients.findIndex(c => c.id === clientData.id);
+            } else if (cleanEmail) {
+                idx = this.state.clients.findIndex(c => c.email && c.email.toLowerCase() === cleanEmail.toLowerCase());
+            } else {
+                idx = this.state.clients.findIndex(c => c.name && c.name.toLowerCase() === cleanName.toLowerCase());
+            }
+
+            let savedClient = null;
+            if (idx !== -1) {
+                this.state.clients[idx] = {
+                    ...this.state.clients[idx],
+                    ...clientData,
+                    updatedAt: new Date().toISOString()
+                };
+                savedClient = this.state.clients[idx];
+            } else {
+                savedClient = {
+                    ...clientData,
+                    id: 'cli_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+                    createdAt: new Date().toISOString()
+                };
+                this.state.clients.unshift(savedClient);
+            }
+
+            try {
+                localStorage.setItem('zannat_app_state', JSON.stringify({
+                    tickets: this.state.tickets,
+                    earnings: this.state.earnings,
+                    bugTypes: this.state.bugTypes,
+                    pages: this.state.pages,
+                    users: this.state.users,
+                    invoices: this.state.invoices,
+                    clients: this.state.clients,
+                    nextInvoiceNum: this.state.nextInvoiceNum,
+                    homepageContent: this.state.homepageContent
+                }));
+            } catch(e) {}
+
+            this.renderClientSelectOptions(savedClient.id);
+            this.renderSavedClientsTable();
+            return savedClient;
+        },
+
+        async quickSaveClient() {
+            const name = document.getElementById('inv-client-name')?.value?.trim();
+            const company = document.getElementById('inv-client-company')?.value?.trim();
+            const email = document.getElementById('inv-client-email')?.value?.trim();
+            const phone = document.getElementById('inv-client-phone')?.value?.trim();
+            const vat = document.getElementById('inv-client-tax-id')?.value?.trim();
+            const address = document.getElementById('inv-client-address')?.value?.trim();
+
+            if (!name) {
+                this.showToast('Please enter a client name to save.', 'error');
+                return;
+            }
+
+            const client = await this.saveClient({
+                name, company, email, phone, vat, address
+            });
+
+            if (client) {
+                this.showToast(`Client "${name}" saved to directory!`, 'success');
+                const selectEl = document.getElementById('inv-client-select');
+                if (selectEl) selectEl.value = client.id;
+            }
+        },
+
+        openManageClientsModal() {
+            this.renderSavedClientsTable();
+            this.toggleAddClientForm(false);
+            const searchInput = document.getElementById('client-directory-search');
+            if (searchInput) searchInput.value = '';
+            this.openModal('modal-manage-clients');
+            if (window.lucide) window.lucide.createIcons();
+        },
+
+        renderSavedClientsTable(filterQuery = '') {
+            const tbody = document.getElementById('saved-clients-tbody');
+            if (!tbody) return;
+
+            let clients = this.state.clients || [];
+            if (filterQuery && filterQuery.trim() !== '') {
+                const q = filterQuery.toLowerCase().trim();
+                clients = clients.filter(c => 
+                    (c.name && c.name.toLowerCase().includes(q)) ||
+                    (c.company && c.company.toLowerCase().includes(q)) ||
+                    (c.email && c.email.toLowerCase().includes(q)) ||
+                    (c.phone && c.phone.toLowerCase().includes(q)) ||
+                    (c.vat && c.vat.toLowerCase().includes(q)) ||
+                    (c.address && c.address.toLowerCase().includes(q))
+                );
+            }
+
+            if (clients.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="4" style="text-align: center; color: var(--text-muted); padding: 32px;">
+                            ${filterQuery ? 'No matching clients found.' : 'No saved clients yet. Add your first client above or save from an invoice!'}
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = '';
+            clients.forEach(c => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>
+                        <div style="font-weight: 700; color: var(--text-primary); font-size: 0.95rem;">${c.name}</div>
+                        ${c.company ? `<div style="font-size: 0.8rem; color: var(--accent-purple); font-weight: 600;">${c.company}</div>` : ''}
+                    </td>
+                    <td>
+                        ${c.email ? `<div style="font-size: 0.85rem; color: var(--accent-blue);">${c.email}</div>` : ''}
+                        ${c.phone ? `<div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 2px;">📞 ${c.phone}</div>` : ''}
+                        ${!c.email && !c.phone ? '<span style="color: var(--text-muted); font-size: 0.8rem;">—</span>' : ''}
+                    </td>
+                    <td>
+                        ${c.vat ? `<div style="font-size: 0.8rem; font-weight: 600; color: var(--accent-amber);">VAT: ${c.vat}</div>` : ''}
+                        ${c.address ? `<div style="font-size: 0.78rem; color: var(--text-muted); white-space: pre-line; line-height: 1.3;">${c.address}</div>` : ''}
+                        ${!c.vat && !c.address ? '<span style="color: var(--text-muted); font-size: 0.8rem;">—</span>' : ''}
+                    </td>
+                    <td style="text-align: right;">
+                        <div style="display: flex; gap: 6px; justify-content: flex-end; align-items: center;">
+                            <button type="button" class="btn btn-outline btn-sm" title="Use Client in Invoice" onclick="app.useClientInInvoice('${c.id}')" style="padding: 4px 8px; font-size: 0.78rem; color: var(--accent-green); border-color: rgba(16, 185, 129, 0.4);">
+                                <i data-lucide="check-circle" style="width: 13px; height: 13px;"></i> Use
+                            </button>
+                            <button type="button" class="btn btn-secondary btn-icon" title="Edit Client" onclick="app.toggleAddClientForm(true, '${c.id}')" style="padding: 4px 8px;">
+                                <i data-lucide="edit" style="width: 13px; height: 13px; color: var(--accent-cyan);"></i>
+                            </button>
+                            <button type="button" class="btn btn-secondary btn-icon" title="Delete Client" onclick="app.deleteSavedClient('${c.id}')" style="padding: 4px 8px;">
+                                <i data-lucide="trash-2" style="width: 13px; height: 13px; color: var(--accent-red);"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            if (window.lucide) window.lucide.createIcons();
+        },
+
+        filterSavedClientsList(query) {
+            this.renderSavedClientsTable(query);
+        },
+
+        toggleAddClientForm(forceOpen = null, clientToEditId = null) {
+            const formCard = document.getElementById('inline-client-form');
+            const toggleBtnText = document.getElementById('btn-add-client-toggle-text');
+            const formTitle = document.getElementById('inline-client-form-title');
+            if (!formCard) return;
+
+            const isCurrentlyHidden = formCard.classList.contains('hidden');
+            const shouldOpen = forceOpen !== null ? forceOpen : isCurrentlyHidden;
+
+            if (shouldOpen) {
+                formCard.classList.remove('hidden');
+                if (toggleBtnText) toggleBtnText.textContent = 'Close Form';
+
+                const idEl = document.getElementById('modal-cli-id');
+                const nameEl = document.getElementById('modal-cli-name');
+                const compEl = document.getElementById('modal-cli-company');
+                const emailEl = document.getElementById('modal-cli-email');
+                const phoneEl = document.getElementById('modal-cli-phone');
+                const vatEl = document.getElementById('modal-cli-vat');
+                const addrEl = document.getElementById('modal-cli-address');
+
+                if (clientToEditId) {
+                    const c = (this.state.clients || []).find(cli => cli.id === clientToEditId);
+                    if (c) {
+                        if (idEl) idEl.value = c.id;
+                        if (nameEl) nameEl.value = c.name || '';
+                        if (compEl) compEl.value = c.company || '';
+                        if (emailEl) emailEl.value = c.email || '';
+                        if (phoneEl) phoneEl.value = c.phone || '';
+                        if (vatEl) vatEl.value = c.vat || c.taxId || '';
+                        if (addrEl) addrEl.value = c.address || '';
+                        if (formTitle) formTitle.innerHTML = `<i data-lucide="edit" style="width: 16px; height: 16px;"></i> Edit Client Profile: ${c.name}`;
+                    }
+                } else {
+                    if (idEl) idEl.value = '';
+                    if (nameEl) nameEl.value = '';
+                    if (compEl) compEl.value = '';
+                    if (emailEl) emailEl.value = '';
+                    if (phoneEl) phoneEl.value = '';
+                    if (vatEl) vatEl.value = '';
+                    if (addrEl) addrEl.value = '';
+                    if (formTitle) formTitle.innerHTML = `<i data-lucide="plus-circle" style="width: 16px; height: 16px;"></i> Add New Client Profile`;
+                }
+
+                if (window.lucide) window.lucide.createIcons();
+                if (nameEl) nameEl.focus();
+            } else {
+                formCard.classList.add('hidden');
+                if (toggleBtnText) toggleBtnText.textContent = 'Add New Client';
+            }
+        },
+
+        async saveClientFromModal() {
+            const id = document.getElementById('modal-cli-id')?.value;
+            const name = document.getElementById('modal-cli-name')?.value?.trim();
+            const company = document.getElementById('modal-cli-company')?.value?.trim();
+            const email = document.getElementById('modal-cli-email')?.value?.trim();
+            const phone = document.getElementById('modal-cli-phone')?.value?.trim();
+            const vat = document.getElementById('modal-cli-vat')?.value?.trim();
+            const address = document.getElementById('modal-cli-address')?.value?.trim();
+
+            if (!name) {
+                this.showToast('Client name is required.', 'error');
+                return;
+            }
+
+            const saved = await this.saveClient({
+                id: id || undefined,
+                name,
+                company,
+                email,
+                phone,
+                vat,
+                address
+            });
+
+            if (saved) {
+                this.showToast(`Client "${name}" saved!`, 'success');
+                this.toggleAddClientForm(false);
+                this.renderSavedClientsTable();
+            }
+        },
+
+        async deleteSavedClient(clientId) {
+            if (!confirm('Are you sure you want to delete this saved client?')) return;
+
+            try {
+                const response = await fetch(this.getApiUrl('/api/clients/delete'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: clientId })
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result.success && result.clients) {
+                        this.state.clients = result.clients;
+                        this.renderClientSelectOptions();
+                        this.renderSavedClientsTable();
+                        this.showToast('Client deleted.', 'success');
+                        return;
+                    }
+                }
+            } catch (err) {
+                console.warn('Backend API delete failed, applying local fallback.', err);
+            }
+
+            // Fallback for local storage
+            this.state.clients = (this.state.clients || []).filter(c => c.id !== clientId);
+            try {
+                localStorage.setItem('zannat_app_state', JSON.stringify({
+                    tickets: this.state.tickets,
+                    earnings: this.state.earnings,
+                    bugTypes: this.state.bugTypes,
+                    pages: this.state.pages,
+                    users: this.state.users,
+                    invoices: this.state.invoices,
+                    clients: this.state.clients,
+                    nextInvoiceNum: this.state.nextInvoiceNum,
+                    homepageContent: this.state.homepageContent
+                }));
+            } catch(e) {}
+
+            this.renderClientSelectOptions();
+            this.renderSavedClientsTable();
+            this.showToast('Client deleted.', 'success');
+        },
+
+        useClientInInvoice(clientId) {
+            this.closeModal('modal-manage-clients');
+            this.toggleInvoiceView('create');
+            this.onSelectSavedClient(clientId);
+            const selectEl = document.getElementById('inv-client-select');
+            if (selectEl) selectEl.value = clientId;
         }
     };
 

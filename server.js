@@ -33,6 +33,7 @@ const DEFAULT_DATA = {
     pages: [],
     smtpConfig: {},
     invoices: [],
+    clients: [],
     nextInvoiceNum: 1001
 };
 
@@ -473,9 +474,42 @@ app.post('/api/invoices', (req, res) => {
     try {
         const data = loadData();
         if (!data.invoices) data.invoices = [];
+        if (!data.clients) data.clients = [];
         if (!data.nextInvoiceNum) data.nextInvoiceNum = 1001;
 
         const invoiceData = req.body;
+
+        // Auto-save/update client details into clients directory
+        if (invoiceData.clientName && invoiceData.clientName.trim() !== '' && invoiceData.saveClient !== false) {
+            const clientNameClean = invoiceData.clientName.trim();
+            const clientEmailClean = (invoiceData.clientEmail || '').trim();
+            
+            let clientIdx = -1;
+            if (clientEmailClean) {
+                clientIdx = data.clients.findIndex(c => c.email && c.email.toLowerCase() === clientEmailClean.toLowerCase());
+            }
+            if (clientIdx === -1) {
+                clientIdx = data.clients.findIndex(c => c.name && c.name.toLowerCase() === clientNameClean.toLowerCase());
+            }
+
+            const clientRecord = {
+                id: clientIdx !== -1 ? data.clients[clientIdx].id : 'cli_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+                name: clientNameClean,
+                company: invoiceData.clientCompany || '',
+                email: clientEmailClean,
+                phone: invoiceData.clientPhone || '',
+                vat: invoiceData.clientVat || '',
+                address: invoiceData.clientAddress || '',
+                updatedAt: new Date().toISOString()
+            };
+
+            if (clientIdx !== -1) {
+                data.clients[clientIdx] = { ...data.clients[clientIdx], ...clientRecord };
+            } else {
+                clientRecord.createdAt = new Date().toISOString();
+                data.clients.unshift(clientRecord);
+            }
+        }
 
         // Check for update (existing invoice)
         let existingIndex = -1;
@@ -486,7 +520,7 @@ app.post('/api/invoices', (req, res) => {
         if (existingIndex !== -1) {
             data.invoices[existingIndex] = { ...data.invoices[existingIndex], ...invoiceData, updatedAt: new Date().toISOString() };
             saveData(data);
-            return res.json({ success: true, invoice: data.invoices[existingIndex] });
+            return res.json({ success: true, invoice: data.invoices[existingIndex], clients: data.clients });
         } else {
             const num = data.nextInvoiceNum;
             data.nextInvoiceNum++;
@@ -498,7 +532,7 @@ app.post('/api/invoices', (req, res) => {
             };
             data.invoices.push(newInvoice);
             saveData(data);
-            return res.json({ success: true, invoice: newInvoice, nextNum: data.nextInvoiceNum });
+            return res.json({ success: true, invoice: newInvoice, nextNum: data.nextInvoiceNum, clients: data.clients });
         }
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -513,6 +547,71 @@ app.post('/api/invoices/delete', (req, res) => {
         data.invoices = data.invoices.filter(inv => inv.id !== id);
         saveData(data);
         res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ============ CLIENTS API ============
+app.get('/api/clients', (req, res) => {
+    try {
+        const data = loadData();
+        res.json({ success: true, clients: data.clients || [] });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/clients', (req, res) => {
+    try {
+        const data = loadData();
+        if (!data.clients) data.clients = [];
+
+        const clientData = req.body;
+        if (!clientData.name || clientData.name.trim() === '') {
+            return res.status(400).json({ error: 'Client name is required' });
+        }
+
+        let existingIndex = -1;
+        if (clientData.id) {
+            existingIndex = data.clients.findIndex(c => c.id === clientData.id);
+        } else if (clientData.email && clientData.email.trim() !== '') {
+            existingIndex = data.clients.findIndex(c => c.email && c.email.toLowerCase() === clientData.email.trim().toLowerCase());
+        } else {
+            existingIndex = data.clients.findIndex(c => c.name && c.name.toLowerCase() === clientData.name.trim().toLowerCase());
+        }
+
+        if (existingIndex !== -1) {
+            data.clients[existingIndex] = {
+                ...data.clients[existingIndex],
+                ...clientData,
+                updatedAt: new Date().toISOString()
+            };
+            saveData(data);
+            return res.json({ success: true, client: data.clients[existingIndex], clients: data.clients });
+        } else {
+            const newClient = {
+                ...clientData,
+                id: 'cli_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+                createdAt: new Date().toISOString()
+            };
+            data.clients.unshift(newClient);
+            saveData(data);
+            return res.json({ success: true, client: newClient, clients: data.clients });
+        }
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/clients/delete', (req, res) => {
+    try {
+        const { id } = req.body;
+        const data = loadData();
+        if (!data.clients) data.clients = [];
+        data.clients = data.clients.filter(c => c.id !== id);
+        saveData(data);
+        res.json({ success: true, clients: data.clients });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

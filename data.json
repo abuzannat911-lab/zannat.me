@@ -133,6 +133,8 @@
       "clientName": "Claudio Campesato",
       "clientCompany": "Claudio Campesato",
       "clientEmail": "Claudio@collrock.com",
+      "clientPhone": "",
+      "clientVat": "",
       "clientAddress": "2001 N. Ocean Blvd. 905S\n905S",
       "items": [
         {
@@ -162,6 +164,8 @@
       "clientName": "Claudio Campesato",
       "clientCompany": "Tycoon Machine LLC",
       "clientEmail": "admin@ivylead.io",
+      "clientPhone": "",
+      "clientVat": "",
       "clientAddress": "2001 N. Ocean Blvd. 905S\n905S",
       "items": [
         {
@@ -181,6 +185,11 @@
     },
     {
       "clientName": "Acme Corporation",
+      "clientCompany": "Acme Corp",
+      "clientEmail": "",
+      "clientPhone": "",
+      "clientVat": "",
+      "clientAddress": "",
       "items": [
         {
           "desc": "WordPress Custom Plugin Bug Fix & WooCommerce Checkout Debug",
@@ -198,6 +207,28 @@
       "id": "inv_1786400647974_qxmr",
       "number": "INV-1004",
       "createdAt": "2026-08-10T22:24:07.974Z"
+    }
+  ],
+  "clients": [
+    {
+      "id": "cli_1",
+      "name": "Claudio Campesato",
+      "company": "Tycoon Machine LLC",
+      "email": "admin@ivylead.io",
+      "phone": "",
+      "vat": "",
+      "address": "2001 N. Ocean Blvd. 905S\n905S",
+      "createdAt": "2026-08-10T22:19:41.134Z"
+    },
+    {
+      "id": "cli_2",
+      "name": "Sarah Jones",
+      "company": "WP Fix Co",
+      "email": "sarah@wpfix.com",
+      "phone": "",
+      "vat": "",
+      "address": "San Francisco, CA, USA",
+      "createdAt": "2026-06-22T10:00:00.000Z"
     }
   ],
   "nextInvoiceNum": 1005
