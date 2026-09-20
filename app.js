@@ -934,7 +934,7 @@
         // Switch View Tabs
         switchTab(tabId) {
             // If selecting an admin tab, ensure we are authenticated or admin shell is already active
-            const adminTabs = ['dashboard', 'tickets', 'maintenance', 'cms', 'invoices', 'clients', 'settings', 'notifications'];
+            const adminTabs = ['dashboard', 'tickets', 'maintenance', 'cms', 'invoices', 'clients', 'settings', 'notifications', 'backup'];
             const adminShell = document.getElementById('admin-shell');
             const isAdminActive = adminShell && !adminShell.classList.contains('hidden');
 
@@ -971,7 +971,8 @@
                     'invoices': '/admin/invoices',
                     'clients': '/admin/clients',
                     'settings': '/admin/settings',
-                    'notifications': '/admin/notifications'
+                    'notifications': '/admin/notifications',
+                    'backup': '/admin/backup'
                 };
                 const targetUrl = adminTabMap[tabId] || '/admin';
                 if (window.location.pathname !== targetUrl) {
@@ -991,13 +992,15 @@
                     this.renderSiteSettingsTab();
                 } else if (tabId === 'notifications') {
                     this.renderNotificationReceiverTab();
+                } else if (tabId === 'backup') {
+                    this.loadAvailableBackups();
                 }
             }
 
             // Remove active class from all nav links and add to selected
             document.querySelectorAll('.nav-link').forEach(link => {
                 const linkTab = link.getAttribute('data-tab');
-                if (linkTab === tabId || ((tabId === 'notifications' || tabId === 'maintenance') && linkTab === 'settings')) {
+                if (linkTab === tabId || ((tabId === 'notifications' || tabId === 'maintenance' || tabId === 'backup') && linkTab === 'settings')) {
                     link.classList.add('active');
                 } else {
                     link.classList.remove('active');
@@ -1017,7 +1020,7 @@
             // Auto-open/close Settings submenu based on active tab
             const settingsMenu = document.getElementById('menu-item-settings');
             if (settingsMenu) {
-                const settingsSubTabs = ['settings', 'notifications', 'maintenance'];
+                const settingsSubTabs = ['settings', 'notifications', 'maintenance', 'backup'];
                 if (settingsSubTabs.includes(tabId)) {
                     settingsMenu.classList.add('open');
                 } else {
@@ -1083,6 +1086,11 @@
                         pageTitle.textContent = 'Notification Receiver Settings';
                         pageSubtitle.textContent = 'Configure where and how you receive instant alerts when a client submits a new WordPress bug fix query.';
                         this.renderNotificationReceiverTab();
+                        break;
+                    case 'backup':
+                        pageTitle.textContent = 'Database Backup & Restore';
+                        pageSubtitle.textContent = 'Create full database snapshots, restore from file, and manage 30-day automatic daily backups.';
+                        this.loadAvailableBackups();
                         break;
                 }
             }
@@ -2323,7 +2331,8 @@
                 '/admin/clients': 'clients',
                 '/admin/settings': 'settings',
                 '/admin/notifications': 'notifications',
-                '/admin/settings/notifications': 'notifications'
+                '/admin/settings/notifications': 'notifications',
+                '/admin/backup': 'backup'
             };
 
             if (cleanPath in adminRoutes) {

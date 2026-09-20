@@ -596,8 +596,14 @@
               </li>
               <li>
                 <a href="/admin/maintenance" class="nav-sublink" data-subtab-link="maintenance" onclick="event.preventDefault(); app.switchTab('maintenance');">
-                  <i data-lucide="database"></i>
+                  <i data-lucide="wrench"></i>
                   <span>Maintenance Tools</span>
+                </a>
+              </li>
+              <li>
+                <a href="/admin/backup" class="nav-sublink" data-subtab-link="backup" onclick="event.preventDefault(); app.switchTab('backup');">
+                  <i data-lucide="database"></i>
+                  <span>Backup / Restore</span>
                 </a>
               </li>
             </ul>
@@ -1861,10 +1867,6 @@ Bangladesh</textarea>
               <i data-lucide="send"></i>
               <span>Submit Bug Page</span>
             </button>
-            <button type="button" class="settings-tab-btn" id="btn-subtab-backup" data-subtab="backup" onclick="app.switchSettingsSubtab('backup')">
-              <i data-lucide="database"></i>
-              <span>Backup / Restore</span>
-            </button>
           </div>
 
           <!-- SUBTAB 1: HEADER & NAVIGATION -->
@@ -2555,112 +2557,6 @@ Bangladesh</textarea>
             </div>
           </div>
 
-          <!-- SUBTAB 9: BACKUP / RESTORE DATABASE -->
-          <div id="settings-subtab-backup" class="settings-subtab-pane">
-            
-            <!-- Top Controls Grid -->
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; margin-bottom: 20px;">
-              
-              <!-- Card 1: Instant Full Backup & Download -->
-              <div class="settings-section-card" style="display: flex; flex-direction: column; justify-content: space-between;">
-                <div>
-                  <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-                    <div style="width: 36px; height: 36px; border-radius: 8px; background: rgba(99, 102, 241, 0.15); display: flex; align-items: center; justify-content: center; color: var(--accent-purple);">
-                      <i data-lucide="download-cloud" style="width: 20px; height: 20px;"></i>
-                    </div>
-                    <div>
-                      <h3 style="margin: 0; font-size: 1.05rem;">Full Database Backup</h3>
-                      <span style="font-size: 0.75rem; color: var(--text-muted);">Instant MySQL snapshot</span>
-                    </div>
-                  </div>
-                  <p class="card-subtitle" style="font-size: 0.82rem; margin-top: 6px; line-height: 1.5;">
-                    Generate an instant, non-destructive JSON snapshot of all MySQL tables (users, tickets, invoices, clients, site settings, and earnings).
-                  </p>
-                </div>
-                <div style="display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap;">
-                  <button type="button" class="btn btn-primary btn-icon-text" id="btn-create-backup-now" onclick="app.createManualBackup(this)">
-                    <i data-lucide="camera"></i>
-                    <span>Take Snapshot Now</span>
-                  </button>
-                  <a href="/api/system/backup/download" class="btn btn-secondary btn-icon-text" id="btn-download-latest-backup" target="_blank">
-                    <i data-lucide="download"></i>
-                    <span>Download Latest JSON</span>
-                  </a>
-                </div>
-              </div>
-
-              <!-- Card 2: Upload & Restore Database -->
-              <div class="settings-section-card" style="display: flex; flex-direction: column; justify-content: space-between;">
-                <div>
-                  <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-                    <div style="width: 36px; height: 36px; border-radius: 8px; background: rgba(16, 185, 129, 0.15); display: flex; align-items: center; justify-content: center; color: #10b981;">
-                      <i data-lucide="upload-cloud" style="width: 20px; height: 20px;"></i>
-                    </div>
-                    <div>
-                      <h3 style="margin: 0; font-size: 1.05rem;">Upload Database File</h3>
-                      <span style="font-size: 0.75rem; color: var(--text-muted);">Restore from external JSON backup</span>
-                    </div>
-                  </div>
-                  <p class="card-subtitle" style="font-size: 0.82rem; margin-top: 6px; line-height: 1.5;">
-                    Select a previously exported database JSON backup file to overwrite/restore MySQL data. A pre-upload safety snapshot is automatically created.
-                  </p>
-                </div>
-                <div style="margin-top: 16px;">
-                  <input type="file" id="db-upload-file-input" accept=".json,application/json" style="display: none;" onchange="app.handleDatabaseFileUpload(this)">
-                  <button type="button" class="btn btn-secondary btn-icon-text" style="width: 100%; border-style: dashed; border-color: var(--accent-purple); justify-content: center;" onclick="document.getElementById('db-upload-file-input').click()">
-                    <i data-lucide="folder-up" style="color: var(--accent-purple);"></i>
-                    <span id="db-upload-btn-label">Choose Backup JSON File to Restore</span>
-                  </button>
-                </div>
-              </div>
-
-            </div>
-
-            <!-- Card 3: Auto Backup Schedule & 30-Day Retention List -->
-            <div class="settings-section-card">
-              <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 14px;">
-                <div>
-                  <h3 style="margin: 0; display: flex; align-items: center; gap: 8px;">
-                    <i data-lucide="calendar-clock" class="text-purple"></i>
-                    <span>Automatic Daily Backups (Last 30 Days)</span>
-                  </h3>
-                  <p class="card-subtitle" style="margin: 4px 0 0 0;">
-                    Automated snapshots run everyday at 24-hour intervals. Expired snapshots older than 30 days are automatically pruned.
-                  </p>
-                </div>
-                <div style="display: flex; gap: 8px;">
-                  <button type="button" class="btn btn-secondary btn-icon-text btn-small" onclick="app.loadAvailableBackups()">
-                    <i data-lucide="refresh-cw"></i>
-                    <span>Refresh List</span>
-                  </button>
-                </div>
-              </div>
-
-              <!-- Available Backups Table -->
-              <div class="table-container" style="max-height: 400px; overflow-y: auto;">
-                <table class="data-table">
-                  <thead>
-                    <tr>
-                      <th>Backup File</th>
-                      <th>Date / Time</th>
-                      <th>Size</th>
-                      <th>Status / Type</th>
-                      <th style="text-align: right; width: 220px;">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody id="backups-table-tbody">
-                    <tr>
-                      <td colspan="5" style="text-align: center; padding: 24px; color: var(--text-muted);">
-                        Loading backup files...
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-          </div>
-
           <!-- Sticky Save Bar -->
           <div class="settings-sticky-footer">
             <button type="button" class="btn btn-secondary btn-icon-text" onclick="app.resetSiteSettingsToDefaults(this)">
@@ -2753,6 +2649,141 @@ Bangladesh</textarea>
               <i data-lucide="check"></i>
               <span>Save Notification Settings</span>
             </button>
+          </div>
+        </section>
+
+        <!-- ================= BACKUP & RESTORE MENU (SUB-MENU OF SITE SETTINGS) ================= -->
+        <section id="tab-backup" class="tab-pane">
+          <!-- Backup Header Banner -->
+          <div class="settings-header-banner">
+            <div class="settings-header-info">
+              <h2>
+                <i data-lucide="database" style="color: var(--accent-purple);"></i>
+                <span>Database Backup & Restore Manager</span>
+              </h2>
+              <p>Full database snapshot creation, instant restore from file, and 30-day automatic daily backups with MySQL protection.</p>
+            </div>
+            <div class="settings-actions-group">
+              <button type="button" class="btn btn-primary btn-icon-text" id="btn-manual-backup" onclick="app.createManualBackup(this)">
+                <i data-lucide="camera"></i>
+                <span>Take Snapshot Now</span>
+              </button>
+              <a href="/api/system/backup/download" class="btn btn-secondary btn-icon-text" id="btn-download-latest-backup">
+                <i data-lucide="download"></i>
+                <span>Download Latest Backup</span>
+              </a>
+            </div>
+          </div>
+
+          <!-- Cards Grid: Snapshot Actions & File Upload -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 24px;">
+            <!-- Snapshot / Full Backup Card -->
+            <div class="card" style="padding: 24px; border: 1px solid var(--border-color); background: var(--card-bg); border-radius: 12px; display: flex; flex-direction: column; justify-content: space-between;">
+              <div>
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                  <div style="width: 42px; height: 42px; border-radius: 10px; background: rgba(99, 102, 241, 0.15); display: flex; align-items: center; justify-content: center; color: var(--accent-purple);">
+                    <i data-lucide="hard-drive-download" style="width: 22px; height: 22px;"></i>
+                  </div>
+                  <div>
+                    <h3 style="margin: 0; font-size: 1.1rem; color: var(--text-main);">Full Database Snapshot</h3>
+                    <span style="font-size: 0.8rem; color: var(--text-muted);">Instant export of all MySQL tables</span>
+                  </div>
+                </div>
+                <p style="font-size: 0.88rem; color: var(--text-muted); line-height: 1.5; margin: 12px 0 16px 0;">
+                  Export tickets, clients, invoices, CMS pages, portfolio projects, client reviews, and system configuration directly to a timestamped JSON snapshot.
+                </p>
+                <div style="display: flex; flex-direction: column; gap: 8px; font-size: 0.82rem; color: var(--text-muted); margin-bottom: 20px;">
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <i data-lucide="check-circle" style="width: 14px; height: 14px; color: #10b981;"></i>
+                    <span>All MySQL tables & relational records included</span>
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <i data-lucide="check-circle" style="width: 14px; height: 14px; color: #10b981;"></i>
+                    <span>Password hashes securely safeguarded</span>
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <i data-lucide="check-circle" style="width: 14px; height: 14px; color: #10b981;"></i>
+                    <span>Auto-stored in server backup repository</span>
+                  </div>
+                </div>
+              </div>
+              <div style="display: flex; gap: 10px;">
+                <button type="button" class="btn btn-primary btn-icon-text w-full" onclick="app.createManualBackup(this)">
+                  <i data-lucide="plus-circle"></i>
+                  <span>Create Snapshot</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Upload Database File Card -->
+            <div class="card" style="padding: 24px; border: 1px solid var(--border-color); background: var(--card-bg); border-radius: 12px; display: flex; flex-direction: column; justify-content: space-between;">
+              <div>
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                  <div style="width: 42px; height: 42px; border-radius: 10px; background: rgba(245, 158, 11, 0.15); display: flex; align-items: center; justify-content: center; color: #f59e0b;">
+                    <i data-lucide="upload-cloud" style="width: 22px; height: 22px;"></i>
+                  </div>
+                  <div>
+                    <h3 style="margin: 0; font-size: 1.1rem; color: var(--text-main);">Upload Database Backup</h3>
+                    <span style="font-size: 0.8rem; color: var(--text-muted);">Restore directly from local file</span>
+                  </div>
+                </div>
+                <p style="font-size: 0.88rem; color: var(--text-muted); line-height: 1.5; margin: 12px 0 16px 0;">
+                  Upload a previously downloaded JSON database backup file to restore all website content, clients, tickets, and configurations to MySQL.
+                </p>
+                <div style="padding: 12px; background: rgba(239, 68, 68, 0.08); border-left: 3px solid #ef4444; border-radius: 6px; margin-bottom: 16px; font-size: 0.8rem; color: var(--text-muted);">
+                  <strong style="color: #ef4444;">Safety Protection:</strong> A pre-restore safety snapshot will automatically be taken before importing any records.
+                </div>
+              </div>
+              <div>
+                <input type="file" id="db-upload-input" accept=".json" style="display: none;" onchange="app.handleDatabaseFileUpload(this)">
+                <button type="button" class="btn btn-secondary btn-icon-text w-full" onclick="document.getElementById('db-upload-input').click()" style="border: 1px dashed var(--accent-purple); padding: 12px;">
+                  <i data-lucide="file-up"></i>
+                  <span id="db-upload-btn-label">Choose Backup JSON File to Restore</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 30-Day Auto Daily Backups Table Section -->
+          <div class="card" style="margin-top: 24px; padding: 24px; border: 1px solid var(--border-color); background: var(--card-bg); border-radius: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
+              <div>
+                <h3 style="margin: 0; font-size: 1.1rem; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
+                  <i data-lucide="clock" style="color: #10b981; width: 20px; height: 20px;"></i>
+                  <span>30-Day Automatic Daily Backups</span>
+                </h3>
+                <p style="margin: 4px 0 0 0; font-size: 0.82rem; color: var(--text-muted);">
+                  The server automatically generates a daily backup snapshot every 24 hours and retains all snapshots for 30 days. Older backups are safely pruned.
+                </p>
+              </div>
+              <button type="button" class="btn btn-secondary btn-icon-text btn-small" onclick="app.loadAvailableBackups()">
+                <i data-lucide="refresh-cw"></i>
+                <span>Refresh Backups</span>
+              </button>
+            </div>
+
+            <!-- Table of backups -->
+            <div class="table-responsive" style="border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden;">
+              <table class="table" style="width: 100%; border-collapse: collapse; margin-bottom: 0;">
+                <thead>
+                  <tr style="background: rgba(255, 255, 255, 0.03); border-bottom: 1px solid var(--border-color);">
+                    <th style="padding: 12px 16px; text-align: left; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted);">Backup File</th>
+                    <th style="padding: 12px 16px; text-align: left; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted);">Created Date & Time</th>
+                    <th style="padding: 12px 16px; text-align: left; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted);">Size</th>
+                    <th style="padding: 12px 16px; text-align: left; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted);">Type / Status</th>
+                    <th style="padding: 12px 16px; text-align: right; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted);">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="backups-table-tbody">
+                  <tr>
+                    <td colspan="5" style="text-align: center; padding: 24px; color: var(--text-muted);">
+                      <i data-lucide="loader-2" class="spin" style="width: 18px; height: 18px; vertical-align: middle; margin-right: 6px;"></i>
+                      Loading backup snapshots...
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
         </section>
 
