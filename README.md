@@ -45,13 +45,20 @@ Create/update `.htaccess` in the same directory with the contents already includ
 zannat.bd/
 ├── server.js          # Express backend + API routes
 ├── app.js             # Client-side SPA controller
+├── db.js              # MySQL schema migrations, connection pool & models
 ├── index.html         # Main HTML shell
-├── style.css          # All styles
-├── data.json          # JSON database (tickets, pages, users)
-├── assets/            # Photos and images
-├── package.json
+├── style.css          # Core design system and styles
+├── invoice_pdf.js     # Vector PDF generator for invoices
+├── whatsapp.js        # Baileys WhatsApp client & notification engine
+├── update.sh          # Zero-downtime safe deployment script
+├── RELEASE_NOTES.md   # Detailed release changelog
+├── assets/            # Logos, photos, and public assets
+├── package.json       # Dependencies & scripts
 └── .htaccess          # Apache SPA routing for cPanel
 ```
+
+## 📋 Release Notes
+See [RELEASE_NOTES.md](RELEASE_NOTES.md) for full details on version 1.0.0 features, security hardening, and architecture improvements.
 
 ## 🔑 Admin Password
 Username: `admin`  
