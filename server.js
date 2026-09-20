@@ -2,6 +2,9 @@ require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 const { exec } = require('child_process');
 const nodemailer = require('nodemailer');
 const db = require('./db');
@@ -96,12 +99,118 @@ ${mailOptions.text}
 }
 
 const app = express();
+
+// 1. Security Headers via Helmet (configured to allow external CDNs for fonts, Lucide, Chart.js, Confetti)
+app.use(helmet({
+    contentSecurityPolicy: false, // Allows inline scripts & existing external CDNs (Lucide, Google Fonts, Chart.js)
+    crossOriginEmbedderPolicy: false,
+    frameguard: { action: 'sameorigin' }
+}));
+
+// 2. Body Parsing Middleware
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
+// 3. Request Logging
 app.use((req, res, next) => {
     console.log(`[HTTP REQUEST] ${req.method} ${req.url}`);
     next();
+});
+
+// 4. Cryptographic Session Management (24h validity with persistent storage)
+const SESSIONS_DIR = path.join(__dirname, '.sessions');
+const SESSIONS_FILE = path.join(SESSIONS_DIR, 'sessions.json');
+const activeSessions = new Map(); // token -> { username, createdAt, lastActivity }
+const SESSION_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+// Load existing valid sessions from disk on startup
+function loadSessionsFromDisk() {
+    try {
+        if (!fs.existsSync(SESSIONS_DIR)) {
+            fs.mkdirSync(SESSIONS_DIR, { recursive: true, mode: 0o700 });
+        }
+        if (fs.existsSync(SESSIONS_FILE)) {
+            const raw = fs.readFileSync(SESSIONS_FILE, 'utf-8');
+            const data = JSON.parse(raw);
+            const now = Date.now();
+            for (const [token, sess] of Object.entries(data)) {
+                if (sess && sess.lastActivity && (now - sess.lastActivity <= SESSION_TTL_MS)) {
+                    activeSessions.set(token, sess);
+                }
+            }
+            console.log(`[AUTH SESSIONS] Restored ${activeSessions.size} active session(s) from persistent storage.`);
+        }
+    } catch (e) {
+        console.warn('[AUTH SESSIONS] Could not load persisted sessions:', e.message);
+    }
+}
+loadSessionsFromDisk();
+
+function saveSessionsToDisk() {
+    try {
+        if (!fs.existsSync(SESSIONS_DIR)) {
+            fs.mkdirSync(SESSIONS_DIR, { recursive: true, mode: 0o700 });
+        }
+        const obj = {};
+        for (const [token, sess] of activeSessions.entries()) {
+            obj[token] = sess;
+        }
+        fs.writeFileSync(SESSIONS_FILE, JSON.stringify(obj, null, 2), { mode: 0o600 });
+    } catch (e) {
+        console.warn('[AUTH SESSIONS] Could not persist sessions to disk:', e.message);
+    }
+}
+
+function cleanExpiredSessions() {
+    const now = Date.now();
+    let changed = false;
+    for (const [token, sess] of activeSessions.entries()) {
+        if (now - sess.lastActivity > SESSION_TTL_MS) {
+            activeSessions.delete(token);
+            changed = true;
+        }
+    }
+    if (changed) saveSessionsToDisk();
+}
+setInterval(cleanExpiredSessions, 15 * 60 * 1000); // Clean every 15 mins
+
+function isValidSessionToken(token) {
+    if (!token || typeof token !== 'string') return false;
+    const sess = activeSessions.get(token);
+    if (!sess) return false;
+    if (Date.now() - sess.lastActivity > SESSION_TTL_MS) {
+        activeSessions.delete(token);
+        saveSessionsToDisk();
+        return false;
+    }
+    sess.lastActivity = Date.now(); // Slide session window
+    return true;
+}
+
+// Admin Authentication Middleware
+function requireAdminAuth(req, res, next) {
+    const authHeader = req.headers['x-auth-token'] || req.headers['authorization'];
+    let token = authHeader;
+    if (token && token.startsWith('Bearer ')) {
+        token = token.slice(7).trim();
+    }
+    if (!token) {
+        token = req.query.token;
+    }
+
+    if (!isValidSessionToken(token)) {
+        return res.status(401).json({ error: 'Unauthorized: Admin authentication required.' });
+    }
+    next();
+}
+
+// 5. Rate Limiting for Login Endpoint (prevents brute-force attacks: max 10 attempts per 15 mins)
+const loginLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 10,
+    message: { success: false, message: 'Too many login attempts from this IP. Please try again in 15 minutes.' },
+    standardHeaders: true,
+    legacyHeaders: false
 });
 
 // POST Browser Logs
@@ -123,24 +232,71 @@ app.use((req, res, next) => {
 // API ROUTES (ALL BACKED BY MYSQL DATABASE)
 // ==========================================
 
-// GET Full State
+// GET Full State (Sanitized based on whether request is authenticated admin)
 app.get('/api/state', async (req, res) => {
     try {
         const state = await db.getFullState();
-        res.json(state);
+        
+        // Check if requester has a valid admin session
+        const authHeader = req.headers['x-auth-token'] || req.headers['authorization'];
+        let token = authHeader;
+        if (token && token.startsWith('Bearer ')) {
+            token = token.slice(7).trim();
+        }
+        if (!token) token = req.query.token;
+
+        const isAdmin = isValidSessionToken(token);
+
+        if (isAdmin) {
+            // Authenticated admin receives full state (note: password hashes are already removed from db.getFullState)
+            return res.json(Object.assign({}, state, { isAdmin: true }));
+        }
+
+        // Public visitor receives sanitized state needed for public website:
+        // Exclude users, tickets, invoices, clients, SMTP pass/tokens, earnings, bank details
+        const sanitizedState = {
+            isAdmin: false,
+            homepageContent: state.homepageContent || {},
+            pages: state.pages || [],
+            siteSettings: state.siteSettings || {},
+            bugTypes: state.bugTypes || [],
+            earnings: [], // Public does not need financial breakdown
+            tickets: [],
+            invoices: [],
+            clients: [],
+            users: [],
+            bankDetails: {},
+            smtpConfig: {
+                isConnected: Boolean(state.smtpConfig && state.smtpConfig.isConnected)
+            },
+            nextInvoiceNum: 1001
+        };
+
+        res.json(sanitizedState);
     } catch (err) {
         console.error('API state error:', err);
         res.status(500).json({ error: err.message });
     }
 });
 
-// POST Login
-app.post('/api/login', async (req, res) => {
+// POST Login (Protected with Rate Limiting and Cryptographic Session Token)
+app.post('/api/login', loginLimiter, async (req, res) => {
     try {
         const { username, password } = req.body;
+        if (!username || !password) {
+            return res.status(400).json({ success: false, message: 'Username and password required.' });
+        }
         const valid = await db.authenticateUser(username, password);
         if (valid) {
-            res.json({ success: true, token: "zannat_secure_session_token_123" });
+            // Generate a secure 256-bit cryptographically random token
+            const sessionToken = crypto.randomBytes(32).toString('hex');
+            activeSessions.set(sessionToken, {
+                username,
+                createdAt: Date.now(),
+                lastActivity: Date.now()
+            });
+            saveSessionsToDisk();
+            res.json({ success: true, token: sessionToken, username });
         } else {
             res.status(401).json({ success: false, message: "Invalid username or password" });
         }
@@ -149,56 +305,151 @@ app.post('/api/login', async (req, res) => {
     }
 });
 
-// POST Tickets (Add Bug Ticket)
-app.post('/api/tickets', async (req, res) => {
-    try {
-        const { clientName, clientEmail, siteUrl, bugType, description, severity } = req.body;
-        const { ticketId, date } = await db.addTicket({ clientName, clientEmail, siteUrl, bugType, description, severity });
+// POST Logout
+app.post('/api/logout', (req, res) => {
+    const authHeader = req.headers['x-auth-token'] || req.headers['authorization'];
+    let token = authHeader;
+    if (token && token.startsWith('Bearer ')) token = token.slice(7).trim();
+    if (!token) token = req.query.token;
+    if (token && activeSessions.has(token)) {
+        activeSessions.delete(token);
+        saveSessionsToDisk();
+    }
+    res.json({ success: true });
+});
 
-        // Send email alert
-        const mailOptions = {
-            from: '"Zannat.me Support" <abuzannat911@gmail.com>',
-            to: 'abuzannat911@gmail.com',
-            subject: `[New Bug Fix Ticket] ${ticketId} - ${clientName}`,
-            text: `
-New Bug Fix Ticket Submitted:
+// Rate Limiting for Public Ticket Submission (max 15 tickets per hour per IP to stop spam bots)
+const ticketLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000,
+    max: 15,
+    message: { success: false, error: 'Too many submissions from this connection. Please try again later.' },
+    standardHeaders: true,
+    legacyHeaders: false
+});
+
+function sanitizeString(str, maxLen = 1000) {
+    if (typeof str !== 'string') return '';
+    return str.trim().slice(0, maxLen);
+}
+
+// POST Tickets (Add Bug Ticket / Query - Public Endpoint Protected by Rate Limiting and Input Validation)
+app.post('/api/tickets', ticketLimiter, async (req, res) => {
+    try {
+        let { clientName, clientEmail, clientPhone, siteUrl, bugType, description, severity } = req.body;
+        
+        clientName = sanitizeString(clientName, 150);
+        clientEmail = sanitizeString(clientEmail, 150);
+        clientPhone = sanitizeString(clientPhone, 50);
+        siteUrl = sanitizeString(siteUrl, 300);
+        bugType = sanitizeString(bugType, 100);
+        description = sanitizeString(description, 5000);
+        severity = sanitizeString(severity, 50);
+
+        if (!clientName) {
+            return res.status(400).json({ error: 'Client name is required.' });
+        }
+
+        const { ticketId, date } = await db.addTicket({ clientName, clientEmail, clientPhone, siteUrl, bugType, description, severity });
+
+        // Retrieve configured site notification receivers
+        const siteSettings = await db.getSiteSettings();
+        const notif = siteSettings.notifications || {};
+        const adminEmail = notif.adminEmail || 'abuzannat911@gmail.com';
+        const rawAdminWA = notif.adminWhatsApp || '';
+        const enableAdminEmail = notif.enableAdminEmail !== false;
+        const enableAdminWhatsApp = notif.enableAdminWhatsApp !== false;
+        const enableClientWhatsApp = notif.enableClientWhatsApp !== false;
+
+        // Clean client phone for direct wa.me link
+        const cleanClientPhone = clientPhone ? clientPhone.replace(/\D/g, '') : '';
+        const waClientLink = cleanClientPhone ? `https://wa.me/${cleanClientPhone}` : '';
+
+        // 1. Send Email Alert to Admin
+        if (enableAdminEmail && adminEmail) {
+            const mailOptions = {
+                from: '"Zannat.me Support" <abuzannat911@gmail.com>',
+                to: adminEmail,
+                subject: `[New Bug Query] ${ticketId} - ${clientName}`,
+                text: `
+New Bug Query Submitted:
 ----------------------------------------
-Ticket ID: ${ticketId}
+Query ID: ${ticketId}
 Date: ${date}
 Client Name: ${clientName}
-Client Email: ${clientEmail}
-Website URL: ${siteUrl}
-Bug Category: ${bugType}
-Severity: ${severity}
+Client Email: ${clientEmail || 'N/A'}
+Client Phone: ${clientPhone || 'N/A'}${waClientLink ? ` (${waClientLink})` : ''}
+Website URL: ${siteUrl || 'N/A'}
+Bug Category: ${bugType || 'General'}
+Severity: ${severity || 'Medium'}
 
 Description:
 ${description}
 ----------------------------------------
-Check the admin portal at: http://localhost:8080/admin
+Admin Dashboard: http://localhost:8080/admin
+Direct Client WhatsApp: ${waClientLink || 'N/A'}
 `
-        };
+            };
 
-        try {
-            const transporter = await getTransporter();
-            transporter.sendMail(mailOptions, (err, info) => {
-                if (err) {
-                    console.error('Nodemailer error sending email:', err.message);
-                } else {
-                    console.log('Email sent successfully:', info.messageId);
-                }
+            try {
+                const transporter = await getTransporter();
+                transporter.sendMail(mailOptions, (err, info) => {
+                    if (err) {
+                        console.error('[EMAIL ERROR] Sending query notification:', err.message);
+                    } else {
+                        console.log('[EMAIL SUCCESS] Query notification sent:', info.messageId);
+                    }
+                    logEmailSent(mailOptions);
+                });
+            } catch (mailErr) {
+                console.warn('[EMAIL WARNING]', mailErr.message);
                 logEmailSent(mailOptions);
-            });
-        } catch (mailErr) {
-            console.warn('[EMAIL WARNING]', mailErr.message);
-            logEmailSent(mailOptions);
+            }
         }
 
-        // Send WhatsApp alert if WhatsApp is connected
+        // 2. Send WhatsApp Alert to Admin & Confirmation to Client
         try {
             const waStatus = whatsapp.getWhatsAppStatus();
-            if (waStatus.isConnected && waStatus.user && waStatus.user.phone) {
-                const waMsg = `🚨 *New Bug Fix Ticket Received!*\n\n• *Ticket ID:* ${ticketId}\n• *Client:* ${clientName} (${clientEmail || 'No email'})\n• *Website:* ${siteUrl || 'N/A'}\n• *Severity:* ${severity}\n• *Issue:* ${bugType}\n\n📝 *Description:*\n${description}\n\n👉 Open Admin: http://localhost:8080/admin`;
-                whatsapp.sendWhatsAppMessage(waStatus.user.phone, waMsg).catch(e => console.warn('[WA ALERT WARNING]', e.message));
+            if (waStatus.isConnected) {
+                // Determine target Admin WhatsApp recipient: custom configured or connected user phone
+                const adminWaRecipient = rawAdminWA.trim() || (waStatus.user && waStatus.user.phone);
+
+                if (enableAdminWhatsApp && adminWaRecipient) {
+                    let adminWaMsg = `🚨 *New Bug Query Received!*\n\n`;
+                    adminWaMsg += `• *Query ID:* ${ticketId}\n`;
+                    adminWaMsg += `• *Client Name:* ${clientName}\n`;
+                    if (clientPhone) adminWaMsg += `• *Client Phone:* ${clientPhone}\n`;
+                    if (clientEmail) adminWaMsg += `• *Client Email:* ${clientEmail}\n`;
+                    adminWaMsg += `• *Website:* ${siteUrl || 'N/A'}\n`;
+                    adminWaMsg += `• *Issue Category:* ${bugType || 'General'}\n`;
+                    adminWaMsg += `• *Severity:* ${severity || 'Medium'}\n\n`;
+                    adminWaMsg += `📝 *Description:*\n${description}\n\n`;
+                    if (waClientLink) {
+                        adminWaMsg += `💬 *Chat with Client directly:*\n${waClientLink}\n\n`;
+                    }
+                    adminWaMsg += `👉 *Open Admin Portal:*\nhttp://localhost:8080/admin`;
+
+                    whatsapp.sendWhatsAppMessage(adminWaRecipient, adminWaMsg)
+                        .then(() => console.log(`[WA SUCCESS] Admin notification sent to ${adminWaRecipient}`))
+                        .catch(e => console.warn('[WA ALERT TO ADMIN WARNING]', e.message));
+                }
+
+                // Send confirmation to Client on WhatsApp if clientPhone is provided
+                if (enableClientWhatsApp && clientPhone) {
+                    let clientWaMsg = `👋 Hello *${clientName}*,\n\n`;
+                    clientWaMsg += `Thank you for reaching out! We have successfully received your WordPress bug query (*${ticketId}*).\n\n`;
+                    clientWaMsg += `📋 *Summary:*\n`;
+                    clientWaMsg += `• *Website:* ${siteUrl || 'N/A'}\n`;
+                    clientWaMsg += `• *Issue:* ${bugType || 'General'}\n`;
+                    clientWaMsg += `• *Severity:* ${severity || 'Medium'}\n\n`;
+                    clientWaMsg += `Abu Zannat is reviewing your issue and will communicate with you directly on this WhatsApp number shortly.\n\n`;
+                    clientWaMsg += `Best regards,\n*Abu Zannat | WordPress Specialist*\n🌐 https://zannat.me`;
+
+                    whatsapp.sendWhatsAppMessage(clientPhone, clientWaMsg)
+                        .then(() => console.log(`[WA SUCCESS] Client confirmation sent to ${clientPhone}`))
+                        .catch(e => console.warn('[WA ALERT TO CLIENT WARNING]', e.message));
+                }
+            } else {
+                console.log('[WA NOTICE] WhatsApp is not currently connected; skipping WA notifications.');
             }
         } catch (waErr) {
             console.warn('[WA ALERT WARNING]', waErr.message);
@@ -210,19 +461,184 @@ Check the admin portal at: http://localhost:8080/admin
     }
 });
 
-// POST Update Ticket
-app.post('/api/tickets/update', async (req, res) => {
+// POST Update Ticket (with Status Change Notifications)
+app.post('/api/tickets/update', requireAdminAuth, async (req, res) => {
     try {
         const { id, status, adminNotes } = req.body;
-        await db.updateTicket(id, status, adminNotes);
-        res.json({ success: true });
+        const updateResult = await db.updateTicket(id, status, adminNotes);
+        const { ticket, statusChanged, previousStatus, newStatus } = updateResult;
+
+        let notified = { wa: false, email: false };
+
+        if (statusChanged) {
+            // Retrieve site notification settings
+            const siteSettings = await db.getSiteSettings();
+            const notif = siteSettings.notifications || {};
+            const adminEmail = notif.adminEmail || 'abuzannat911@gmail.com';
+            const rawAdminWA = notif.adminWhatsApp || '';
+            const enableAdminEmail = notif.enableAdminEmail !== false;
+            const enableAdminWhatsApp = notif.enableAdminWhatsApp !== false;
+            const enableClientWhatsApp = notif.enableClientWhatsApp !== false;
+
+            const clientName = ticket.client_name || 'Valued Client';
+            const clientEmail = ticket.client_email || '';
+            const clientPhone = ticket.client_phone || '';
+            const siteUrl = ticket.site_url || '';
+            const bugType = ticket.bug_type || 'General';
+            const notesText = adminNotes !== undefined ? adminNotes : (ticket.admin_notes || '');
+
+            // 1. WhatsApp Notification
+            try {
+                const waStatus = whatsapp.getWhatsAppStatus();
+                if (waStatus.isConnected) {
+                    // Send status notification to Client WhatsApp if enabled & phone provided
+                    if (enableClientWhatsApp && clientPhone) {
+                        let clientWaMsg = `🔔 *Bug Ticket Status Update: ${newStatus.toUpperCase()}*\n\n`;
+                        clientWaMsg += `Hello *${clientName}*,\n\n`;
+                        clientWaMsg += `The status of your WordPress bug query (*${id}*) has been updated to:\n`;
+                        clientWaMsg += `👉 *${newStatus}*\n\n`;
+                        clientWaMsg += `📋 *Ticket Summary:*\n`;
+                        clientWaMsg += `• *Website:* ${siteUrl || 'N/A'}\n`;
+                        clientWaMsg += `• *Issue:* ${bugType}\n`;
+                        if (notesText && notesText.trim()) {
+                            clientWaMsg += `• *Developer Notes:*\n${notesText.trim()}\n\n`;
+                        } else {
+                            clientWaMsg += `\n`;
+                        }
+                        if (newStatus === 'Resolved') {
+                            clientWaMsg += `🎉 *Your bug has been fixed!* Please test on your site to confirm everything works smoothly.\n\n`;
+                        } else if (newStatus === 'In Progress') {
+                            clientWaMsg += `⚡ *Diagnostics and debugging are currently underway.* We will update you as soon as the patch is ready.\n\n`;
+                        }
+                        clientWaMsg += `If you have any questions or further instructions, feel free to reply directly to this message.\n\n`;
+                        clientWaMsg += `Best regards,\n*Abu Zannat | WordPress Specialist*\n🌐 https://zannat.me`;
+
+                        await whatsapp.sendWhatsAppMessage(clientPhone, clientWaMsg);
+                        notified.wa = true;
+                        console.log(`[WA SUCCESS] Status update sent to client (${clientPhone})`);
+                    }
+
+                    // Send alert to Admin WhatsApp
+                    const adminWaRecipient = rawAdminWA.trim() || (waStatus.user && waStatus.user.phone);
+                    if (enableAdminWhatsApp && adminWaRecipient) {
+                        let adminWaMsg = `🔄 *Ticket Status Changed: ${id}*\n\n`;
+                        adminWaMsg += `• *Client:* ${clientName} (${clientPhone || 'No phone'})\n`;
+                        adminWaMsg += `• *New Status:* *${newStatus}* (was: ${previousStatus})\n`;
+                        if (notesText && notesText.trim()) {
+                            adminWaMsg += `• *Notes:* ${notesText.trim()}\n`;
+                        }
+                        adminWaMsg += `👉 *Admin Portal:* http://localhost:8080/admin`;
+
+                        whatsapp.sendWhatsAppMessage(adminWaRecipient, adminWaMsg)
+                            .then(() => console.log(`[WA SUCCESS] Admin status alert sent to ${adminWaRecipient}`))
+                            .catch(e => console.warn('[WA ADMIN ALERT WARNING]', e.message));
+                    }
+                } else {
+                    console.log('[WA NOTICE] WhatsApp client not connected; skipping WhatsApp alert.');
+                }
+            } catch (waErr) {
+                console.warn('[WA STATUS NOTIFY WARNING]', waErr.message);
+            }
+
+            // 2. Email Notification to Client (and Admin)
+            if (clientEmail) {
+                const statusColor = newStatus === 'Resolved' ? '#10b981' : (newStatus === 'In Progress' ? '#3b82f6' : (newStatus === 'Closed' ? '#64748b' : '#f59e0b'));
+                const statusBg = newStatus === 'Resolved' ? '#d1fae5' : (newStatus === 'In Progress' ? '#dbeafe' : (newStatus === 'Closed' ? '#f1f5f9' : '#fef3c7'));
+
+                const mailOptions = {
+                    from: '"Abu Zannat | WordPress Support" <abuzannat911@gmail.com>',
+                    to: clientEmail,
+                    subject: `[Status Update: ${newStatus}] Bug Ticket ${id} - ${clientName}`,
+                    html: `
+                        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; color: #1e293b;">
+                            <div style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); padding: 24px; color: #ffffff;">
+                                <h2 style="margin: 0; font-size: 20px; font-weight: 700;">Abu Zannat Support Desk</h2>
+                                <p style="margin: 4px 0 0 0; font-size: 13px; color: #94a3b8;">WordPress Emergency Debugging & Technical Dispatch</p>
+                            </div>
+                            <div style="padding: 24px;">
+                                <p style="font-size: 15px; margin-top: 0;">Hello <strong>${clientName}</strong>,</p>
+                                <p style="font-size: 14px; line-height: 1.6; color: #475569;">
+                                    The status of your WordPress bug query (<strong>${id}</strong>) has been updated:
+                                </p>
+                                <div style="margin: 20px 0; text-align: center; padding: 14px; background: ${statusBg}; border-radius: 8px;">
+                                    <span style="display: inline-block; font-size: 16px; font-weight: 700; color: ${statusColor}; text-transform: uppercase; letter-spacing: 0.5px;">
+                                        ● ${newStatus}
+                                    </span>
+                                </div>
+                                <table style="width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 20px;">
+                                    <tr style="border-bottom: 1px solid #f1f5f9;">
+                                        <td style="padding: 8px 0; color: #64748b; width: 130px;">Ticket ID:</td>
+                                        <td style="padding: 8px 0; font-weight: 600;">${id}</td>
+                                    </tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;">
+                                        <td style="padding: 8px 0; color: #64748b;">Website URL:</td>
+                                        <td style="padding: 8px 0;"><a href="${siteUrl}" target="_blank" style="color: #2563eb; text-decoration: none;">${siteUrl || 'N/A'}</a></td>
+                                    </tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;">
+                                        <td style="padding: 8px 0; color: #64748b;">Issue Category:</td>
+                                        <td style="padding: 8px 0; font-weight: 500;">${bugType}</td>
+                                    </tr>
+                                    ${notesText && notesText.trim() ? `
+                                    <tr style="border-bottom: 1px solid #f1f5f9;">
+                                        <td style="padding: 8px 0; color: #64748b; vertical-align: top;">Developer Notes:</td>
+                                        <td style="padding: 8px 0; color: #334155; line-height: 1.5;">${notesText.trim()}</td>
+                                    </tr>
+                                    ` : ''}
+                                </table>
+                                <p style="font-size: 13px; color: #64748b; line-height: 1.5;">
+                                    If you need immediate assistance or have more details to provide, feel free to reply directly to this email or chat on WhatsApp.
+                                </p>
+                                <hr style="border: none; border-top: 1px solid #f1f5f9; margin: 20px 0;">
+                                <div style="font-size: 12px; color: #94a3b8; text-align: center;">
+                                    © 2026 Zannat.me · WordPress Specialist & Web Developer
+                                </div>
+                            </div>
+                        </div>
+                    `
+                };
+
+                try {
+                    const transporter = await getTransporter();
+                    transporter.sendMail(mailOptions, (err, info) => {
+                        if (err) {
+                            console.error('[EMAIL ERROR] Status change notification:', err.message);
+                        } else {
+                            console.log('[EMAIL SUCCESS] Status change notification sent:', info.messageId);
+                        }
+                        logEmailSent(mailOptions);
+                    });
+                    notified.email = true;
+                } catch (mailErr) {
+                    console.warn('[EMAIL WARNING]', mailErr.message);
+                    logEmailSent(mailOptions);
+                }
+            }
+
+            // Also inform Admin Email if enabled
+            if (enableAdminEmail && adminEmail && adminEmail !== clientEmail) {
+                const adminMailOptions = {
+                    from: '"Zannat.me Support" <abuzannat911@gmail.com>',
+                    to: adminEmail,
+                    subject: `[Status Changed: ${newStatus}] Ticket ${id} - ${clientName}`,
+                    text: `Ticket ${id} status updated to: ${newStatus} (was: ${previousStatus}).\nClient: ${clientName} (${clientEmail || 'No email'}, ${clientPhone || 'No phone'}).\nDeveloper Notes: ${notesText || 'None'}`
+                };
+                try {
+                    const transporter = await getTransporter();
+                    transporter.sendMail(adminMailOptions, () => {
+                        logEmailSent(adminMailOptions);
+                    });
+                } catch (e) {}
+            }
+        }
+
+        res.json({ success: true, statusChanged, previousStatus, newStatus, notified });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
 // POST Delete Ticket
-app.post('/api/tickets/delete', async (req, res) => {
+app.post('/api/tickets/delete', requireAdminAuth, async (req, res) => {
     try {
         const { id } = req.body;
         await db.deleteTicket(id);
@@ -233,7 +649,7 @@ app.post('/api/tickets/delete', async (req, res) => {
 });
 
 // GET Backup Database (JSON dump)
-app.get('/api/backup', async (req, res) => {
+app.get('/api/backup', requireAdminAuth, async (req, res) => {
     try {
         const json = await db.exportDatabaseJson();
         res.setHeader('Content-Type', 'application/json');
@@ -245,7 +661,7 @@ app.get('/api/backup', async (req, res) => {
 });
 
 // POST Restore Database
-app.post('/api/restore', express.raw({ type: 'application/octet-stream', limit: '50mb' }), async (req, res) => {
+app.post('/api/restore', requireAdminAuth, express.raw({ type: 'application/octet-stream', limit: '50mb' }), async (req, res) => {
     try {
         const bodyStr = req.body.toString('utf-8');
         await db.restoreDatabaseFromJson(bodyStr);
@@ -256,7 +672,7 @@ app.post('/api/restore', express.raw({ type: 'application/octet-stream', limit: 
 });
 
 // POST Update Homepage Content
-app.post('/api/homepage/update', async (req, res) => {
+app.post('/api/homepage/update', requireAdminAuth, async (req, res) => {
     try {
         const { name, title, avatar, about } = req.body;
         await db.updateHomepage({ name, title, avatar, about });
@@ -267,7 +683,7 @@ app.post('/api/homepage/update', async (req, res) => {
 });
 
 // POST Create or Update Custom Page
-app.post('/api/pages', async (req, res) => {
+app.post('/api/pages', requireAdminAuth, async (req, res) => {
     try {
         const { title, slug, layout, content, oldSlug } = req.body;
         await db.savePage({ title, slug, layout, content, oldSlug });
@@ -278,7 +694,7 @@ app.post('/api/pages', async (req, res) => {
 });
 
 // POST Delete Custom Page
-app.post('/api/pages/delete', async (req, res) => {
+app.post('/api/pages/delete', requireAdminAuth, async (req, res) => {
     try {
         const { slug } = req.body;
         await db.deletePage(slug);
@@ -289,7 +705,7 @@ app.post('/api/pages/delete', async (req, res) => {
 });
 
 // POST Create or Update Admin User
-app.post('/api/users', async (req, res) => {
+app.post('/api/users', requireAdminAuth, async (req, res) => {
     try {
         const { username, password } = req.body;
         await db.saveUser(username, password);
@@ -300,7 +716,7 @@ app.post('/api/users', async (req, res) => {
 });
 
 // POST Delete Admin User
-app.post('/api/users/delete', async (req, res) => {
+app.post('/api/users/delete', requireAdminAuth, async (req, res) => {
     try {
         const { username } = req.body;
         await db.deleteUser(username);
@@ -311,7 +727,7 @@ app.post('/api/users/delete', async (req, res) => {
 });
 
 // POST Update SMTP Config (Password / Direct SMTP)
-app.post('/api/smtp/update', async (req, res) => {
+app.post('/api/smtp/update', requireAdminAuth, async (req, res) => {
     try {
         let { host, port, secure, user, pass, auth_type } = req.body;
         if (user) user = user.trim();
@@ -417,7 +833,7 @@ app.get('/api/auth/google/callback', async (req, res) => {
 });
 
 // POST Disconnect Google OAuth2
-app.post('/api/auth/google/disconnect', async (req, res) => {
+app.post('/api/auth/google/disconnect', requireAdminAuth, async (req, res) => {
     try {
         await db.disconnectGoogleOAuth();
         res.json({ success: true });
@@ -427,7 +843,7 @@ app.post('/api/auth/google/disconnect', async (req, res) => {
 });
 
 // POST Save Custom Google OAuth Credentials (Client ID & Secret)
-app.post('/api/auth/google/credentials', async (req, res) => {
+app.post('/api/auth/google/credentials', requireAdminAuth, async (req, res) => {
     try {
         const { clientId, clientSecret } = req.body;
         await db.saveGoogleOAuthCredentials({ clientId, clientSecret });
@@ -438,7 +854,7 @@ app.post('/api/auth/google/credentials', async (req, res) => {
 });
 
 // POST Send Live Test Email
-app.post('/api/smtp/test', async (req, res) => {
+app.post('/api/smtp/test', requireAdminAuth, async (req, res) => {
     try {
         const { to } = req.body;
         const config = await db.getSmtpConfig();
@@ -482,7 +898,7 @@ app.post('/api/smtp/test', async (req, res) => {
 });
 
 // ============ INVOICE API ============
-app.get('/api/invoices', async (req, res) => {
+app.get('/api/invoices', requireAdminAuth, async (req, res) => {
     try {
         const state = await db.getFullState();
         res.json({ success: true, invoices: state.invoices, nextNum: state.nextInvoiceNum });
@@ -491,7 +907,7 @@ app.get('/api/invoices', async (req, res) => {
     }
 });
 
-app.post('/api/invoices', async (req, res) => {
+app.post('/api/invoices', requireAdminAuth, async (req, res) => {
     try {
         const invoiceData = req.body;
         const saved = await db.saveInvoice(invoiceData);
@@ -507,7 +923,7 @@ app.post('/api/invoices', async (req, res) => {
     }
 });
 
-app.post('/api/invoices/delete', async (req, res) => {
+app.post('/api/invoices/delete', requireAdminAuth, async (req, res) => {
     try {
         const { id } = req.body;
         await db.deleteInvoice(id);
@@ -519,7 +935,7 @@ app.post('/api/invoices/delete', async (req, res) => {
 });
 
 // ============ CLIENTS API ============
-app.get('/api/clients', async (req, res) => {
+app.get('/api/clients', requireAdminAuth, async (req, res) => {
     try {
         const state = await db.getFullState();
         res.json({ success: true, clients: state.clients });
@@ -528,7 +944,7 @@ app.get('/api/clients', async (req, res) => {
     }
 });
 
-app.post('/api/clients', async (req, res) => {
+app.post('/api/clients', requireAdminAuth, async (req, res) => {
     try {
         const clientData = req.body;
         const saved = await db.saveClient(clientData);
@@ -539,7 +955,7 @@ app.post('/api/clients', async (req, res) => {
     }
 });
 
-app.post('/api/clients/delete', async (req, res) => {
+app.post('/api/clients/delete', requireAdminAuth, async (req, res) => {
     try {
         const { id } = req.body;
         const remainingClients = await db.deleteClient(id);
@@ -550,7 +966,7 @@ app.post('/api/clients/delete', async (req, res) => {
 });
 
 // ============ BANK DETAILS API ============
-app.get('/api/bank-details', async (req, res) => {
+app.get('/api/bank-details', requireAdminAuth, async (req, res) => {
     try {
         const state = await db.getFullState();
         res.json({ success: true, bankDetails: state.bankDetails });
@@ -559,7 +975,7 @@ app.get('/api/bank-details', async (req, res) => {
     }
 });
 
-app.post('/api/bank-details', async (req, res) => {
+app.post('/api/bank-details', requireAdminAuth, async (req, res) => {
     try {
         const updated = await db.updateBankDetails(req.body);
         res.json({ success: true, bankDetails: updated });
@@ -568,8 +984,36 @@ app.post('/api/bank-details', async (req, res) => {
     }
 });
 
+// ============ SITE SETTINGS API ============
+app.get('/api/settings', async (req, res) => {
+    try {
+        const settings = await db.getSiteSettings();
+        res.json({ success: true, siteSettings: settings });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/settings/update', requireAdminAuth, async (req, res) => {
+    try {
+        const updated = await db.saveSiteSettings(req.body);
+        res.json({ success: true, siteSettings: updated });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/settings/reset', requireAdminAuth, async (req, res) => {
+    try {
+        const resetSettings = await db.saveSiteSettings(db.DEFAULT_SITE_SETTINGS);
+        res.json({ success: true, siteSettings: resetSettings });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // ============ INVOICE EMAIL SENDER API ============
-app.post('/api/invoices/send-email', async (req, res) => {
+app.post('/api/invoices/send-email', requireAdminAuth, async (req, res) => {
     try {
         const { to, subject, message, invoiceNumber, invoiceId, invoiceData } = req.body;
         if (!to || !to.trim()) {
@@ -642,7 +1086,7 @@ app.get('/api/whatsapp/status', (req, res) => {
 });
 
 // POST Request 8-digit Pairing Code for Mobile Number
-app.post('/api/whatsapp/pair-code', async (req, res) => {
+app.post('/api/whatsapp/pair-code', requireAdminAuth, async (req, res) => {
     try {
         const { phone } = req.body;
         if (!phone) {
@@ -656,7 +1100,7 @@ app.post('/api/whatsapp/pair-code', async (req, res) => {
 });
 
 // POST Send WhatsApp Notification Message (Supports optional document/PDF attachment)
-app.post('/api/whatsapp/send', async (req, res) => {
+app.post('/api/whatsapp/send', requireAdminAuth, async (req, res) => {
     try {
         const { to, message, pdfBase64, fileName, mimetype } = req.body;
         if (!to || (!message && !pdfBase64)) {
@@ -676,7 +1120,7 @@ app.post('/api/whatsapp/send', async (req, res) => {
 });
 
 // POST Disconnect WhatsApp Session
-app.post('/api/whatsapp/disconnect', async (req, res) => {
+app.post('/api/whatsapp/disconnect', requireAdminAuth, async (req, res) => {
     try {
         const result = await whatsapp.disconnectWhatsApp();
         res.json(result);
@@ -686,7 +1130,7 @@ app.post('/api/whatsapp/disconnect', async (req, res) => {
 });
 
 // POST Send Invoice via WhatsApp (Supports Text Message + High-Res Vector PDF Document Attachment)
-app.post('/api/invoices/send-whatsapp', async (req, res) => {
+app.post('/api/invoices/send-whatsapp', requireAdminAuth, async (req, res) => {
     try {
         const { to, message, invoiceNumber, attachPdf, pdfBase64, fileName, invoiceData, invoiceId } = req.body;
         if (!to || !to.trim()) {
@@ -827,7 +1271,7 @@ async function runSystemUpdate() {
 }
 
 // GET System Info & GitHub Sync Status
-app.get('/api/system/info', async (req, res) => {
+app.get('/api/system/info', requireAdminAuth, async (req, res) => {
     try {
         let commit = 'unknown';
         let branch = 'main';
@@ -862,7 +1306,7 @@ app.get('/api/system/info', async (req, res) => {
 });
 
 // POST Trigger System Update from Admin
-app.post('/api/system/update', async (req, res) => {
+app.post('/api/system/update', requireAdminAuth, async (req, res) => {
     try {
         const logs = await runSystemUpdate();
         res.json({
@@ -897,7 +1341,7 @@ app.post('/api/system/webhook', async (req, res) => {
 });
 
 // GET Instant Database Backup Download
-app.get('/api/system/backup/download', async (req, res) => {
+app.get('/api/system/backup/download', requireAdminAuth, async (req, res) => {
     try {
         await db.safeBackupData();
         const backupPath = path.join(__dirname, 'backups', 'db_backup_latest.json');
@@ -914,8 +1358,36 @@ app.get('/api/system/backup/download', async (req, res) => {
     }
 });
 
+// Block direct access to sensitive server-side files, databases, logs, backups, and configurations
+app.use((req, res, next) => {
+    const rawPath = req.path.toLowerCase();
+    const sensitivePatterns = [
+        /^\/\.env/i,
+        /^\/\.git/i,
+        /^\/\.sessions/i,
+        /\.sqlite/i,
+        /\.sql$/i,
+        /server\.js$/i,
+        /db\.js$/i,
+        /whatsapp\.js$/i,
+        /invoice_pdf\.js$/i,
+        /package(-lock)?\.json$/i,
+        /sent_emails\.log$/i,
+        /backups\//i,
+        /whatsapp_auth\//i,
+        /update\.sh$/i
+    ];
+    for (const pattern of sensitivePatterns) {
+        if (pattern.test(rawPath)) {
+            return res.status(403).type('text/plain').send('Access Forbidden: Protected system resource.');
+        }
+    }
+    next();
+});
+
 // Serve Static Frontend Assets with no-cache headers for live development
 app.use(express.static(__dirname, {
+    dotfiles: 'ignore', // Never serve hidden files (.env, .git, etc.)
     setHeaders: (res, filePath) => {
         if (filePath.endsWith('.js') || filePath.endsWith('.html') || filePath.endsWith('.css')) {
             res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
@@ -924,6 +1396,11 @@ app.use(express.static(__dirname, {
         }
     }
 }));
+
+// Return 404 JSON for any unmatched API endpoints
+app.use('/api', (req, res) => {
+    res.status(404).json({ error: 'API endpoint not found' });
+});
 
 // Serve SPA index.html for all other routes
 app.use((req, res) => {

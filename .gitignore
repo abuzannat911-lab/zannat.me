@@ -18,3 +18,5 @@ whatsapp_session/
 backups/*.json
 backups/*.sql
 !backups/.gitkeep
+.sessions/
+data.json

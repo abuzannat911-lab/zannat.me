@@ -24,7 +24,7 @@
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
   <!-- Local Styles -->
-  <link rel="stylesheet" href="/style.css?v=8">
+  <link rel="stylesheet" href="/style.css?v=17">
 
   <!-- HTML2PDF for Invoice PDF Generation -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
@@ -36,20 +36,23 @@
     <!-- Navbar -->
     <header class="landing-navbar">
       <div class="navbar-brand">
-        <div class="logo-icon" style="background: transparent; border: none; padding: 0;">
-          <img src="/assets/zannat_inner_symbol_icon.png" alt="Zannat Logo" style="width: 38px; height: 38px; object-fit: contain; filter: drop-shadow(0 0 8px rgba(139,92,246,0.5));">
-        </div>
-        <div class="logo-text">
-          <h2>Zannat.me</h2>
-          <span>WordPress Specialist</span>
-        </div>
+        <a href="/" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: inherit;">
+          <div class="logo-icon" style="background: transparent; border: none; padding: 0;">
+            <img src="/assets/zannat_inner_symbol_icon.png" alt="Zannat Logo" id="navbar-brand-logo" style="width: 38px; height: 38px; object-fit: contain; filter: drop-shadow(0 0 8px rgba(139,92,246,0.5));">
+          </div>
+          <div class="logo-text">
+            <h2 id="navbar-brand-name">Zannat.me</h2>
+            <span id="navbar-brand-tagline">WordPress Specialist</span>
+          </div>
+        </a>
       </div>
       <nav class="navbar-links">
-        <a href="#hero" class="nav-item">Home</a>
-        <a href="#services" class="nav-item">Services</a>
-        <a href="#workflow" class="nav-item">Workflow</a>
-        <a href="#testimonials" class="nav-item">Reviews</a>
-        <a href="#submit-ticket-section" class="btn btn-outline btn-nav-cta">Submit Bug</a>
+        <a href="/" class="nav-item" id="nav-link-home">Home</a>
+        <a href="/services" class="nav-item" id="nav-link-services">Services</a>
+        <a href="/workflow" class="nav-item" id="nav-link-workflow">Workflow</a>
+        <a href="/gallery" class="nav-item" id="nav-link-gallery">Behind Scenes</a>
+        <a href="/reviews" class="nav-item" id="nav-link-reviews">Reviews</a>
+        <a href="/submit-ticket" class="btn btn-outline btn-nav-cta" id="nav-link-submit-bug">Submit Bug</a>
       </nav>
       <div class="navbar-actions">
         <!-- Theme Toggle -->
@@ -60,8 +63,11 @@
       </div>
     </header>
 
-    <!-- Hero Section: Split 3-Column System -->
-    <section id="hero" class="landing-hero">
+    <!-- 1. HOME VIEW (Strict One-Screen) -->
+    <div id="page-home" class="public-page-view home-one-screen">
+      <main class="home-screen-wrapper">
+        <!-- Hero Section: Split 2-Column System -->
+        <section id="hero" class="landing-hero">
       
       <!-- Left Panel: Profile Detail -->
       <!-- Left Panel: Profile Detail -->
@@ -75,9 +81,9 @@
             <span class="status-dot"></span>
           </div>
           <div class="profile-meta">
-            <div class="availability-badge">
+            <div class="availability-badge" id="hero-availability-badge">
               <span class="badge-dot"></span>
-              <span>Available for fixing bugs</span>
+              <span id="hero-badge-text">Available for fixing bugs</span>
             </div>
             <h1 class="profile-name" id="hero-profile-name">Abu Zannat</h1>
             <span class="profile-title" id="hero-profile-title">WordPress Specialist & Web Developer</span>
@@ -87,20 +93,20 @@
         <div class="profile-about">
           <div class="about-header">
             <i data-lucide="coffee" class="text-amber" style="width: 18px; height: 18px; display: inline-block; vertical-align: middle;"></i>
-            <h4 style="display: inline-block; margin-left: 6px; font-size: 0.95rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-primary);">About Me</h4>
+            <h4 id="hero-about-heading" style="display: inline-block; margin-left: 6px; font-size: 0.95rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-primary);">About Me</h4>
           </div>
           <p style="margin-top: 12px; font-size: 0.9rem; line-height: 1.6; color: var(--text-secondary);" id="hero-profile-about">Hi, I am Abu Zannat, a WordPress expert specializing in resolving critical core bugs, plugin crashes, WooCommerce issues, database performance tuning, and server-side security hardening. I write clean PHP/JS fixes and optimize sites for speed and security.</p>
-          <p class="about-availability" style="margin-top: 12px; font-size: 0.85rem; color: var(--text-muted);">Active and available for urgent bug dispatch. <a href="#submit-ticket-section" class="text-blue" style="text-decoration: none; font-weight: 600;">Request Urgent Fix</a></p>
+          <p class="about-availability" style="margin-top: 12px; font-size: 0.85rem; color: var(--text-muted);"><span id="hero-urgent-prompt">Active and available for urgent bug dispatch.</span> <a href="/submit-ticket" id="hero-urgent-link" class="text-blue" style="text-decoration: none; font-weight: 600;">Request Urgent Fix</a></p>
         </div>
         
         <div class="profile-ctas">
-          <a href="https://github.com/abuzannat911-lab" target="_blank" class="btn btn-secondary btn-icon-text">
+          <a href="https://github.com/abuzannat911-lab" target="_blank" class="btn btn-secondary btn-icon-text" id="hero-github-btn">
             <i data-lucide="github"></i>
-            <span>Github</span>
+            <span id="hero-github-text">Github</span>
           </a>
-          <a href="https://www.upwork.com/freelancers/~013160cafe75f54f74?mp_source=share" target="_blank" class="btn btn-primary btn-icon-text">
+          <a href="https://www.upwork.com/freelancers/~013160cafe75f54f74?mp_source=share" target="_blank" class="btn btn-primary btn-icon-text" id="hero-hireme-btn">
             <i data-lucide="external-link"></i>
-            <span>Hire Me</span>
+            <span id="hero-hireme-text">Hire Me</span>
           </a>
         </div>
       </div>
@@ -176,7 +182,7 @@
 
         <!-- Slider Quick Links -->
         <div class="slider-actions">
-          <a href="#services" class="btn btn-outline" style="text-decoration: none; padding: 6px 14px; font-size: 0.8rem; border-radius: 20px;">Explore Fixes</a>
+          <a href="/services" class="btn btn-outline" style="text-decoration: none; padding: 6px 14px; font-size: 0.8rem; border-radius: 20px;">Explore Fixes</a>
         </div>
       </div>
 
@@ -186,268 +192,335 @@
     <section class="landing-metrics" id="landing-metrics">
       <div class="metric-item">
         <h3>
-          <span class="count-up" data-target="1500" data-suffix="+">0</span>
+          <span class="count-up" id="metric-item-1-num" data-target="1500" data-suffix="+">0</span>
         </h3>
-        <span>Bugs Fixed</span>
+        <span id="metric-item-1-label">Bugs Fixed</span>
       </div>
       <div class="metric-item">
         <h3>
-          <span class="count-up" data-target="2" data-suffix=" Hours">0</span>
+          <span class="count-up" id="metric-item-2-num" data-target="2" data-suffix=" Hours">0</span>
         </h3>
-        <span>Avg. Turnaround</span>
+        <span id="metric-item-2-label">Avg. Turnaround</span>
       </div>
       <div class="metric-item">
         <h3>
-          <span class="count-up" data-target="99.9" data-suffix="%" data-decimals="1">0</span>
+          <span class="count-up" id="metric-item-3-num" data-target="99.9" data-suffix="%" data-decimals="1">0</span>
         </h3>
-        <span>Success Rate</span>
+        <span id="metric-item-3-label">Success Rate</span>
       </div>
       <div class="metric-item">
-        <h3>24/7</h3>
-        <span>Emergency Fixes</span>
+        <h3 id="metric-item-4-num">24/7</h3>
+        <span id="metric-item-4-label">Emergency Fixes</span>
       </div>
     </section>
+  </main>
+    </div>
 
-    <!-- Services Section -->
-    <section id="services" class="landing-services">
-      <div class="section-header">
-        <span class="badge-tag">Expert Services</span>
-        <h2>WordPress Debugging & Repair Services</h2>
-        <p>Common issues I resolve daily for clients globally.</p>
-      </div>
-
-      <div class="services-grid">
-        <div class="service-card-new">
-          <div class="service-icon-bg"><i data-lucide="shield-alert" class="text-red"></i></div>
-          <h4>Malware Cleanup & Security</h4>
-          <p>Thorough file scanning, cleaning backend backdoor injections, malware removal, spam link fixes, and firewall hardening.</p>
-        </div>
-        
-        <div class="service-card-new">
-          <div class="service-icon-bg"><i data-lucide="zap" class="text-amber"></i></div>
-          <h4>Page Speed Optimization</h4>
-          <p>Minifying scripts, database indexing, page caching configuration, image compressions, and achieving 90+ Mobile PageSpeed scores.</p>
-        </div>
-
-        <div class="service-card-new">
-          <div class="service-icon-bg"><i data-lucide="puzzle" class="text-blue"></i></div>
-          <h4>Plugin & Theme Conflicts</h4>
-          <p>Resolving Javascript errors, PHP warning stacks, WooCommerce checkout spinner bugs, and broken visual styles.</p>
-        </div>
-
-        <div class="service-card-new">
-          <div class="service-icon-bg"><i data-lucide="database-backup" class="text-green"></i></div>
-          <h4>Database & Server Recovery</h4>
-          <p>Fixing 'Error Establishing a Database Connection', resolving corrupted database tables, and correcting file permissions.</p>
-        </div>
-      </div>
-    </section>
-
-    <!-- Workflow Section -->
-    <section id="workflow" class="landing-workflow">
-      <div class="section-header">
-        <span class="badge-tag">Workflow</span>
-        <h2>How It Works</h2>
-        <p>Get your WordPress site fixed in four simple, clean steps.</p>
-      </div>
-      <div class="workflow-steps">
-        <div class="workflow-step">
-          <div class="step-num">01</div>
-          <h4>Submit Ticket</h4>
-          <p>Fill out the bug report below with your site URL and details.</p>
-        </div>
-        <div class="workflow-step">
-          <div class="step-num">02</div>
-          <h4>Diagnostics</h4>
-          <p>I analyze the error logs, active plugins, and configurations safely.</p>
-        </div>
-        <div class="workflow-step">
-          <div class="step-num">03</div>
-          <h4>Smashed</h4>
-          <p>I apply clean, custom code or fixes without breaking anything else.</p>
-        </div>
-        <div class="workflow-step">
-          <div class="step-num">04</div>
-          <h4>Handback</h4>
-          <p>Your site is audited, speeds are verified, and returned to you.</p>
-        </div>
-      </div>
-    </section>
-
-    <!-- Behind the Scenes Gallery Section -->
-    <section id="gallery" class="landing-gallery">
-      <div class="section-header">
-        <span class="badge-tag">Behind the Scenes</span>
-        <h2>Life Behind the Screen</h2>
-        <p>A glimpse into the real-world experiences, adventures, and mindset that fuel my development journey.</p>
-      </div>
-      
-      <div class="gallery-grid">
-        <div class="gallery-card">
-          <div class="gallery-image-wrapper">
-            <img src="assets/photo4.jpg" alt="Riding through water">
-          </div>
-          <div class="gallery-card-content">
-            <h4>Resilience & Adaptability</h4>
-            <p>Solving problems on and off the road. Navigating any terrain, whether it's complex code bugs or flooded rivers, to deliver results.</p>
-          </div>
-        </div>
-
-        <div class="gallery-card">
-          <div class="gallery-image-wrapper">
-            <img src="/assets/photo2.jpg" alt="Calm river and mountains">
-          </div>
-          <div class="gallery-card-content">
-            <h4>Focus & Analytical Clarity</h4>
-            <p>Finding focus and peace in nature. Bringing clear-minded analysis to resolve high-pressure website crashes.</p>
-          </div>
-        </div>
-
-        <div class="gallery-card">
-          <div class="gallery-image-wrapper">
-            <img src="assets/photo3.jpg" alt="Boat journey">
-          </div>
-          <div class="gallery-card-content">
-            <h4>Continuous Movement</h4>
-            <p>Always exploring, moving forward, and adapting to new development environments and technology stacks.</p>
-          </div>
-        </div>
-
-        <div class="gallery-card">
-          <div class="gallery-image-wrapper">
-            <img src="assets/photo5.jpg" alt="Ready on the pier">
-          </div>
-          <div class="gallery-card-content">
-            <h4>Reliable Partner</h4>
-            <p>Ready for the next digital challenge, committed to establishing speed and reliability for your web operations.</p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Reviews Section -->
-    <!-- ========== REVIEWS SECTION ========== -->
-    <section id="testimonials" class="reviews-section">
-      <div class="reviews-bg-glow"></div>
-
-      <!-- Section Header -->
-      <div class="section-header">
-        <span class="badge-tag">⭐ Verified Client Reviews</span>
-        <h2>Trusted by Clients Worldwide</h2>
-        <p>Real reviews from real clients — sourced directly from Fiverr. No filters, no edits.</p>
-
-        <!-- Summary Bar -->
-        <div class="reviews-summary-bar">
-          <div class="reviews-rating-big">
-            <span class="rating-number">5.0</span>
-            <div class="rating-stars-big">★★★★★</div>
-            <span class="rating-label">Average Rating</span>
-          </div>
-          <div class="reviews-stats">
-            <div class="stat-pill"><span class="stat-num">100%</span><span class="stat-desc">5-Star Reviews</span></div>
-            <div class="stat-pill"><span class="stat-num">20+</span><span class="stat-desc">Happy Clients</span></div>
-            <div class="stat-pill"><span class="stat-num">12+</span><span class="stat-desc">Countries</span></div>
-          </div>
-          <a href="https://www.upwork.com/freelancers/~013160cafe75f54f74?mp_source=share" target="_blank" class="fiverr-badge-link">
-            <div class="fiverr-badge">
-              <i data-lucide="briefcase" style="width: 14px; height: 14px; color: #14a800;"></i>
-              <span>View on Upwork</span>
-              <i data-lucide="external-link" style="width: 13px; height: 13px;"></i>
-            </div>
+    <!-- 2. SERVICES PAGE -->
+    <div id="page-services" class="public-page-view separate-page hidden">
+      <div class="page-content-wrapper">
+        <div class="public-page-header-bar">
+          <a href="/" class="back-to-home-link">
+            <i data-lucide="arrow-left" style="width: 16px; height: 16px;"></i>
+            <span>Back to Home</span>
           </a>
+          <span class="page-current-crumb">WordPress Services</span>
         </div>
+
+        <section id="services" class="landing-services">
+          <div class="section-header">
+            <span class="badge-tag" id="services-badge">Expert Services</span>
+            <h2 id="services-title">WordPress Debugging & Repair Services</h2>
+            <p id="services-subtitle">Common issues I resolve daily for clients globally.</p>
+          </div>
+
+          <div class="services-grid">
+            <div class="service-card-new">
+              <div class="service-icon-bg"><i data-lucide="shield-alert" class="text-red"></i></div>
+              <h4 id="services-card1-title">Malware Cleanup & Security</h4>
+              <p id="services-card1-desc">Thorough file scanning, cleaning backend backdoor injections, malware removal, spam link fixes, and firewall hardening.</p>
+            </div>
+            
+            <div class="service-card-new">
+              <div class="service-icon-bg"><i data-lucide="zap" class="text-amber"></i></div>
+              <h4 id="services-card2-title">Page Speed Optimization</h4>
+              <p id="services-card2-desc">Minifying scripts, database indexing, page caching configuration, image compressions, and achieving 90+ Mobile PageSpeed scores.</p>
+            </div>
+
+            <div class="service-card-new">
+              <div class="service-icon-bg"><i data-lucide="puzzle" class="text-blue"></i></div>
+              <h4 id="services-card3-title">Plugin & Theme Conflicts</h4>
+              <p id="services-card3-desc">Resolving Javascript errors, PHP warning stacks, WooCommerce checkout spinner bugs, and broken visual styles.</p>
+            </div>
+
+            <div class="service-card-new">
+              <div class="service-icon-bg"><i data-lucide="database-backup" class="text-green"></i></div>
+              <h4 id="services-card4-title">Database & Server Recovery</h4>
+              <p id="services-card4-desc">Fixing 'Error Establishing a Database Connection', resolving corrupted database tables, and correcting file permissions.</p>
+            </div>
+          </div>
+        </section>
       </div>
+    </div>
 
-      <!-- Reviews Grid -->
-      <div class="reviews-grid" id="reviews-grid"></div>
-
-      <!-- Load More Button -->
-      <div class="reviews-load-more-wrap">
-        <button class="btn btn-outline reviews-load-more-btn" id="reviews-load-more-btn">
-          <i data-lucide="chevrons-down" style="width:16px;height:16px;"></i>
-          Load More Reviews
-        </button>
-        <p class="reviews-shown-label" id="reviews-shown-label"></p>
-      </div>
-    </section>
-
-    <!-- Submit Ticket Form Section (Inline) -->
-    <section id="submit-ticket-section" class="landing-submit-section">
-      <div class="form-container card" style="max-width: 650px; margin: 0 auto; background: var(--glass-bg); border: 1px solid var(--glass-border); box-shadow: var(--glass-shadow);">
-        <div class="card-header" style="text-align: center;">
-          <span class="badge-tag" style="margin-bottom: 8px;">Submit a Bug</span>
-          <h3>Request Urgent WordPress Fix</h3>
-          <p class="text-muted">Describe the issue you're facing. I'll inspect it and get back to you with a quote within 2 hours.</p>
+    <!-- 3. WORKFLOW PAGE -->
+    <div id="page-workflow" class="public-page-view separate-page hidden">
+      <div class="page-content-wrapper">
+        <div class="public-page-header-bar">
+          <a href="/" class="back-to-home-link">
+            <i data-lucide="arrow-left" style="width: 16px; height: 16px;"></i>
+            <span>Back to Home</span>
+          </a>
+          <span class="page-current-crumb">Workflow</span>
         </div>
-        <form id="form-submit-ticket" style="margin-top: 24px;">
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-            <div class="form-group">
-              <label for="ticket-client-name">Your Name *</label>
-              <input type="text" id="ticket-client-name" class="form-control" required placeholder="e.g. John Doe">
-            </div>
-            <div class="form-group">
-              <label for="ticket-client-email">Email Address *</label>
-              <input type="email" id="ticket-client-email" class="form-control" required placeholder="e.g. john@example.com">
-            </div>
-          </div>
-          <div class="form-group">
-            <label for="ticket-site-url">WordPress Website URL *</label>
-            <input type="url" id="ticket-site-url" class="form-control" required placeholder="e.g. https://mywordpress.com">
-          </div>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-            <div class="form-group">
-              <label for="ticket-bug-type">Bug Category *</label>
-              <select id="ticket-bug-type" class="form-control" required>
-                <option value="Plugin Crash">Plugin Crash / WSOD</option>
-                <option value="WooCommerce">WooCommerce / Checkout</option>
-                <option value="Malware/Security">Malware & Spam Clean</option>
-                <option value="Database/PHP">Database / PHP Warning</option>
-                <option value="CSS/Theme">CSS layout / Design</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label for="ticket-severity">Bug Severity *</label>
-              <select id="ticket-severity" class="form-control" required>
-                <option value="Low">Low - Visual adjustments</option>
-                <option value="Medium" selected>Medium - Feature broken but site is running</option>
-                <option value="High">High - WooCommerce checkout blocked</option>
-                <option value="Critical">Critical - Site is completely down / Hacked</option>
-              </select>
-            </div>
-          </div>
-          <div class="form-group">
-            <label for="ticket-description">Describe the Issue *</label>
-            <textarea id="ticket-description" class="form-control" rows="4" required placeholder="What happens? Are there any error logs? When did it start?"></textarea>
-          </div>
-          <button type="submit" class="btn btn-primary w-full" style="padding: 12px; margin-top: 16px;">
-            <i data-lucide="send" style="width: 16px; height: 16px;"></i> Send Ticket
-          </button>
-        </form>
-      </div>
-    </section>
 
-    <!-- Footer -->
-    <footer class="landing-footer">
+        <section id="workflow" class="landing-workflow">
+          <div class="section-header">
+            <span class="badge-tag" id="workflow-badge">Workflow</span>
+            <h2 id="workflow-title">How It Works</h2>
+            <p id="workflow-subtitle">Get your WordPress site fixed in four simple, clean steps.</p>
+          </div>
+          <div class="workflow-steps">
+            <div class="workflow-step">
+              <div class="step-num" id="workflow-step1-num">01</div>
+              <h4 id="workflow-step1-title">Submit Ticket</h4>
+              <p id="workflow-step1-desc">Fill out the bug report below with your site URL and details.</p>
+            </div>
+            <div class="workflow-step">
+              <div class="step-num" id="workflow-step2-num">02</div>
+              <h4 id="workflow-step2-title">Diagnostics</h4>
+              <p id="workflow-step2-desc">I analyze the error logs, active plugins, and configurations safely.</p>
+            </div>
+            <div class="workflow-step">
+              <div class="step-num" id="workflow-step3-num">03</div>
+              <h4 id="workflow-step3-title">Smashed</h4>
+              <p id="workflow-step3-desc">I apply clean, custom code or fixes without breaking anything else.</p>
+            </div>
+            <div class="workflow-step">
+              <div class="step-num" id="workflow-step4-num">04</div>
+              <h4 id="workflow-step4-title">Handback</h4>
+              <p id="workflow-step4-desc">Your site is audited, speeds are verified, and returned to you.</p>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <!-- 4. BEHIND THE SCENES GALLERY PAGE -->
+    <div id="page-gallery" class="public-page-view separate-page hidden">
+      <div class="page-content-wrapper">
+        <div class="public-page-header-bar">
+          <a href="/" class="back-to-home-link">
+            <i data-lucide="arrow-left" style="width: 16px; height: 16px;"></i>
+            <span>Back to Home</span>
+          </a>
+          <span class="page-current-crumb">Behind the Scenes</span>
+        </div>
+
+        <section id="gallery" class="landing-gallery">
+          <div class="section-header">
+            <span class="badge-tag" id="gallery-badge">Behind the Scenes</span>
+            <h2 id="gallery-title">Life Behind the Screen</h2>
+            <p id="gallery-subtitle">A glimpse into the real-world experiences, adventures, and mindset that fuel my development journey.</p>
+          </div>
+          
+          <div class="gallery-grid">
+            <div class="gallery-card">
+              <div class="gallery-image-wrapper">
+                <img src="assets/photo4.jpg" alt="Riding through water">
+              </div>
+              <div class="gallery-card-content">
+                <h4 id="gallery-card1-title">Resilience & Adaptability</h4>
+                <p id="gallery-card1-desc">Solving problems on and off the road. Navigating any terrain, whether it's complex code bugs or flooded rivers, to deliver results.</p>
+              </div>
+            </div>
+
+            <div class="gallery-card">
+              <div class="gallery-image-wrapper">
+                <img src="/assets/photo2.jpg" alt="Calm river and mountains">
+              </div>
+              <div class="gallery-card-content">
+                <h4 id="gallery-card2-title">Focus & Analytical Clarity</h4>
+                <p id="gallery-card2-desc">Finding focus and peace in nature. Bringing clear-minded analysis to resolve high-pressure website crashes.</p>
+              </div>
+            </div>
+
+            <div class="gallery-card">
+              <div class="gallery-image-wrapper">
+                <img src="assets/photo3.jpg" alt="Boat journey">
+              </div>
+              <div class="gallery-card-content">
+                <h4 id="gallery-card3-title">Continuous Movement</h4>
+                <p id="gallery-card3-desc">Always exploring, moving forward, and adapting to new development environments and technology stacks.</p>
+              </div>
+            </div>
+
+            <div class="gallery-card">
+              <div class="gallery-image-wrapper">
+                <img src="assets/photo5.jpg" alt="Ready on the pier">
+              </div>
+              <div class="gallery-card-content">
+                <h4 id="gallery-card4-title">Reliable Partner</h4>
+                <p id="gallery-card4-desc">Ready for the next digital challenge, committed to establishing speed and reliability for your web operations.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <!-- 5. REVIEWS PAGE -->
+    <div id="page-reviews" class="public-page-view separate-page hidden">
+      <div class="page-content-wrapper">
+        <div class="public-page-header-bar">
+          <a href="/" class="back-to-home-link">
+            <i data-lucide="arrow-left" style="width: 16px; height: 16px;"></i>
+            <span>Back to Home</span>
+          </a>
+          <span class="page-current-crumb">Client Reviews</span>
+        </div>
+
+        <section id="testimonials" class="reviews-section">
+          <div class="reviews-bg-glow"></div>
+
+          <!-- Section Header -->
+          <div class="section-header">
+            <span class="badge-tag" id="reviews-badge">⭐ Verified Client Reviews</span>
+            <h2 id="reviews-title">Trusted by Clients Worldwide</h2>
+            <p id="reviews-subtitle">Real reviews from real clients — sourced directly from Fiverr. No filters, no edits.</p>
+
+            <!-- Summary Bar -->
+            <div class="reviews-summary-bar">
+              <div class="reviews-rating-big">
+                <span class="rating-number" id="reviews-rating-number">5.0</span>
+                <div class="rating-stars-big">★★★★★</div>
+                <span class="rating-label" id="reviews-rating-label">Average Rating</span>
+              </div>
+              <div class="reviews-stats">
+                <div class="stat-pill"><span class="stat-num" id="reviews-stat1-num">100%</span><span class="stat-desc" id="reviews-stat1-desc">5-Star Reviews</span></div>
+                <div class="stat-pill"><span class="stat-num" id="reviews-stat2-num">20+</span><span class="stat-desc" id="reviews-stat2-desc">Happy Clients</span></div>
+                <div class="stat-pill"><span class="stat-num" id="reviews-stat3-num">12+</span><span class="stat-desc" id="reviews-stat3-desc">Countries</span></div>
+              </div>
+              <a href="https://www.upwork.com/freelancers/~013160cafe75f54f74?mp_source=share" target="_blank" class="fiverr-badge-link" id="reviews-upwork-link">
+                <div class="fiverr-badge">
+                  <i data-lucide="briefcase" style="width: 14px; height: 14px; color: #14a800;"></i>
+                  <span id="reviews-upwork-text">View on Upwork</span>
+                  <i data-lucide="external-link" style="width: 13px; height: 13px;"></i>
+                </div>
+              </a>
+            </div>
+          </div>
+
+          <!-- Reviews Grid -->
+          <div class="reviews-grid" id="reviews-grid"></div>
+
+          <!-- Load More Button -->
+          <div class="reviews-load-more-wrap">
+            <button class="btn btn-outline reviews-load-more-btn" id="reviews-load-more-btn">
+              <i data-lucide="chevrons-down" style="width:16px;height:16px;"></i>
+              Load More Reviews
+            </button>
+            <p class="reviews-shown-label" id="reviews-shown-label"></p>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <!-- 6. SUBMIT BUG TICKET PAGE -->
+    <div id="page-submit-ticket" class="public-page-view separate-page hidden">
+      <div class="page-content-wrapper">
+        <div class="public-page-header-bar">
+          <a href="/" class="back-to-home-link">
+            <i data-lucide="arrow-left" style="width: 16px; height: 16px;"></i>
+            <span>Back to Home</span>
+          </a>
+          <span class="page-current-crumb">Submit Bug Ticket</span>
+        </div>
+
+        <section id="submit-ticket-section" class="landing-submit-section">
+          <div class="form-container card" style="max-width: 650px; margin: 0 auto; background: var(--glass-bg); border: 1px solid var(--glass-border); box-shadow: var(--glass-shadow);">
+            <div class="card-header" style="text-align: center;">
+              <span class="badge-tag" id="submit-ticket-badge" style="margin-bottom: 8px;">Submit a Bug</span>
+              <h3 id="submit-ticket-title">Request Urgent WordPress Fix</h3>
+              <p class="text-muted" id="submit-ticket-subtitle">Describe the issue you're facing. I'll inspect it and get back to you with a quote within 2 hours.</p>
+            </div>
+            <form id="form-submit-ticket" style="margin-top: 24px;">
+              <div class="form-group">
+                <label for="ticket-client-name">Your Name *</label>
+                <input type="text" id="ticket-client-name" class="form-control" required placeholder="e.g. John Doe">
+              </div>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                <div class="form-group">
+                  <label for="ticket-client-email">Email Address *</label>
+                  <input type="email" id="ticket-client-email" class="form-control" required placeholder="e.g. john@example.com">
+                </div>
+                <div class="form-group">
+                  <label for="ticket-client-phone">WhatsApp / Phone Number *</label>
+                  <input type="tel" id="ticket-client-phone" class="form-control" required placeholder="e.g. +8801700000000 or +1234567890">
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="ticket-site-url">WordPress Website URL *</label>
+                <input type="url" id="ticket-site-url" class="form-control" required placeholder="e.g. https://mywordpress.com">
+              </div>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                <div class="form-group">
+                  <label for="ticket-bug-type">Bug Category *</label>
+                  <select id="ticket-bug-type" class="form-control" required>
+                    <option value="Plugin Crash">Plugin Crash / WSOD</option>
+                    <option value="WooCommerce">WooCommerce / Checkout</option>
+                    <option value="Malware/Security">Malware & Spam Clean</option>
+                    <option value="Database/PHP">Database / PHP Warning</option>
+                    <option value="CSS/Theme">CSS layout / Design</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="ticket-severity">Bug Severity *</label>
+                  <select id="ticket-severity" class="form-control" required>
+                    <option value="Low">Low - Visual adjustments</option>
+                    <option value="Medium" selected>Medium - Feature broken but site is running</option>
+                    <option value="High">High - WooCommerce checkout blocked</option>
+                    <option value="Critical">Critical - Site is completely down / Hacked</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="ticket-description">Describe the Issue *</label>
+                <textarea id="ticket-description" class="form-control" rows="4" required placeholder="What happens? Are there any error logs? When did it start?"></textarea>
+              </div>
+              <button type="submit" class="btn btn-primary w-full" id="submit-ticket-btn" style="padding: 12px; margin-top: 16px;">
+                <i data-lucide="send" style="width: 16px; height: 16px;"></i> <span id="submit-ticket-btn-text">Send Query</span>
+              </button>
+            </form>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <!-- Shared Public Footer for Separate Pages -->
+    <footer id="public-global-footer" class="landing-footer hidden">
       <div class="footer-top">
         <div class="footer-brand">
           <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
             <i data-lucide="terminal" style="color: var(--accent-purple); width: 20px; height: 20px;"></i>
-            <h3 style="font-size: 1.2rem; margin: 0;">Zannat.me</h3>
+            <h3 style="font-size: 1.2rem; margin: 0;" id="footer-brand-title">Zannat.me</h3>
           </div>
-          <p>WordPress specialist available globally for emergency repairs.</p>
+          <p id="footer-brand-desc">WordPress specialist available globally for emergency repairs.</p>
         </div>
         <div class="footer-links">
-          <a href="#hero">Home</a>
-          <a href="#services">Services</a>
-          <a href="#workflow">Workflow</a>
-          <a href="#testimonials">Reviews</a>
+          <a href="/" id="footer-link-home">Home</a>
+          <a href="/services" id="footer-link-services">Services</a>
+          <a href="/workflow" id="footer-link-workflow">Workflow</a>
+          <a href="/gallery" id="footer-link-gallery">Behind Scenes</a>
+          <a href="/reviews" id="footer-link-reviews">Reviews</a>
+          <a href="/submit-ticket" id="footer-link-submit-bug">Submit Bug</a>
         </div>
       </div>
       <div class="footer-bottom">
-        <p>&copy; 2026 Zannat.me. All rights reserved. WordPress is a registered trademark of the WordPress Foundation.</p>
+        <p id="footer-copyright">&copy; 2026 Zannat.me. All rights reserved. WordPress is a registered trademark of the WordPress Foundation.</p>
       </div>
     </footer>
-  </div>
+  </div> <!-- End #public-landing -->
 
   <!-- ================= ADMIN DASHBOARD SHELL ================= -->
   <div id="admin-shell" class="app-container hidden">
@@ -459,10 +532,10 @@
     <aside class="sidebar">
       <div class="sidebar-header">
         <div class="logo-icon" style="background: transparent; border: none; padding: 0;">
-          <img src="/assets/zannat_inner_symbol_icon.png" alt="Zannat Logo" style="width: 36px; height: 36px; object-fit: contain; filter: drop-shadow(0 0 8px rgba(139,92,246,0.5));">
+          <img src="/assets/zannat_inner_symbol_icon.png" alt="Zannat Logo" id="sidebar-brand-logo" style="width: 36px; height: 36px; object-fit: contain; filter: drop-shadow(0 0 8px rgba(139,92,246,0.5));">
         </div>
         <div class="logo-text">
-          <h2>Zannat.me</h2>
+          <h2 id="sidebar-brand-name">Zannat.me</h2>
           <span>Admin Portal</span>
         </div>
       </div>
@@ -481,12 +554,7 @@
               <span>Manage Tickets</span>
             </a>
           </li>
-          <li>
-            <a href="/admin/maintenance" class="nav-link" data-tab="maintenance" onclick="event.preventDefault(); app.switchTab('maintenance');">
-              <i data-lucide="database"></i>
-              <span>Maintenance Tools</span>
-            </a>
-          </li>
+
           <li>
             <a href="/admin/cms" class="nav-link" data-tab="cms" onclick="event.preventDefault(); app.switchTab('cms');">
               <i data-lucide="pencil-line"></i>
@@ -504,6 +572,35 @@
               <i data-lucide="users"></i>
               <span>Clients</span>
             </a>
+          </li>
+          <li class="nav-item-has-submenu" id="menu-item-settings">
+            <a href="#" class="nav-link" data-tab="settings" onclick="event.preventDefault(); app.toggleSettingsSubmenu();">
+              <div style="display: flex; align-items: center; gap: 14px;">
+                <i data-lucide="settings"></i>
+                <span>Site Settings</span>
+              </div>
+              <i data-lucide="chevron-down" class="submenu-chevron"></i>
+            </a>
+            <ul class="nav-submenu" id="nav-submenu-settings">
+              <li>
+                <a href="/admin/settings" class="nav-sublink active" data-subtab-link="settings" onclick="event.preventDefault(); app.switchTab('settings');">
+                  <i data-lucide="sliders"></i>
+                  <span>Website Content</span>
+                </a>
+              </li>
+              <li>
+                <a href="/admin/notifications" class="nav-sublink" data-subtab-link="notifications" onclick="event.preventDefault(); app.switchTab('notifications');">
+                  <i data-lucide="bell"></i>
+                  <span>Notification Receiver</span>
+                </a>
+              </li>
+              <li>
+                <a href="/admin/maintenance" class="nav-sublink" data-subtab-link="maintenance" onclick="event.preventDefault(); app.switchTab('maintenance');">
+                  <i data-lucide="database"></i>
+                  <span>Maintenance Tools</span>
+                </a>
+              </li>
+            </ul>
           </li>
           <li style="margin-top: 24px; border-top: 1px solid var(--border-color); padding-top: 16px;">
             <a href="/" class="nav-link" data-tab="portfolio" id="back-to-site-btn" onclick="event.preventDefault(); app.switchTab('portfolio');">
@@ -582,11 +679,13 @@
               </div>
             </div>
 
-            <div class="card kpi-card">
+            <div class="card kpi-card" style="min-width: 220px;">
               <div class="kpi-header">
-                <div>
-                  <span class="text-muted text-small">Total Revenue (BDT)</span>
-                  <h3 id="kpi-total-earnings">৳0</h3>
+                <div style="flex: 1;">
+                  <span class="text-muted text-small" id="kpi-revenue-label">Total Revenue</span>
+                  <div id="kpi-total-earnings" style="margin-top: 4px;">
+                    <h3 style="margin:0;">$0</h3>
+                  </div>
                 </div>
                 <span class="kpi-icon-bg bg-amber"><i data-lucide="banknote"></i></span>
               </div>
@@ -619,19 +718,31 @@
 
         <!-- ================= TICKETS MANAGEMENT TAB ================= -->
         <section id="tab-tickets" class="tab-pane">
-          <div class="card table-card">
-            <div class="card-header flex-header" style="border-bottom: 1px solid var(--border-color); padding-bottom: 16px;">
-              <div>
-                <h3>Bug Dispatch Desk</h3>
-                <p class="text-muted text-small">Audit client sites, manage status, and track bug fixes.</p>
+          <div class="card table-card" style="box-shadow: 0 4px 20px rgba(0,0,0,0.06); border-radius: 14px; overflow: hidden; padding: 0;">
+            <div class="card-header flex-header" style="border-bottom: 1px solid var(--border-color); padding: 18px 24px; background: rgba(255,255,255,0.02); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+              <div style="display: flex; align-items: center; gap: 12px;">
+                <div style="width: 36px; height: 36px; border-radius: 8px; background: rgba(139,92,246,0.12); display: flex; align-items: center; justify-content: center;">
+                  <i data-lucide="inbox" style="width: 18px; height: 18px; color: var(--accent-purple);"></i>
+                </div>
+                <div>
+                  <h3 style="margin: 0; font-size: 1.15rem; font-weight: 700;">Incoming Bug Queries & Tickets</h3>
+                  <p class="text-muted text-small" style="margin: 2px 0 0 0;">Inspect submissions, change resolution status, and dispatch client alerts.</p>
+                </div>
+                <span id="tickets-count-badge" class="badge" style="background: rgba(139,92,246,0.15); color: var(--accent-purple); border: 1px solid rgba(139,92,246,0.3); font-size: 11px; padding: 3px 9px; border-radius: 12px; font-weight: 600;">0 Tickets</span>
               </div>
-              <div class="filter-group">
-                <select id="ticket-filter-status" onchange="app.renderTicketsTable()">
-                  <option value="">All Statuses</option>
-                  <option value="Pending">Pending</option>
-                  <option value="In Progress">In Progress</option>
-                  <option value="Resolved">Resolved</option>
-                </select>
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <div class="filter-group" style="margin: 0;">
+                  <select id="ticket-filter-status" onchange="app.renderTicketsTable()" style="padding: 7px 14px; font-size: 12px; border-radius: 8px;">
+                    <option value="">All Statuses</option>
+                    <option value="Pending">⏳ Pending</option>
+                    <option value="In Progress">⚡ In Progress</option>
+                    <option value="Resolved">✅ Resolved</option>
+                    <option value="Closed">🔒 Closed</option>
+                  </select>
+                </div>
+                <button type="button" class="btn btn-secondary btn-icon" onclick="app.fetchState()" title="Refresh Tickets">
+                  <i data-lucide="rotate-cw" style="width: 14px; height: 14px;"></i>
+                </button>
               </div>
             </div>
             
@@ -708,7 +819,7 @@
                         </p>
                       </div>
                       <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-                        <button type="button" class="btn" onclick="app.disconnectGmailOAuth()" style="background: rgba(239,68,68,0.1); color: #dc2626; border: 1px solid rgba(239,68,68,0.3); font-weight: 600; padding: 9px 18px; border-radius: 8px; cursor: pointer;">
+                        <button type="button" class="btn" onclick="app.disconnectGmailOAuth(this)" style="background: rgba(239,68,68,0.1); color: #dc2626; border: 1px solid rgba(239,68,68,0.3); font-weight: 600; padding: 9px 18px; border-radius: 8px; cursor: pointer;">
                           Disconnect Account
                         </button>
                         <button type="button" class="btn btn-outline" onclick="app.showGmailConnectForm()" style="font-weight: 600; padding: 9px 18px; border-radius: 8px; cursor: pointer;">
@@ -875,7 +986,7 @@
                         </p>
                       </div>
                       <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-                        <button type="button" class="btn" onclick="app.disconnectWhatsApp()" style="background: rgba(239,68,68,0.1); color: #dc2626; border: 1px solid rgba(239,68,68,0.3); font-weight: 600; padding: 9px 18px; border-radius: 8px; cursor: pointer;">
+                        <button type="button" class="btn" onclick="app.disconnectWhatsApp(this)" style="background: rgba(239,68,68,0.1); color: #dc2626; border: 1px solid rgba(239,68,68,0.3); font-weight: 600; padding: 9px 18px; border-radius: 8px; cursor: pointer;">
                           Disconnect WhatsApp
                         </button>
                         <button type="button" class="btn btn-outline" onclick="app.showWhatsAppConnectForm()" style="font-weight: 600; padding: 9px 18px; border-radius: 8px; cursor: pointer;">
@@ -1062,7 +1173,7 @@
                 <!-- Actions & Webhook Info -->
                 <div style="display: flex; gap: 14px; flex-wrap: wrap; align-items: center; justify-content: space-between; padding-top: 10px; border-top: 1px solid var(--border-color, #e2e8f0);">
                   <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-                    <button type="button" id="btn-run-sys-update" class="btn btn-primary" onclick="app.triggerSystemUpdate()" style="background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%); border: none; font-weight: 700; padding: 10px 20px; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;">
+                    <button type="button" id="btn-run-sys-update" class="btn btn-primary" onclick="app.triggerSystemUpdate(this)" style="background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%); border: none; font-weight: 700; padding: 10px 20px; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;">
                       <span>🔄 Pull &amp; Update from GitHub</span>
                     </button>
                     <button type="button" class="btn btn-outline" onclick="app.refreshSystemInfo()" style="padding: 10px 18px; border-radius: 8px; font-weight: 600; cursor: pointer;">
@@ -1168,7 +1279,7 @@
                     <thead>
                       <tr>
                         <th>Username</th>
-                        <th>Password</th>
+                        <th>Status</th>
                         <th style="text-align: right;">Action</th>
                       </tr>
                     </thead>
@@ -1609,13 +1720,15 @@ Bangladesh</textarea>
                 <div id="clients-kpi-invoiced" style="font-size: 1.4rem; font-weight: 800; color: var(--text-primary);">0</div>
               </div>
             </div>
-            <div class="card" style="padding: 16px; display: flex; align-items: center; gap: 14px;">
+            <div class="card" style="padding: 16px; display: flex; align-items: center; gap: 14px; min-width: 220px;">
               <div style="width: 44px; height: 44px; border-radius: 10px; background: rgba(245, 158, 11, 0.12); display: flex; align-items: center; justify-content: center; color: var(--accent-amber);">
                 <i data-lucide="dollar-sign" style="width: 22px; height: 22px;"></i>
               </div>
-              <div>
-                <div style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;">Total Invoiced Value</div>
-                <div id="clients-kpi-revenue" style="font-size: 1.4rem; font-weight: 800; color: var(--accent-green);">$0.00</div>
+              <div style="flex: 1;">
+                <div id="clients-kpi-revenue-label" style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;">Total Invoiced Value</div>
+                <div id="clients-kpi-revenue" style="margin-top: 2px;">
+                  <div style="font-size:1.4rem;font-weight:800;color:var(--accent-green);">$0.00</div>
+                </div>
               </div>
             </div>
           </div>
@@ -1691,6 +1804,849 @@ Bangladesh</textarea>
           </div>
         </section>
 
+        <!-- ================= SITE SETTINGS TAB ================= -->
+        <section id="tab-settings" class="tab-pane">
+          <!-- Settings Top Banner -->
+          <div class="settings-header-banner">
+            <div class="settings-header-info">
+              <h2>
+                <i data-lucide="sliders" style="color: var(--accent-purple);"></i>
+                <span>Website Content & Text Settings</span>
+              </h2>
+              <p>Directly modify text, titles, links, and content across all sections of your website in real-time.</p>
+            </div>
+            <div class="settings-actions-group">
+              <button type="button" class="btn btn-secondary btn-icon-text" onclick="app.resetSiteSettingsToDefaults(this)">
+                <i data-lucide="rotate-ccw"></i>
+                <span>Reset Defaults</span>
+              </button>
+              <button type="button" class="btn btn-primary btn-icon-text" id="settings-save-btn-top" onclick="app.saveSiteSettings()">
+                <i data-lucide="save"></i>
+                <span>Save All Changes</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Subtabs Navigation -->
+          <div class="settings-subtabs-strip">
+            <button type="button" class="settings-tab-btn active" id="btn-subtab-header" data-subtab="header" onclick="app.switchSettingsSubtab('header')">
+              <i data-lucide="layout"></i>
+              <span>Header & Nav</span>
+            </button>
+            <button type="button" class="settings-tab-btn" id="btn-subtab-footer" data-subtab="footer" onclick="app.switchSettingsSubtab('footer')">
+              <i data-lucide="dock"></i>
+              <span>Footer & Legal</span>
+            </button>
+            <button type="button" class="settings-tab-btn" id="btn-subtab-homepage" data-subtab="homepage" onclick="app.switchSettingsSubtab('homepage')">
+              <i data-lucide="home"></i>
+              <span>Homepage Body</span>
+            </button>
+            <button type="button" class="settings-tab-btn" id="btn-subtab-services" data-subtab="services" onclick="app.switchSettingsSubtab('services')">
+              <i data-lucide="shield"></i>
+              <span>Services Page</span>
+            </button>
+            <button type="button" class="settings-tab-btn" id="btn-subtab-workflow" data-subtab="workflow" onclick="app.switchSettingsSubtab('workflow')">
+              <i data-lucide="git-commit"></i>
+              <span>Workflow Page</span>
+            </button>
+            <button type="button" class="settings-tab-btn" id="btn-subtab-gallery" data-subtab="gallery" onclick="app.switchSettingsSubtab('gallery')">
+              <i data-lucide="camera"></i>
+              <span>Behind Scenes</span>
+            </button>
+            <button type="button" class="settings-tab-btn" id="btn-subtab-reviews" data-subtab="reviews" onclick="app.switchSettingsSubtab('reviews')">
+              <i data-lucide="star"></i>
+              <span>Reviews Page</span>
+            </button>
+            <button type="button" class="settings-tab-btn" id="btn-subtab-submitTicket" data-subtab="submitTicket" onclick="app.switchSettingsSubtab('submitTicket')">
+              <i data-lucide="send"></i>
+              <span>Submit Bug Page</span>
+            </button>
+          </div>
+
+          <!-- SUBTAB 1: HEADER & NAVIGATION -->
+          <div id="settings-subtab-header" class="settings-subtab-pane active">
+            <div class="settings-section-card">
+              <h3><i data-lucide="sparkles" class="text-amber"></i> Top Branding & Status</h3>
+              <p class="card-subtitle">Set the main brand logo text, subtitle tagline, and the live status badge displayed in the top bar.</p>
+              
+              <div class="settings-grid-2">
+                <div class="form-group">
+                  <label for="set-header-brandName">Brand Name / Site Title</label>
+                  <input type="text" id="set-header-brandName" class="form-control" placeholder="Zannat.me">
+                  <small class="text-muted" style="display: block; margin-top: 4px;">Updates public top bar, admin sidebar brand, and site footer.</small>
+                </div>
+                <div class="form-group">
+                  <label for="set-header-brandLogo">Brand Logo Image URL</label>
+                  <input type="text" id="set-header-brandLogo" class="form-control" placeholder="/assets/zannat_inner_symbol_icon.png">
+                  <small class="text-muted" style="display: block; margin-top: 4px;">Image URL for logo icon (e.g. /assets/zannat_inner_symbol_icon.png).</small>
+                </div>
+              </div>
+              <div class="settings-grid-2" style="margin-top: 14px;">
+                <div class="form-group">
+                  <label for="set-header-brandTagline">Brand Tagline / Subtitle</label>
+                  <input type="text" id="set-header-brandTagline" class="form-control" placeholder="WordPress Specialist">
+                </div>
+                <div class="form-group">
+                  <label for="set-header-statusBadgeText">Status Badge Text</label>
+                  <input type="text" id="set-header-statusBadgeText" class="form-control" placeholder="Available for fixing bugs">
+                </div>
+              </div>
+            </div>
+
+            <div class="settings-section-card">
+              <h3><i data-lucide="compass" class="text-blue"></i> Navigation Menu Labels</h3>
+              <p class="card-subtitle">Labels for each link in the public top navigation bar.</p>
+              
+              <div class="settings-grid-3">
+                <div class="form-group">
+                  <label for="set-header-navHome">Home Nav Text</label>
+                  <input type="text" id="set-header-navHome" class="form-control" placeholder="Home">
+                </div>
+                <div class="form-group">
+                  <label for="set-header-navServices">Services Nav Text</label>
+                  <input type="text" id="set-header-navServices" class="form-control" placeholder="Services">
+                </div>
+                <div class="form-group">
+                  <label for="set-header-navWorkflow">Workflow Nav Text</label>
+                  <input type="text" id="set-header-navWorkflow" class="form-control" placeholder="Workflow">
+                </div>
+                <div class="form-group">
+                  <label for="set-header-navGallery">Behind Scenes Nav Text</label>
+                  <input type="text" id="set-header-navGallery" class="form-control" placeholder="Behind Scenes">
+                </div>
+                <div class="form-group">
+                  <label for="set-header-navReviews">Reviews Nav Text</label>
+                  <input type="text" id="set-header-navReviews" class="form-control" placeholder="Reviews">
+                </div>
+                <div class="form-group">
+                  <label for="set-header-navSubmitBug">Submit Bug CTA Button Text</label>
+                  <input type="text" id="set-header-navSubmitBug" class="form-control" placeholder="Submit Bug">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SUBTAB 2: FOOTER & LEGAL -->
+          <div id="settings-subtab-footer" class="settings-subtab-pane">
+            <div class="settings-section-card">
+              <h3><i data-lucide="terminal" class="text-purple"></i> Footer Brand & Bio</h3>
+              <p class="card-subtitle">The global footer displayed across all secondary pages.</p>
+              
+              <div class="settings-grid-2">
+                <div class="form-group">
+                  <label for="set-footer-brandTitle">Footer Brand Title</label>
+                  <input type="text" id="set-footer-brandTitle" class="form-control" placeholder="Zannat.me">
+                </div>
+                <div class="form-group">
+                  <label for="set-footer-brandDescription">Footer Brand Description</label>
+                  <input type="text" id="set-footer-brandDescription" class="form-control" placeholder="WordPress specialist available globally for emergency repairs.">
+                </div>
+              </div>
+              <div class="form-group" style="margin-top: 14px;">
+                <label for="set-footer-copyrightText">Copyright & Trademark Text</label>
+                <textarea id="set-footer-copyrightText" class="form-control" rows="2" placeholder="© 2026 Zannat.me. All rights reserved. WordPress is a registered trademark of the WordPress Foundation."></textarea>
+              </div>
+            </div>
+
+            <div class="settings-section-card">
+              <h3><i data-lucide="link" class="text-green"></i> Footer Navigation Links</h3>
+              <p class="card-subtitle">Text labels for the bottom navigation links.</p>
+              
+              <div class="settings-grid-3">
+                <div class="form-group">
+                  <label for="set-footer-linkHome">Home Link Text</label>
+                  <input type="text" id="set-footer-linkHome" class="form-control" placeholder="Home">
+                </div>
+                <div class="form-group">
+                  <label for="set-footer-linkServices">Services Link Text</label>
+                  <input type="text" id="set-footer-linkServices" class="form-control" placeholder="Services">
+                </div>
+                <div class="form-group">
+                  <label for="set-footer-linkWorkflow">Workflow Link Text</label>
+                  <input type="text" id="set-footer-linkWorkflow" class="form-control" placeholder="Workflow">
+                </div>
+                <div class="form-group">
+                  <label for="set-footer-linkGallery">Behind Scenes Link Text</label>
+                  <input type="text" id="set-footer-linkGallery" class="form-control" placeholder="Behind Scenes">
+                </div>
+                <div class="form-group">
+                  <label for="set-footer-linkReviews">Reviews Link Text</label>
+                  <input type="text" id="set-footer-linkReviews" class="form-control" placeholder="Reviews">
+                </div>
+                <div class="form-group">
+                  <label for="set-footer-linkSubmitBug">Submit Bug Link Text</label>
+                  <input type="text" id="set-footer-linkSubmitBug" class="form-control" placeholder="Submit Bug">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SUBTAB 3: HOMEPAGE BODY -->
+          <div id="settings-subtab-homepage" class="settings-subtab-pane">
+            <div class="settings-section-card">
+              <h3><i data-lucide="user" class="text-purple"></i> Hero Profile & Bio</h3>
+              <p class="card-subtitle">Text and visual assets for the left side of the one-screen homepage.</p>
+              
+              <div class="settings-grid-2">
+                <div class="form-group">
+                  <label for="set-hp-heroName">Full Name</label>
+                  <input type="text" id="set-hp-heroName" class="form-control" placeholder="Abu Zannat">
+                </div>
+                <div class="form-group">
+                  <label for="set-hp-heroTitle">Professional Title / Designation</label>
+                  <input type="text" id="set-hp-heroTitle" class="form-control" placeholder="WordPress Specialist & Web Developer">
+                </div>
+              </div>
+
+              <div class="settings-grid-2" style="margin-top: 14px;">
+                <div class="form-group">
+                  <label for="set-hp-heroAvatar">Avatar Image URL / Path</label>
+                  <input type="text" id="set-hp-heroAvatar" class="form-control" placeholder="/assets/photo1.jpg">
+                </div>
+                <div class="form-group">
+                  <label for="set-hp-heroBadge">Hero Badge Text</label>
+                  <input type="text" id="set-hp-heroBadge" class="form-control" placeholder="AVAILABLE FOR FIXING BUGS">
+                </div>
+              </div>
+
+              <div class="settings-grid-2" style="margin-top: 14px;">
+                <div class="form-group">
+                  <label for="set-hp-aboutHeading">About Section Heading</label>
+                  <input type="text" id="set-hp-aboutHeading" class="form-control" placeholder="About Me">
+                </div>
+                <div class="form-group">
+                  <label for="set-hp-urgentFixPrompt">Urgent Fix Prompt Text</label>
+                  <input type="text" id="set-hp-urgentFixPrompt" class="form-control" placeholder="Active and available for urgent bug dispatch.">
+                </div>
+              </div>
+
+              <div class="form-group" style="margin-top: 14px;">
+                <label for="set-hp-aboutText">About Me Paragraph</label>
+                <textarea id="set-hp-aboutText" class="form-control" rows="3" placeholder="Hi, I am Abu Zannat..."></textarea>
+              </div>
+
+              <div class="settings-grid-3" style="margin-top: 14px;">
+                <div class="form-group">
+                  <label for="set-hp-urgentFixText">Urgent Fix Link Text</label>
+                  <input type="text" id="set-hp-urgentFixText" class="form-control" placeholder="Request Urgent Fix">
+                </div>
+                <div class="form-group">
+                  <label for="set-hp-urgentFixLink">Urgent Fix Target URL</label>
+                  <input type="text" id="set-hp-urgentFixLink" class="form-control" placeholder="/submit-ticket">
+                </div>
+                <div class="form-group"></div>
+              </div>
+
+              <div class="settings-grid-2" style="margin-top: 14px;">
+                <div class="form-group">
+                  <label for="set-hp-githubBtnText">Github Button Text</label>
+                  <input type="text" id="set-hp-githubBtnText" class="form-control" placeholder="Github">
+                </div>
+                <div class="form-group">
+                  <label for="set-hp-githubBtnLink">Github Target URL</label>
+                  <input type="text" id="set-hp-githubBtnLink" class="form-control" placeholder="https://github.com/abuzannat911-lab">
+                </div>
+              </div>
+
+              <div class="settings-grid-2" style="margin-top: 14px;">
+                <div class="form-group">
+                  <label for="set-hp-hireMeBtnText">Hire Me Button Text</label>
+                  <input type="text" id="set-hp-hireMeBtnText" class="form-control" placeholder="Hire Me">
+                </div>
+                <div class="form-group">
+                  <label for="set-hp-hireMeBtnLink">Hire Me Target URL</label>
+                  <input type="text" id="set-hp-hireMeBtnLink" class="form-control" placeholder="https://www.upwork.com/...">
+                </div>
+              </div>
+            </div>
+
+            <div class="settings-section-card">
+              <h3><i data-lucide="layers" class="text-amber"></i> Hero Case Simulator Details</h3>
+              <p class="card-subtitle">Title and description displayed under the tilted interactive case card.</p>
+              
+              <div class="settings-grid-2">
+                <div class="form-group">
+                  <label for="set-hp-simulatorTitle">Case Study Title</label>
+                  <input type="text" id="set-hp-simulatorTitle" class="form-control" placeholder="WooCommerce Spinner Fix">
+                </div>
+                <div class="form-group">
+                  <label for="set-hp-simulatorDesc">Case Study Description</label>
+                  <input type="text" id="set-hp-simulatorDesc" class="form-control" placeholder="Resolved JS execution chain conflict...">
+                </div>
+              </div>
+            </div>
+
+            <div class="settings-section-card">
+              <h3><i data-lucide="trending-up" class="text-green"></i> Metrics Ribbon (Bottom Stats)</h3>
+              <p class="card-subtitle">The 4 key statistical counters displayed on the homepage.</p>
+              
+              <div class="settings-grid-4">
+                <div class="settings-item-box">
+                  <div class="settings-item-box-title">Metric 1</div>
+                  <div class="form-group">
+                    <label for="set-hp-m1-val">Value / Target</label>
+                    <input type="text" id="set-hp-m1-val" class="form-control" placeholder="1500">
+                  </div>
+                  <div class="form-group" style="margin-top: 8px;">
+                    <label for="set-hp-m1-suf">Suffix</label>
+                    <input type="text" id="set-hp-m1-suf" class="form-control" placeholder="+">
+                  </div>
+                  <div class="form-group" style="margin-top: 8px;">
+                    <label for="set-hp-m1-lbl">Label</label>
+                    <input type="text" id="set-hp-m1-lbl" class="form-control" placeholder="Bugs Fixed">
+                  </div>
+                </div>
+
+                <div class="settings-item-box">
+                  <div class="settings-item-box-title">Metric 2</div>
+                  <div class="form-group">
+                    <label for="set-hp-m2-val">Value / Target</label>
+                    <input type="text" id="set-hp-m2-val" class="form-control" placeholder="2">
+                  </div>
+                  <div class="form-group" style="margin-top: 8px;">
+                    <label for="set-hp-m2-suf">Suffix</label>
+                    <input type="text" id="set-hp-m2-suf" class="form-control" placeholder=" Hours">
+                  </div>
+                  <div class="form-group" style="margin-top: 8px;">
+                    <label for="set-hp-m2-lbl">Label</label>
+                    <input type="text" id="set-hp-m2-lbl" class="form-control" placeholder="Avg. Turnaround">
+                  </div>
+                </div>
+
+                <div class="settings-item-box">
+                  <div class="settings-item-box-title">Metric 3</div>
+                  <div class="form-group">
+                    <label for="set-hp-m3-val">Value / Target</label>
+                    <input type="text" id="set-hp-m3-val" class="form-control" placeholder="99.9">
+                  </div>
+                  <div class="form-group" style="margin-top: 8px;">
+                    <label for="set-hp-m3-suf">Suffix</label>
+                    <input type="text" id="set-hp-m3-suf" class="form-control" placeholder="%">
+                  </div>
+                  <div class="form-group" style="margin-top: 8px;">
+                    <label for="set-hp-m3-lbl">Label</label>
+                    <input type="text" id="set-hp-m3-lbl" class="form-control" placeholder="Success Rate">
+                  </div>
+                </div>
+
+                <div class="settings-item-box">
+                  <div class="settings-item-box-title">Metric 4</div>
+                  <div class="form-group">
+                    <label for="set-hp-m4-val">Display Value</label>
+                    <input type="text" id="set-hp-m4-val" class="form-control" placeholder="24/7">
+                  </div>
+                  <div class="form-group" style="margin-top: 8px;">
+                    <label for="set-hp-m4-lbl">Label</label>
+                    <input type="text" id="set-hp-m4-lbl" class="form-control" placeholder="Emergency Fixes">
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SUBTAB 4: SERVICES PAGE -->
+          <div id="settings-subtab-services" class="settings-subtab-pane">
+            <div class="settings-section-card">
+              <h3><i data-lucide="shield" class="text-blue"></i> Services Header</h3>
+              <p class="card-subtitle">Header badge, main title, and description for the Services page.</p>
+              
+              <div class="settings-grid-3">
+                <div class="form-group">
+                  <label for="set-srv-badge">Badge Tag</label>
+                  <input type="text" id="set-srv-badge" class="form-control" placeholder="Expert Services">
+                </div>
+                <div class="form-group">
+                  <label for="set-srv-title">Section Heading</label>
+                  <input type="text" id="set-srv-title" class="form-control" placeholder="WordPress Debugging & Repair Services">
+                </div>
+                <div class="form-group">
+                  <label for="set-srv-subtitle">Section Subtitle</label>
+                  <input type="text" id="set-srv-subtitle" class="form-control" placeholder="Common issues I resolve daily for clients globally.">
+                </div>
+              </div>
+            </div>
+
+            <div class="settings-section-card">
+              <h3><i data-lucide="grid" class="text-purple"></i> 4 Service Cards</h3>
+              <p class="card-subtitle">Titles and explanations for each of the core service offerings.</p>
+              
+              <div class="settings-grid-2">
+                <div class="settings-item-box">
+                  <div class="settings-item-box-title">Card 1: Security & Malware</div>
+                  <div class="form-group">
+                    <label for="set-srv-c1-title">Card 1 Title</label>
+                    <input type="text" id="set-srv-c1-title" class="form-control" placeholder="Malware Cleanup & Security">
+                  </div>
+                  <div class="form-group" style="margin-top: 8px;">
+                    <label for="set-srv-c1-desc">Card 1 Description</label>
+                    <textarea id="set-srv-c1-desc" class="form-control" rows="2"></textarea>
+                  </div>
+                </div>
+
+                <div class="settings-item-box">
+                  <div class="settings-item-box-title">Card 2: Speed Optimization</div>
+                  <div class="form-group">
+                    <label for="set-srv-c2-title">Card 2 Title</label>
+                    <input type="text" id="set-srv-c2-title" class="form-control" placeholder="Page Speed Optimization">
+                  </div>
+                  <div class="form-group" style="margin-top: 8px;">
+                    <label for="set-srv-c2-desc">Card 2 Description</label>
+                    <textarea id="set-srv-c2-desc" class="form-control" rows="2"></textarea>
+                  </div>
+                </div>
+
+                <div class="settings-item-box">
+                  <div class="settings-item-box-title">Card 3: Conflicts & Crashes</div>
+                  <div class="form-group">
+                    <label for="set-srv-c3-title">Card 3 Title</label>
+                    <input type="text" id="set-srv-c3-title" class="form-control" placeholder="Plugin & Theme Conflicts">
+                  </div>
+                  <div class="form-group" style="margin-top: 8px;">
+                    <label for="set-srv-c3-desc">Card 3 Description</label>
+                    <textarea id="set-srv-c3-desc" class="form-control" rows="2"></textarea>
+                  </div>
+                </div>
+
+                <div class="settings-item-box">
+                  <div class="settings-item-box-title">Card 4: Database & Server</div>
+                  <div class="form-group">
+                    <label for="set-srv-c4-title">Card 4 Title</label>
+                    <input type="text" id="set-srv-c4-title" class="form-control" placeholder="Database & Server Recovery">
+                  </div>
+                  <div class="form-group" style="margin-top: 8px;">
+                    <label for="set-srv-c4-desc">Card 4 Description</label>
+                    <textarea id="set-srv-c4-desc" class="form-control" rows="2"></textarea>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SUBTAB 5: WORKFLOW PAGE -->
+          <div id="settings-subtab-workflow" class="settings-subtab-pane">
+            <div class="settings-section-card">
+              <h3><i data-lucide="git-commit" class="text-green"></i> Workflow Header</h3>
+              <p class="card-subtitle">Header badge, heading, and subtitle for the Workflow page.</p>
+              
+              <div class="settings-grid-3">
+                <div class="form-group">
+                  <label for="set-wf-badge">Badge Tag</label>
+                  <input type="text" id="set-wf-badge" class="form-control" placeholder="Workflow">
+                </div>
+                <div class="form-group">
+                  <label for="set-wf-title">Section Heading</label>
+                  <input type="text" id="set-wf-title" class="form-control" placeholder="How It Works">
+                </div>
+                <div class="form-group">
+                  <label for="set-wf-subtitle">Section Subtitle</label>
+                  <input type="text" id="set-wf-subtitle" class="form-control" placeholder="Get your WordPress site fixed in four simple, clean steps.">
+                </div>
+              </div>
+            </div>
+
+            <div class="settings-section-card">
+              <h3><i data-lucide="list-ordered" class="text-blue"></i> 4 Workflow Steps</h3>
+              <p class="card-subtitle">The sequential step numbers, titles, and step descriptions.</p>
+              
+              <div class="settings-grid-2">
+                <div class="settings-item-box">
+                  <div class="settings-item-box-title">Step 1</div>
+                  <div class="settings-grid-2">
+                    <div class="form-group">
+                      <label for="set-wf-s1-num">Step Number</label>
+                      <input type="text" id="set-wf-s1-num" class="form-control" placeholder="01">
+                    </div>
+                    <div class="form-group">
+                      <label for="set-wf-s1-title">Step Title</label>
+                      <input type="text" id="set-wf-s1-title" class="form-control" placeholder="Submit Ticket">
+                    </div>
+                  </div>
+                  <div class="form-group" style="margin-top: 8px;">
+                    <label for="set-wf-s1-desc">Step Description</label>
+                    <textarea id="set-wf-s1-desc" class="form-control" rows="2"></textarea>
+                  </div>
+                </div>
+
+                <div class="settings-item-box">
+                  <div class="settings-item-box-title">Step 2</div>
+                  <div class="settings-grid-2">
+                    <div class="form-group">
+                      <label for="set-wf-s2-num">Step Number</label>
+                      <input type="text" id="set-wf-s2-num" class="form-control" placeholder="02">
+                    </div>
+                    <div class="form-group">
+                      <label for="set-wf-s2-title">Step Title</label>
+                      <input type="text" id="set-wf-s2-title" class="form-control" placeholder="Diagnostics">
+                    </div>
+                  </div>
+                  <div class="form-group" style="margin-top: 8px;">
+                    <label for="set-wf-s2-desc">Step Description</label>
+                    <textarea id="set-wf-s2-desc" class="form-control" rows="2"></textarea>
+                  </div>
+                </div>
+
+                <div class="settings-item-box">
+                  <div class="settings-item-box-title">Step 3</div>
+                  <div class="settings-grid-2">
+                    <div class="form-group">
+                      <label for="set-wf-s3-num">Step Number</label>
+                      <input type="text" id="set-wf-s3-num" class="form-control" placeholder="03">
+                    </div>
+                    <div class="form-group">
+                      <label for="set-wf-s3-title">Step Title</label>
+                      <input type="text" id="set-wf-s3-title" class="form-control" placeholder="Smashed">
+                    </div>
+                  </div>
+                  <div class="form-group" style="margin-top: 8px;">
+                    <label for="set-wf-s3-desc">Step Description</label>
+                    <textarea id="set-wf-s3-desc" class="form-control" rows="2"></textarea>
+                  </div>
+                </div>
+
+                <div class="settings-item-box">
+                  <div class="settings-item-box-title">Step 4</div>
+                  <div class="settings-grid-2">
+                    <div class="form-group">
+                      <label for="set-wf-s4-num">Step Number</label>
+                      <input type="text" id="set-wf-s4-num" class="form-control" placeholder="04">
+                    </div>
+                    <div class="form-group">
+                      <label for="set-wf-s4-title">Step Title</label>
+                      <input type="text" id="set-wf-s4-title" class="form-control" placeholder="Handback">
+                    </div>
+                  </div>
+                  <div class="form-group" style="margin-top: 8px;">
+                    <label for="set-wf-s4-desc">Step Description</label>
+                    <textarea id="set-wf-s4-desc" class="form-control" rows="2"></textarea>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SUBTAB 6: BEHIND THE SCENES GALLERY -->
+          <div id="settings-subtab-gallery" class="settings-subtab-pane">
+            <div class="settings-section-card">
+              <h3><i data-lucide="camera" class="text-purple"></i> Gallery Header</h3>
+              <p class="card-subtitle">Header badge, heading, and subtitle for the Behind the Scenes page.</p>
+              
+              <div class="settings-grid-3">
+                <div class="form-group">
+                  <label for="set-gal-badge">Badge Tag</label>
+                  <input type="text" id="set-gal-badge" class="form-control" placeholder="Behind the Scenes">
+                </div>
+                <div class="form-group">
+                  <label for="set-gal-title">Section Heading</label>
+                  <input type="text" id="set-gal-title" class="form-control" placeholder="Life Behind the Screen">
+                </div>
+                <div class="form-group">
+                  <label for="set-gal-subtitle">Section Subtitle</label>
+                  <input type="text" id="set-gal-subtitle" class="form-control" placeholder="A glimpse into the real-world experiences...">
+                </div>
+              </div>
+            </div>
+
+            <div class="settings-section-card">
+              <h3><i data-lucide="image" class="text-amber"></i> 4 Gallery Story Cards</h3>
+              <p class="card-subtitle">Titles and story narratives under each personal photo.</p>
+              
+              <div class="settings-grid-2">
+                <div class="settings-item-box">
+                  <div class="settings-item-box-title">Card 1 (Riding Through River)</div>
+                  <div class="form-group">
+                    <label for="set-gal-c1-title">Card 1 Title</label>
+                    <input type="text" id="set-gal-c1-title" class="form-control" placeholder="Resilience & Adaptability">
+                  </div>
+                  <div class="form-group" style="margin-top: 8px;">
+                    <label for="set-gal-c1-desc">Card 1 Description</label>
+                    <textarea id="set-gal-c1-desc" class="form-control" rows="2"></textarea>
+                  </div>
+                </div>
+
+                <div class="settings-item-box">
+                  <div class="settings-item-box-title">Card 2 (Nature & River)</div>
+                  <div class="form-group">
+                    <label for="set-gal-c2-title">Card 2 Title</label>
+                    <input type="text" id="set-gal-c2-title" class="form-control" placeholder="Focus & Analytical Clarity">
+                  </div>
+                  <div class="form-group" style="margin-top: 8px;">
+                    <label for="set-gal-c2-desc">Card 2 Description</label>
+                    <textarea id="set-gal-c2-desc" class="form-control" rows="2"></textarea>
+                  </div>
+                </div>
+
+                <div class="settings-item-box">
+                  <div class="settings-item-box-title">Card 3 (Boat Journey)</div>
+                  <div class="form-group">
+                    <label for="set-gal-c3-title">Card 3 Title</label>
+                    <input type="text" id="set-gal-c3-title" class="form-control" placeholder="Continuous Movement">
+                  </div>
+                  <div class="form-group" style="margin-top: 8px;">
+                    <label for="set-gal-c3-desc">Card 3 Description</label>
+                    <textarea id="set-gal-c3-desc" class="form-control" rows="2"></textarea>
+                  </div>
+                </div>
+
+                <div class="settings-item-box">
+                  <div class="settings-item-box-title">Card 4 (Pier Stance)</div>
+                  <div class="form-group">
+                    <label for="set-gal-c4-title">Card 4 Title</label>
+                    <input type="text" id="set-gal-c4-title" class="form-control" placeholder="Reliable Partner">
+                  </div>
+                  <div class="form-group" style="margin-top: 8px;">
+                    <label for="set-gal-c4-desc">Card 4 Description</label>
+                    <textarea id="set-gal-c4-desc" class="form-control" rows="2"></textarea>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SUBTAB 7: REVIEWS PAGE -->
+          <div id="settings-subtab-reviews" class="settings-subtab-pane">
+            <div class="settings-section-card">
+              <h3><i data-lucide="star" class="text-amber"></i> Reviews Header & Score</h3>
+              <p class="card-subtitle">Badge, heading, subtitle, rating score, and rating label.</p>
+              
+              <div class="settings-grid-3">
+                <div class="form-group">
+                  <label for="set-rev-badge">Badge Tag</label>
+                  <input type="text" id="set-rev-badge" class="form-control" placeholder="⭐ Verified Client Reviews">
+                </div>
+                <div class="form-group">
+                  <label for="set-rev-title">Section Heading</label>
+                  <input type="text" id="set-rev-title" class="form-control" placeholder="Trusted by Clients Worldwide">
+                </div>
+                <div class="form-group">
+                  <label for="set-rev-subtitle">Section Subtitle</label>
+                  <input type="text" id="set-rev-subtitle" class="form-control" placeholder="Real reviews from real clients — sourced directly from Fiverr.">
+                </div>
+              </div>
+
+              <div class="settings-grid-2" style="margin-top: 14px;">
+                <div class="form-group">
+                  <label for="set-rev-ratingNumber">Rating Score Number</label>
+                  <input type="text" id="set-rev-ratingNumber" class="form-control" placeholder="5.0">
+                </div>
+                <div class="form-group">
+                  <label for="set-rev-ratingLabel">Rating Label Text</label>
+                  <input type="text" id="set-rev-ratingLabel" class="form-control" placeholder="Average Rating">
+                </div>
+              </div>
+            </div>
+
+            <div class="settings-section-card">
+              <h3><i data-lucide="award" class="text-green"></i> 3 Stat Pills & Platform Button</h3>
+              <p class="card-subtitle">The 3 stat counters and the platform link (Upwork / Fiverr).</p>
+              
+              <div class="settings-grid-3">
+                <div class="settings-item-box">
+                  <div class="settings-item-box-title">Stat Pill 1</div>
+                  <div class="form-group">
+                    <label for="set-rev-s1-num">Value</label>
+                    <input type="text" id="set-rev-s1-num" class="form-control" placeholder="100%">
+                  </div>
+                  <div class="form-group" style="margin-top: 8px;">
+                    <label for="set-rev-s1-desc">Label</label>
+                    <input type="text" id="set-rev-s1-desc" class="form-control" placeholder="5-Star Reviews">
+                  </div>
+                </div>
+
+                <div class="settings-item-box">
+                  <div class="settings-item-box-title">Stat Pill 2</div>
+                  <div class="form-group">
+                    <label for="set-rev-s2-num">Value</label>
+                    <input type="text" id="set-rev-s2-num" class="form-control" placeholder="20+">
+                  </div>
+                  <div class="form-group" style="margin-top: 8px;">
+                    <label for="set-rev-s2-desc">Label</label>
+                    <input type="text" id="set-rev-s2-desc" class="form-control" placeholder="Happy Clients">
+                  </div>
+                </div>
+
+                <div class="settings-item-box">
+                  <div class="settings-item-box-title">Stat Pill 3</div>
+                  <div class="form-group">
+                    <label for="set-rev-s3-num">Value</label>
+                    <input type="text" id="set-rev-s3-num" class="form-control" placeholder="12+">
+                  </div>
+                  <div class="form-group" style="margin-top: 8px;">
+                    <label for="set-rev-s3-desc">Label</label>
+                    <input type="text" id="set-rev-s3-desc" class="form-control" placeholder="Countries">
+                  </div>
+                </div>
+              </div>
+
+              <div class="settings-grid-2" style="margin-top: 14px;">
+                <div class="form-group">
+                  <label for="set-rev-upworkText">Platform Button Text</label>
+                  <input type="text" id="set-rev-upworkText" class="form-control" placeholder="View on Upwork">
+                </div>
+                <div class="form-group">
+                  <label for="set-rev-upworkLink">Platform Button URL</label>
+                  <input type="text" id="set-rev-upworkLink" class="form-control" placeholder="https://www.upwork.com/...">
+                </div>
+              </div>
+            </div>
+
+            <!-- Client Reviews Management -->
+            <div class="settings-section-card" style="margin-top: 20px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 12px;">
+                <div>
+                  <h3 style="margin: 0;"><i data-lucide="message-square" class="text-purple"></i> Manage Individual Client Reviews</h3>
+                  <p class="card-subtitle" style="margin: 4px 0 0 0;">Add new testimonials, or edit and remove existing reviews shown on the public Reviews page.</p>
+                </div>
+                <button type="button" class="btn btn-primary btn-icon-text" onclick="app.openAddReviewModal()">
+                  <i data-lucide="plus-circle"></i>
+                  <span>Add New Review</span>
+                </button>
+              </div>
+
+              <div class="table-container" style="margin-top: 14px; max-height: 480px; overflow-y: auto;">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th style="width: 40px;">#</th>
+                      <th>Client / Country</th>
+                      <th>Rating</th>
+                      <th>Testimonial Preview</th>
+                      <th>Date</th>
+                      <th>Verified</th>
+                      <th style="text-align: right; width: 110px;">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="settings-reviews-tbody">
+                    <!-- Populated dynamically -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- SUBTAB 8: SUBMIT BUG TICKET PAGE -->
+          <div id="settings-subtab-submitTicket" class="settings-subtab-pane">
+            <div class="settings-section-card">
+              <h3><i data-lucide="send" class="text-blue"></i> Submit Bug Page Content</h3>
+              <p class="card-subtitle">Badge, heading, description, and submit button text on the bug submission form.</p>
+              
+              <div class="settings-grid-2">
+                <div class="form-group">
+                  <label for="set-sub-badge">Badge Tag</label>
+                  <input type="text" id="set-sub-badge" class="form-control" placeholder="Submit a Bug">
+                </div>
+                <div class="form-group">
+                  <label for="set-sub-title">Card Heading</label>
+                  <input type="text" id="set-sub-title" class="form-control" placeholder="Request Urgent WordPress Fix">
+                </div>
+              </div>
+
+              <div class="form-group" style="margin-top: 14px;">
+                <label for="set-sub-subtitle">Subtitle / Instructions</label>
+                <textarea id="set-sub-subtitle" class="form-control" rows="2" placeholder="Describe the issue you're facing. I'll inspect it and get back to you with a quote within 2 hours."></textarea>
+              </div>
+
+              <div class="form-group" style="margin-top: 14px; max-width: 320px;">
+                <label for="set-sub-btnText">Submit Button Text</label>
+                <input type="text" id="set-sub-btnText" class="form-control" placeholder="Send Query">
+              </div>
+            </div>
+          </div>
+
+          <!-- Sticky Save Bar -->
+          <div class="settings-sticky-footer">
+            <button type="button" class="btn btn-secondary btn-icon-text" onclick="app.resetSiteSettingsToDefaults(this)">
+              <i data-lucide="rotate-ccw"></i>
+              <span>Reset Defaults</span>
+            </button>
+            <button type="button" class="btn btn-primary btn-icon-text" id="settings-save-btn-bottom" onclick="app.saveSiteSettings()">
+              <i data-lucide="check"></i>
+              <span>Save All Settings</span>
+            </button>
+          </div>
+        </section>
+
+        <!-- ================= NOTIFICATION RECEIVER MENU (SUB-MENU OF SITE SETTINGS) ================= -->
+        <section id="tab-notifications" class="tab-pane">
+          <!-- Notification Receiver Top Banner -->
+          <div class="settings-header-banner">
+            <div class="settings-header-info">
+              <h2>
+                <i data-lucide="bell" style="color: var(--accent-purple);"></i>
+                <span>Notification Receiver Settings</span>
+              </h2>
+              <p>Configure where and how you receive instant alerts when a client submits a new WordPress bug fix query.</p>
+            </div>
+            <div class="settings-actions-group">
+              <button type="button" class="btn btn-primary btn-icon-text" id="notif-save-btn-top" onclick="app.saveNotificationSettings()">
+                <i data-lucide="save"></i>
+                <span>Save Notification Settings</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="settings-section-card" style="margin-top: 20px;">
+            <h3><i data-lucide="radio" class="text-amber"></i> Notification Destination Channels</h3>
+            <p class="card-subtitle">Set your Admin Email and Admin WhatsApp number where incoming bug fix queries will be forwarded.</p>
+            
+            <div class="settings-grid-2">
+              <div class="form-group">
+                <label for="set-notif-adminEmail">
+                  <i data-lucide="mail" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 4px;"></i>
+                  Admin Receiver Email
+                </label>
+                <input type="email" id="set-notif-adminEmail" class="form-control" placeholder="abuzannat911@gmail.com">
+                <small class="text-muted" style="display:block; margin-top: 4px;">New bug queries with full problem details will be emailed to this address.</small>
+              </div>
+
+              <div class="form-group">
+                <label for="set-notif-adminWhatsApp">
+                  <i data-lucide="phone" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 4px;"></i>
+                  Admin WhatsApp Number
+                </label>
+                <input type="tel" id="set-notif-adminWhatsApp" class="form-control" placeholder="e.g. +8801700000000 or 8801700000000">
+                <small class="text-muted" style="display:block; margin-top: 4px;">Leave blank to use the connected WhatsApp account, or enter custom admin phone number with country code.</small>
+              </div>
+            </div>
+
+            <div style="margin-top: 24px; border-top: 1px solid var(--border-color); padding-top: 18px;">
+              <h4 style="font-size: 0.95rem; margin-bottom: 14px; color: var(--text-main);">Automatic Notification Channels</h4>
+              <div style="display: flex; flex-direction: column; gap: 14px;">
+                <label style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer;">
+                  <input type="checkbox" id="set-notif-enableAdminEmail" checked style="width: 18px; height: 18px; margin-top: 2px; accent-color: var(--accent-purple);">
+                  <div>
+                    <div style="font-weight: 600; color: var(--text-main);">Email Alert to Admin</div>
+                    <div class="text-muted" style="font-size: 0.8rem;">Send detailed email notification with client info, site URL, and bug description to Admin Receiver Email.</div>
+                  </div>
+                </label>
+
+                <label style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer;">
+                  <input type="checkbox" id="set-notif-enableAdminWhatsApp" checked style="width: 18px; height: 18px; margin-top: 2px; accent-color: var(--accent-purple);">
+                  <div>
+                    <div style="font-weight: 600; color: var(--text-main);">WhatsApp Alert to Admin (with Direct Client Chat Link)</div>
+                    <div class="text-muted" style="font-size: 0.8rem;">Send WhatsApp message to Admin phone including a one-click direct chat link (wa.me) so you can communicate with client instantly.</div>
+                  </div>
+                </label>
+
+                <label style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer;">
+                  <input type="checkbox" id="set-notif-enableClientWhatsApp" checked style="width: 18px; height: 18px; margin-top: 2px; accent-color: var(--accent-purple);">
+                  <div>
+                    <div style="font-weight: 600; color: var(--text-main);">Instant WhatsApp Confirmation to Client</div>
+                    <div class="text-muted" style="font-size: 0.8rem;">Automatically message the client on WhatsApp confirming receipt and letting them know Admin will communicate shortly.</div>
+                  </div>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sticky Save Bar for Notifications -->
+          <div class="settings-sticky-footer" style="margin-top: 24px;">
+            <button type="button" class="btn btn-primary btn-icon-text" id="notif-save-btn-bottom" onclick="app.saveNotificationSettings()">
+              <i data-lucide="check"></i>
+              <span>Save Notification Settings</span>
+            </button>
+          </div>
+        </section>
+
       </div>
     </main>
 
@@ -1737,9 +2693,21 @@ Bangladesh</textarea>
       </div>
       
       <form id="form-edit-ticket" style="margin-top: 16px;">
-        <div class="form-group">
-          <label>Client site URL</label>
-          <input type="text" id="edit-ticket-site-url" class="form-control" readonly style="opacity: 0.7;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+          <div class="form-group">
+            <label>Client site URL</label>
+            <input type="text" id="edit-ticket-site-url" class="form-control" readonly style="opacity: 0.7;">
+          </div>
+          <div class="form-group">
+            <label>Client WhatsApp / Phone</label>
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <input type="text" id="edit-ticket-phone" class="form-control" readonly style="opacity: 0.85;" placeholder="Not provided">
+              <a href="#" id="edit-ticket-wa-btn" target="_blank" class="btn btn-secondary btn-icon-text hidden" style="white-space: nowrap; color: #22c55e; border-color: rgba(34, 197, 94, 0.3);" title="Open WhatsApp Chat">
+                <i data-lucide="message-circle" style="width: 14px; height: 14px;"></i>
+                <span>Chat</span>
+              </a>
+            </div>
+          </div>
         </div>
 
         <div class="form-group" style="margin-top: 16px;">
@@ -1753,7 +2721,12 @@ Bangladesh</textarea>
             <option value="Pending">Pending</option>
             <option value="In Progress">In Progress</option>
             <option value="Resolved">Resolved</option>
+            <option value="Closed">Closed</option>
           </select>
+          <small class="text-muted" style="display: flex; align-items: center; gap: 4px; margin-top: 5px; font-size: 11px;">
+            <i data-lucide="bell" style="width: 12px; height: 12px; color: var(--accent-purple);"></i>
+            <span>Changing status will automatically send WhatsApp & Email updates to client.</span>
+          </small>
         </div>
         
         <div class="form-group" style="margin-top: 16px;">
@@ -1769,18 +2742,79 @@ Bangladesh</textarea>
     </div>
   </div>
 
+  <!-- Modal: Add / Edit Client Review -->
+  <div class="modal-overlay hidden" id="modal-review-edit">
+    <div class="modal-card" style="max-width: 600px;">
+      <div class="card-header">
+        <h3 id="modal-review-title">Edit Review</h3>
+        <p class="text-muted" id="modal-review-subtitle">Modify client feedback details</p>
+      </div>
+      <form id="form-review-edit" onsubmit="event.preventDefault(); app.saveReviewModal();" style="margin-top: 16px;">
+        <input type="hidden" id="modal-review-id">
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+          <div class="form-group">
+            <label for="modal-review-username">Client Name / Username *</label>
+            <input type="text" id="modal-review-username" class="form-control" required placeholder="e.g. JohnD">
+          </div>
+          <div class="form-group">
+            <label for="modal-review-country">Country *</label>
+            <input type="text" id="modal-review-country" class="form-control" required placeholder="e.g. United States">
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-top: 14px;">
+          <div class="form-group">
+            <label for="modal-review-flag">Flag Emoji *</label>
+            <input type="text" id="modal-review-flag" class="form-control" required placeholder="e.g. 🇺🇸 or 🇩🇪">
+          </div>
+          <div class="form-group">
+            <label for="modal-review-rating">Rating (Stars) *</label>
+            <select id="modal-review-rating" class="form-control" required>
+              <option value="5" selected>★★★★★ (5 Stars)</option>
+              <option value="4">★★★★☆ (4 Stars)</option>
+              <option value="3">★★★☆☆ (3 Stars)</option>
+              <option value="2">★★☆☆☆ (2 Stars)</option>
+              <option value="1">★☆☆☆☆ (1 Star)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="modal-review-date">Review Date *</label>
+            <input type="text" id="modal-review-date" class="form-control" required placeholder="e.g. Apr 8, 2026">
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-top: 14px;">
+          <label for="modal-review-comment">Review Feedback / Comment *</label>
+          <textarea id="modal-review-comment" class="form-control" rows="4" required placeholder="Enter client's testimonial message..."></textarea>
+        </div>
+
+        <div class="form-group" style="margin-top: 14px;">
+          <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+            <input type="checkbox" id="modal-review-real" checked style="width: 18px; height: 18px; accent-color: var(--accent-purple);">
+            <span><strong>Show "Fiverr Verified" Badge</strong> on review card</span>
+          </label>
+        </div>
+
+        <div class="modal-footer" style="margin-top: 24px; display: flex; justify-content: flex-end; gap: 12px;">
+          <button type="button" class="btn btn-secondary" onclick="app.closeModal('modal-review-edit')">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="modal-review-save-btn">Save Review</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- ================= CUSTOM PAGE SHELL ================= -->
   <div id="custom-page-shell" class="landing-container hidden" style="height: 100vh; overflow-y: auto;">
     <!-- Header -->
     <header class="landing-navbar" id="custom-page-header">
       <div class="navbar-brand">
-        <div class="logo-icon">
-          <i data-lucide="terminal" class="logo-main-icon"></i>
-          <i data-lucide="check" class="logo-sub-icon"></i>
+        <div class="logo-icon" style="background: transparent; border: none; padding: 0;">
+          <img src="/assets/zannat_inner_symbol_icon.png" alt="Logo" id="custom-brand-logo" style="width: 38px; height: 38px; object-fit: contain; filter: drop-shadow(0 0 8px rgba(139,92,246,0.5));">
         </div>
         <div class="logo-text">
-          <h2>Zannat.me</h2>
-          <span>WordPress Specialist</span>
+          <h2 id="custom-brand-name">Zannat.me</h2>
+          <span id="custom-brand-tagline">WordPress Specialist</span>
         </div>
       </div>
       <nav class="navbar-links">
@@ -2125,6 +3159,6 @@ Bangladesh</textarea>
   </div>
 
   <!-- App Main Scripts -->
-  <script src="/app.js?v=42"></script>
+  <script src="/app.js?v=48"></script>
 </body>
 </html>

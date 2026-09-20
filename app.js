@@ -23,6 +23,7 @@
             },
             smtpConfig: {},
             homepageContent: {},
+            siteSettings: null,
             isAuthenticated: false,
             currentTab: 'portfolio',
             currentCaseIndex: 0
@@ -123,13 +124,32 @@
             return `/${cleanEndpoint}`;
         },
 
-
+        // Authenticated fetch helper: automatically injects session token header and handles 401s
+        async authFetch(endpoint, options = {}) {
+            const url = this.getApiUrl(endpoint);
+            const token = sessionStorage.getItem('zannat_token');
+            const headers = Object.assign({}, options.headers || {});
+            if (token) {
+                headers['x-auth-token'] = token;
+            }
+            const opts = Object.assign({}, options, { headers });
+            const response = await fetch(url, opts);
+            if (response.status === 401) {
+                // Admin session expired or missing
+                sessionStorage.removeItem('zannat_token');
+                this.state.isAuthenticated = false;
+                this.updateAuthUI(false);
+                this.showToast('Please log in as admin to perform this action.', 'error');
+                this.openModal('login-overlay');
+            }
+            return response;
+        },
 
         // Fetch application state directly from SQLite database backend
         async fetchState() {
             let data = null;
             try {
-                const response = await fetch(this.getApiUrl('/api/state'));
+                const response = await this.authFetch('/api/state');
                 if (response.ok) {
                     data = await response.json();
                 } else {
@@ -140,9 +160,19 @@
                 this.showToast('Unable to connect to database backend.', 'error');
             }
 
+            // Synchronize authentication status with server authority
+            if (data && data.isAdmin) {
+                this.state.isAuthenticated = true;
+                this.updateAuthUI(true);
+            } else {
+                this.state.isAuthenticated = false;
+                this.updateAuthUI(false);
+                sessionStorage.removeItem('zannat_token');
+            }
+
             if (!data) {
                 data = {
-                    users: [{ username: "admin", password: "zannatbugfix" }],
+                    users: [],
                     tickets: [],
                     earnings: [],
                     bugTypes: [],
@@ -171,7 +201,7 @@
             this.state.earnings = data.earnings || [];
             this.state.bugTypes = data.bugTypes || [];
             this.state.pages = data.pages || [];
-            this.state.users = data.users || [{ username: "admin", password: "zannatbugfix" }];
+            this.state.users = data.users || [];
             this.state.invoices = data.invoices || [];
             this.state.clients = data.clients || [];
             this.state.nextInvoiceNum = data.nextInvoiceNum || 1001;
@@ -185,6 +215,7 @@
             };
             this.state.homepageContent = data.homepageContent || {};
             this.state.smtpConfig = data.smtpConfig || {};
+            this.state.siteSettings = data.siteSettings || null;
 
             // Render components based on database state
             this.renderDashboardKPIs();
@@ -193,6 +224,8 @@
             this.renderCMSPagesTable();
             this.renderAdminUsersTable();
             this.renderHomepageContent();
+            this.applySiteSettingsToDOM();
+            this.renderSiteSettingsTab();
             this.renderSMTPConfig();
             this.renderInvoicesList();
             this.renderClientSelectOptions();
@@ -278,6 +311,7 @@
 
                     let authenticated = false;
                     let token = null;
+                    let errorText = 'Invalid credentials. Please check username and password.';
 
                     try {
                         const response = await fetch(this.getApiUrl('/api/login'), {
@@ -289,32 +323,23 @@
                             })
                         });
 
-                        if (response.ok) {
-                            const result = await response.json();
-                            if (result.success) {
-                                authenticated = true;
-                                token = result.token;
+                        const result = await response.json().catch(() => ({}));
+                        if (response.ok && result.success) {
+                            authenticated = true;
+                            token = result.token;
+                        } else {
+                            if (result.message) {
+                                errorText = result.message;
                             }
                         }
                     } catch (err) {
-                        console.warn('Backend login endpoint unavailable. Testing local static credentials.', err);
+                        console.error('Login request error:', err);
+                        errorText = 'Unable to connect to authentication server.';
                     }
 
-                    // Fallback static authentication check if API was unreachable or offline
-                    if (!authenticated) {
-                        const validUser = (this.state.users || []).find(
-                            u => u.username === uVal && u.password === pVal
-                        ) || (uVal === 'admin' && pVal === 'zannatbugfix');
-
-                        if (validUser) {
-                            authenticated = true;
-                            token = 'token_static_' + Date.now();
-                        }
-                    }
-
-                    if (authenticated) {
-                        // Authenticated successfully
-                        sessionStorage.setItem('zannat_token', token || ('token_' + Date.now()));
+                    if (authenticated && token) {
+                        // Authenticated successfully with secure server token
+                        sessionStorage.setItem('zannat_token', token);
                         this.state.isAuthenticated = true;
                         
                         // Visual effects
@@ -334,11 +359,14 @@
                         passwordInput.value = '';
                         errorMsg.classList.add('hidden');
 
+                        // Refresh state with authenticated privileges
+                        await this.fetchState();
+
                         // Switch to dashboard
                         this.switchTab('dashboard');
                     } else {
                         // Auth failed
-                        errorMsg.textContent = 'Invalid credentials. Please check username and password.';
+                        errorMsg.textContent = errorText;
                         errorMsg.classList.remove('hidden');
                         
                         // Shake login card
@@ -360,6 +388,7 @@
                     
                     const clientName = document.getElementById('ticket-client-name').value;
                     const clientEmail = document.getElementById('ticket-client-email').value;
+                    const clientPhone = (document.getElementById('ticket-client-phone')?.value || '').trim();
                     const siteUrl = document.getElementById('ticket-site-url').value;
                     const bugType = document.getElementById('ticket-bug-type').value;
                     const severity = document.getElementById('ticket-severity').value;
@@ -372,6 +401,7 @@
                             body: JSON.stringify({
                                 clientName,
                                 clientEmail,
+                                clientPhone,
                                 siteUrl,
                                 bugType,
                                 severity,
@@ -403,11 +433,11 @@
                             // Switch tab to portfolio page or stay
                             this.switchTab('portfolio');
                         } else {
-                            alert('Failed to submit ticket: ' + (result.error || 'unknown error'));
+                            this.showToast('Failed to submit ticket: ' + (result.error || 'unknown error'), 'error');
                         }
                     } catch (err) {
                         console.error('Ticket submission error:', err);
-                        alert('Server connection error. Please try again.');
+                        this.showToast('Server connection error. Please try again.', 'error');
                     }
                 });
             }
@@ -426,7 +456,7 @@
                         const currentTicket = this.state.tickets.find(t => t.id === this.currentEditingId);
                         const wasResolved = currentTicket && currentTicket.status === 'Resolved';
 
-                        const response = await fetch(this.getApiUrl('/api/tickets/update'), {
+                        const response = await this.authFetch('/api/tickets/update', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
@@ -441,28 +471,43 @@
                         if (response.ok && result.success) {
                             this.closeModal('modal-ticket-edit');
 
-                            // Confetti if status changed to resolved
-                            if (status === 'Resolved' && !wasResolved && window.confetti) {
-                                window.confetti({
-                                    particleCount: 100,
-                                    spread: 70,
-                                    origin: { y: 0.6 }
-                                });
+                            let msg = `Ticket ${this.currentEditingId} updated successfully`;
+                            if (result.notified && (result.notified.wa || result.notified.email)) {
+                                const channels = [];
+                                if (result.notified.wa) channels.push('WhatsApp');
+                                if (result.notified.email) channels.push('Email');
+                                msg += ` · Client notified via ${channels.join(' & ')}!`;
                             }
-
-                            // Reload state
+                            this.showToast(msg, 'success');
                             this.fetchState();
                         } else {
-                            alert('Failed to update ticket: ' + (result.error || 'unknown error'));
+                            this.showToast('Error: ' + (result.error || 'Unknown error'), 'error');
                         }
                     } catch (err) {
-                        console.error('Edit ticket error:', err);
-                        alert('Server connection error. Please try again.');
+                        console.error('Update ticket error:', err);
+                        this.showToast('Server connection error.', 'error');
                     }
                 });
             }
 
+            // Quick Status Buttons Delegation (Admin Action)
+            document.addEventListener('click', (e) => {
+                const btn = e.target.closest('[data-action="quick-status"]');
+                if (btn) {
+                    const ticketId = btn.getAttribute('data-id');
+                    const newStatus = btn.getAttribute('data-status');
+                    this.quickUpdateTicketStatus(ticketId, newStatus);
+                }
+            });
 
+            // Delete Ticket Delegation
+            document.addEventListener('click', (e) => {
+                const btn = e.target.closest('[data-action="delete-ticket"]');
+                if (btn) {
+                    const ticketId = btn.getAttribute('data-id');
+                    this.deleteTicket(ticketId);
+                }
+            });
 
             // Smooth scrolling for landing page navigation links
             document.querySelectorAll('.landing-navbar .nav-item').forEach(link => {
@@ -509,7 +554,7 @@
                     const about = document.getElementById('cms-about-me').value;
 
                     try {
-                        const response = await fetch(this.getApiUrl('/api/homepage/update'), {
+                        const response = await this.authFetch('/api/homepage/update', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ name, title, avatar, about })
@@ -517,14 +562,14 @@
 
                         const result = await response.json();
                         if (response.ok && result.success) {
-                            alert('Homepage content updated successfully!');
+                            this.showToast('Homepage content updated successfully!', 'success');
                             this.fetchState();
                         } else {
-                            alert('Error: ' + (result.error || 'Unknown error'));
+                            this.showToast('Error: ' + (result.error || 'Unknown error'), 'error');
                         }
                     } catch (err) {
                         console.error('Update homepage error:', err);
-                        alert('Server connection error.');
+                        this.showToast('Server connection error.', 'error');
                     }
                 });
             }
@@ -540,7 +585,7 @@
                     const content = document.getElementById('cms-page-content').value;
 
                     try {
-                        const response = await fetch(this.getApiUrl('/api/pages'), {
+                        const response = await this.authFetch('/api/pages', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
@@ -557,11 +602,11 @@
                             this.closeModal('modal-cms-page');
                             this.fetchState();
                         } else {
-                            alert('Error: ' + (result.error || 'Unknown error'));
+                            this.showToast('Error: ' + (result.error || 'Unknown error'), 'error');
                         }
                     } catch (err) {
                         console.error('Save custom page error:', err);
-                        alert('Server connection error.');
+                        this.showToast('Server connection error.', 'error');
                     }
                 });
             }
@@ -577,7 +622,7 @@
                     const password = passwordInput.value;
 
                     try {
-                        const response = await fetch(this.getApiUrl('/api/users'), {
+                        const response = await this.authFetch('/api/users', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ username, password })
@@ -585,19 +630,43 @@
 
                         const result = await response.json();
                         if (response.ok && result.success) {
-                            alert('Admin user saved/updated successfully!');
+                            this.showToast('Admin user saved/updated successfully!', 'success');
                             usernameInput.value = '';
                             passwordInput.value = '';
                             this.fetchState();
                         } else {
-                            alert('Error: ' + (result.error || 'Unknown error'));
+                            this.showToast('Error: ' + (result.error || 'Unknown error'), 'error');
                         }
                     } catch (err) {
                         console.error('Save admin user error:', err);
-                        alert('Server connection error.');
+                        this.showToast('Server connection error.', 'error');
                     }
                 });
             }
+
+            // Custom Page Action Delegation (Edit & Delete)
+            document.addEventListener('click', (e) => {
+                const editBtn = e.target.closest('[data-action="edit-page"]');
+                if (editBtn) {
+                    const slug = editBtn.getAttribute('data-slug');
+                    this.openEditPageModal(slug);
+                    return;
+                }
+
+                const delBtn = e.target.closest('[data-action="delete-page"]');
+                if (delBtn) {
+                    const slug = delBtn.getAttribute('data-slug');
+                    this.deletePage(slug);
+                    return;
+                }
+
+                const delUserBtn = e.target.closest('[data-action="delete-user"]');
+                if (delUserBtn) {
+                    const username = delUserBtn.getAttribute('data-username');
+                    this.deleteAdminUser(username);
+                    return;
+                }
+            });
 
             // Gmail Connection Form Submission (Maintenance Tab)
             const connectGmailForm = document.getElementById('form-connect-gmail');
@@ -621,8 +690,8 @@
                 });
             }
 
-            // Legacy SMTP Config Form Submission fallback
-            const smtpForm = document.getElementById('form-smtp-config');
+            // SMTP Configuration Form Submission
+            const smtpForm = document.getElementById('form-cms-smtp');
             if (smtpForm) {
                 smtpForm.addEventListener('submit', async (e) => {
                     e.preventDefault();
@@ -633,7 +702,7 @@
                     const pass = document.getElementById('smtp-pass')?.value || '';
 
                     try {
-                        const response = await fetch(this.getApiUrl('/api/smtp/update'), {
+                        const response = await this.authFetch('/api/smtp/update', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ host, port, secure, user, pass })
@@ -662,7 +731,7 @@
                     const clientSecret = (document.getElementById('oauth-client-secret').value || '').trim();
 
                     try {
-                        const response = await fetch(this.getApiUrl('/api/auth/google/credentials'), {
+                        const response = await this.authFetch('/api/auth/google/credentials', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ clientId, clientSecret })
@@ -712,7 +781,7 @@
                     }
 
                     try {
-                        const response = await fetch(this.getApiUrl('/api/smtp/test'), {
+                        const response = await this.authFetch('/api/smtp/test', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ to })
@@ -854,10 +923,18 @@
             }, 6000);
         },
 
+        // Toggle Site Settings submenu open/closed
+        toggleSettingsSubmenu() {
+            const menuItem = document.getElementById('menu-item-settings');
+            if (menuItem) {
+                menuItem.classList.toggle('open');
+            }
+        },
+
         // Switch View Tabs
         switchTab(tabId) {
             // If selecting an admin tab, ensure we are authenticated or admin shell is already active
-            const adminTabs = ['dashboard', 'tickets', 'maintenance', 'cms', 'invoices', 'clients'];
+            const adminTabs = ['dashboard', 'tickets', 'maintenance', 'cms', 'invoices', 'clients', 'settings', 'notifications'];
             const adminShell = document.getElementById('admin-shell');
             const isAdminActive = adminShell && !adminShell.classList.contains('hidden');
 
@@ -881,11 +958,6 @@
             if (tabId === 'portfolio') {
                 if (publicLanding) publicLanding.classList.remove('hidden');
                 if (adminShell) adminShell.classList.add('hidden');
-                
-                // Update URL to root
-                if (window.location.pathname !== '/') {
-                    history.pushState(null, '', '/');
-                }
             } else if (adminTabs.includes(tabId)) {
                 if (publicLanding) publicLanding.classList.add('hidden');
                 if (adminShell) adminShell.classList.remove('hidden');
@@ -897,7 +969,9 @@
                     'maintenance': '/admin/maintenance',
                     'cms': '/admin/cms',
                     'invoices': '/admin/invoices',
-                    'clients': '/admin/clients'
+                    'clients': '/admin/clients',
+                    'settings': '/admin/settings',
+                    'notifications': '/admin/notifications'
                 };
                 const targetUrl = adminTabMap[tabId] || '/admin';
                 if (window.location.pathname !== targetUrl) {
@@ -913,17 +987,43 @@
                     });
                 } else if (tabId === 'clients') {
                     this.renderClientsTab();
+                } else if (tabId === 'settings') {
+                    this.renderSiteSettingsTab();
+                } else if (tabId === 'notifications') {
+                    this.renderNotificationReceiverTab();
                 }
             }
 
             // Remove active class from all nav links and add to selected
             document.querySelectorAll('.nav-link').forEach(link => {
-                if (link.getAttribute('data-tab') === tabId) {
+                const linkTab = link.getAttribute('data-tab');
+                if (linkTab === tabId || ((tabId === 'notifications' || tabId === 'maintenance') && linkTab === 'settings')) {
                     link.classList.add('active');
                 } else {
                     link.classList.remove('active');
                 }
             });
+
+            // Update sublinks active class in sidebar
+            document.querySelectorAll('.nav-sublink').forEach(sublink => {
+                const sublinkKey = sublink.getAttribute('data-subtab-link');
+                if (sublinkKey === tabId) {
+                    sublink.classList.add('active');
+                } else {
+                    sublink.classList.remove('active');
+                }
+            });
+
+            // Auto-open/close Settings submenu based on active tab
+            const settingsMenu = document.getElementById('menu-item-settings');
+            if (settingsMenu) {
+                const settingsSubTabs = ['settings', 'notifications', 'maintenance'];
+                if (settingsSubTabs.includes(tabId)) {
+                    settingsMenu.classList.add('open');
+                } else {
+                    settingsMenu.classList.remove('open');
+                }
+            }
 
             // Switch display of panels
             document.querySelectorAll('.tab-pane').forEach(panel => {
@@ -974,6 +1074,16 @@
                         pageSubtitle.textContent = 'Manage client profiles, contact information, and invoice billing history.';
                         this.renderClientsTab();
                         break;
+                    case 'settings':
+                        pageTitle.textContent = 'Website Content & Text Settings';
+                        pageSubtitle.textContent = 'Customize all text, headlines, and content across headers, footers, homepage, and subpages.';
+                        this.renderSiteSettingsTab();
+                        break;
+                    case 'notifications':
+                        pageTitle.textContent = 'Notification Receiver Settings';
+                        pageSubtitle.textContent = 'Configure where and how you receive instant alerts when a client submits a new WordPress bug fix query.';
+                        this.renderNotificationReceiverTab();
+                        break;
                 }
             }
 
@@ -1020,6 +1130,24 @@
             });
         },
 
+        // Escape HTML to prevent injection issues in dynamic content
+        escapeHtml(str) {
+            if (str === undefined || str === null) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        },
+
+        getReviewsList() {
+            if (this.state && this.state.siteSettings && this.state.siteSettings.reviews && Array.isArray(this.state.siteSettings.reviews.items)) {
+                return this.state.siteSettings.reviews.items;
+            }
+            return this.reviewsData || [];
+        },
+
         // =============================================
         // REVIEWS SECTION RENDERER
         // =============================================
@@ -1028,6 +1156,9 @@
             const loadMoreBtn = document.getElementById('reviews-load-more-btn');
             const shownLabel = document.getElementById('reviews-shown-label');
             if (!grid) return;
+
+            grid.innerHTML = '';
+            const reviews = this.getReviewsList();
 
             const PAGE_SIZE = 10;
             const LOAD_MORE_SIZE = 5;
@@ -1045,15 +1176,19 @@
                 'linear-gradient(135deg,#84cc16,#4d7c0f)',
             ];
 
-            const getColor = (name) => colors[name.charCodeAt(0) % colors.length];
+            const getColor = (name) => {
+                const code = (name && name.length > 0) ? name.charCodeAt(0) : 0;
+                return colors[code % colors.length];
+            };
 
             const renderCard = (review, idx) => {
                 const card = document.createElement('div');
                 card.className = 'review-card';
                 card.style.animationDelay = `${(idx % LOAD_MORE_SIZE) * 70}ms`;
 
-                const initials = review.username.slice(0, 2).toUpperCase();
-                const stars = '★'.repeat(review.rating);
+                const name = review.username || 'Anonymous';
+                const initials = name.slice(0, 2).toUpperCase();
+                const stars = '★'.repeat(Math.max(1, Math.min(5, review.rating || 5)));
                 const verifiedBadge = review.real
                     ? `<span class="review-fiverr-icon"><svg width="11" height="11" viewBox="0 0 24 24"><circle cx="12" cy="12" r="12" fill="#1DBF73"/><text x="12" y="17" text-anchor="middle" font-size="13" font-family="Arial" font-weight="bold" fill="white">f</text></svg> Fiverr Verified</span>`
                     : '';
@@ -1061,17 +1196,17 @@
                 card.innerHTML = `
                     <div class="review-card-header">
                         <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0;">
-                            <div class="review-avatar" style="background:${getColor(review.username)};">${initials}</div>
+                            <div class="review-avatar" style="background:${getColor(name)};">${initials}</div>
                             <div class="review-author-info">
-                                <div class="review-author-name">${review.username}</div>
-                                <div class="review-author-country">${review.flag} ${review.country}</div>
+                                <div class="review-author-name">${this.escapeHtml(name)}</div>
+                                <div class="review-author-country">${review.flag || '🌐'} ${this.escapeHtml(review.country || '')}</div>
                             </div>
                         </div>
                         <div class="review-card-stars">${stars}</div>
                     </div>
-                    <p class="review-quote">"${review.comment}"</p>
+                    <p class="review-quote">"${this.escapeHtml(review.comment || '')}"</p>
                     <div class="review-card-footer">
-                        <span class="review-date">${review.date}</span>
+                        <span class="review-date">${this.escapeHtml(review.date || '')}</span>
                         ${verifiedBadge}
                     </div>
                 `;
@@ -1079,7 +1214,7 @@
             };
 
             const updateLabel = () => {
-                const total = this.reviewsData.length;
+                const total = reviews.length;
                 if (shownLabel) {
                     shownLabel.textContent = `Showing ${Math.min(shownCount, total)} of ${total} reviews`;
                 }
@@ -1087,26 +1222,28 @@
 
             const showMore = (count) => {
                 const start = shownCount;
-                const end = Math.min(shownCount + count, this.reviewsData.length);
+                const end = Math.min(shownCount + count, reviews.length);
                 for (let i = start; i < end; i++) {
-                    grid.appendChild(renderCard(this.reviewsData[i], i - start));
+                    grid.appendChild(renderCard(reviews[i], i - start));
                 }
                 shownCount = end;
                 updateLabel();
-                // Re-init lucide icons for newly added cards
                 if (window.lucide) window.lucide.createIcons();
-                // Hide button if all shown
-                if (shownCount >= this.reviewsData.length) {
+                if (shownCount >= reviews.length) {
                     if (loadMoreBtn) loadMoreBtn.classList.add('hidden');
+                } else {
+                    if (loadMoreBtn) loadMoreBtn.classList.remove('hidden');
                 }
             };
 
             // Initial render — show 10
             showMore(PAGE_SIZE);
 
-            // Load More click handler
+            // Safely reset click listener
             if (loadMoreBtn) {
-                loadMoreBtn.addEventListener('click', () => showMore(LOAD_MORE_SIZE));
+                const newBtn = loadMoreBtn.cloneNode(true);
+                loadMoreBtn.parentNode.replaceChild(newBtn, loadMoreBtn);
+                newBtn.addEventListener('click', () => showMore(LOAD_MORE_SIZE));
             }
         },
 
@@ -1245,11 +1382,19 @@
         },
 
         // Log out admin user
-        logout() {
+        async logout() {
+            try {
+                await this.authFetch('/api/logout', { method: 'POST' });
+            } catch (e) {
+                // Ignore network error on logout
+            }
             sessionStorage.removeItem('zannat_token');
             this.state.isAuthenticated = false;
             this.updateAuthUI(false);
             
+            // Re-fetch sanitized public state
+            await this.fetchState();
+
             // Redirect to homepage URL /
             history.pushState(null, '', '/');
             this.router();
@@ -1292,6 +1437,7 @@
             const kpiResolved = document.getElementById('kpi-resolved-tickets');
             const kpiPending = document.getElementById('kpi-pending-tickets');
             const kpiEarnings = document.getElementById('kpi-total-earnings');
+            const kpiLabel = document.getElementById('kpi-revenue-label');
 
             if (kpiTotal) kpiTotal.textContent = this.state.tickets.length;
             
@@ -1301,8 +1447,46 @@
             const pendingCount = this.state.tickets.filter(t => t.status === 'Pending').length;
             if (kpiPending) kpiPending.textContent = pendingCount;
 
-            const totalEarned = this.state.earnings.reduce((sum, item) => sum + item.amount, 0);
-            if (kpiEarnings) kpiEarnings.textContent = `৳${totalEarned.toLocaleString('en-US')}`;
+            // Calculate revenue from invoices grouped by currency
+            if (kpiEarnings) {
+                const invoices = this.state.invoices || [];
+                const revenueByCurrency = {};
+
+                invoices.forEach(inv => {
+                    const currency = (inv.currency || 'USD').toUpperCase();
+                    const total = Number(inv.total) || 0;
+                    if (!revenueByCurrency[currency]) {
+                        revenueByCurrency[currency] = 0;
+                    }
+                    revenueByCurrency[currency] += total;
+                });
+
+                const currencies = Object.keys(revenueByCurrency);
+
+                if (currencies.length === 0) {
+                    kpiEarnings.innerHTML = '<h3 style="margin:0;">$0</h3>';
+                    if (kpiLabel) kpiLabel.textContent = 'Total Revenue';
+                } else if (currencies.length === 1) {
+                    const cur = currencies[0];
+                    const symbol = this.getCurrencySymbol(cur);
+                    const amount = revenueByCurrency[cur];
+                    kpiEarnings.innerHTML = `<h3 style="margin:0;">${symbol}${amount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</h3>`;
+                    if (kpiLabel) kpiLabel.textContent = `Total Revenue (${cur})`;
+                } else {
+                    // Multiple currencies — show each on its own row
+                    if (kpiLabel) kpiLabel.textContent = `Total Revenue (${currencies.length} currencies)`;
+                    let html = '';
+                    currencies.forEach(cur => {
+                        const symbol = this.getCurrencySymbol(cur);
+                        const amount = revenueByCurrency[cur];
+                        html += `<div style="display:flex; justify-content:space-between; align-items:center; gap:8px; padding: 2px 0;">
+                            <span style="font-size:11px; color:var(--text-muted); font-weight:600; text-transform:uppercase; min-width:32px;">${cur}</span>
+                            <span style="font-size:16px; font-weight:700; color:var(--text-main); font-family:'Outfit',sans-serif;">${symbol}${amount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
+                        </div>`;
+                    });
+                    kpiEarnings.innerHTML = html;
+                }
+            }
         },
 
         // Render charts using Chart.js
@@ -1313,24 +1497,58 @@
                     return;
                 }
 
+                // Build monthly earnings from invoices
+                const invoices = this.state.invoices || [];
+                const monthlyData = {};
+                const currenciesUsed = new Set();
+
+                invoices.forEach(inv => {
+                    const dateStr = inv.date || inv.createdAt || '';
+                    let monthLabel = 'Unknown';
+                    if (dateStr) {
+                        const d = new Date(dateStr);
+                        if (!isNaN(d.getTime())) {
+                            monthLabel = d.toLocaleString('en-US', { month: 'long', year: 'numeric' });
+                        }
+                    }
+                    const total = Number(inv.total) || 0;
+                    const currency = (inv.currency || 'USD').toUpperCase();
+                    currenciesUsed.add(currency);
+
+                    if (!monthlyData[monthLabel]) monthlyData[monthLabel] = 0;
+                    monthlyData[monthLabel] += total;
+                });
+
+                // Sort months chronologically
+                const sortedMonths = Object.keys(monthlyData).sort((a, b) => {
+                    const dateA = new Date(a);
+                    const dateB = new Date(b);
+                    if (isNaN(dateA.getTime()) || isNaN(dateB.getTime())) return 0;
+                    return dateA - dateB;
+                });
+
+                const months = sortedMonths.length > 0 ? sortedMonths : (this.state.earnings || []).map(e => e.month);
+                const amounts = sortedMonths.length > 0 
+                    ? sortedMonths.map(m => monthlyData[m]) 
+                    : (this.state.earnings || []).map(e => e.amount);
+
+                const currencyLabel = currenciesUsed.size === 1 
+                    ? `Monthly Earnings (${[...currenciesUsed][0]})` 
+                    : `Monthly Earnings (Mixed Currencies)`;
+
                 // Render Monthly Earnings Chart
                 const earningsCtx = document.getElementById('chart-monthly-earnings');
                 if (earningsCtx) {
-                    // Destroy previous instance to prevent glitches
                     if (this.charts.earnings) {
                         this.charts.earnings.destroy();
                     }
-
-                    // Get dynamic months & amounts from database state
-                    const months = this.state.earnings.map(e => e.month);
-                    const amounts = this.state.earnings.map(e => e.amount);
 
                     this.charts.earnings = new Chart(earningsCtx.getContext('2d'), {
                         type: 'line',
                         data: {
                             labels: months,
                             datasets: [{
-                                label: 'Monthly Earnings (BDT)',
+                                label: currencyLabel,
                                 data: amounts,
                                 borderColor: '#8b5cf6',
                                 backgroundColor: 'rgba(139, 92, 246, 0.1)',
@@ -1417,13 +1635,20 @@
             const tbody = document.getElementById('tickets-tbody');
             if (!tbody) return;
 
-            const filterStatus = document.getElementById('ticket-filter-status').value;
+            const filterStatus = document.getElementById('ticket-filter-status') ? document.getElementById('ticket-filter-status').value : '';
             
             // Filter tickets array
-            const filteredTickets = this.state.tickets.filter(t => {
+            const filteredTickets = (this.state.tickets || []).filter(t => {
                 if (filterStatus && t.status !== filterStatus) return false;
                 return true;
             });
+
+            // Update badge count
+            const countBadge = document.getElementById('tickets-count-badge');
+            if (countBadge) {
+                const total = filteredTickets.length;
+                countBadge.textContent = `${total} ${total === 1 ? 'Ticket' : 'Tickets'}`;
+            }
 
             // Sort by ticket creation (descending ID)
             filteredTickets.sort((a, b) => b.id.localeCompare(a.id));
@@ -1431,10 +1656,12 @@
             if (filteredTickets.length === 0) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="8" style="text-align: center; padding: 32px; color: var(--text-muted);">
-                            <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
-                                <i data-lucide="ticket" style="width: 24px; height: 24px; opacity: 0.5;"></i>
-                                <span>No bug tickets match this criteria.</span>
+                        <td colspan="8" style="text-align: center; padding: 40px 20px; color: var(--text-muted);">
+                            <div style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
+                                <div style="width: 44px; height: 44px; border-radius: 50%; background: rgba(255,255,255,0.04); display: flex; align-items: center; justify-content: center;">
+                                    <i data-lucide="ticket" style="width: 22px; height: 22px; opacity: 0.5;"></i>
+                                </div>
+                                <span style="font-size: 13px; font-weight: 500;">No bug tickets match this criteria.</span>
                             </div>
                         </td>
                     </tr>
@@ -1450,34 +1677,49 @@
                 if (t.severity === 'High') badgeClass = 'badge-high';
                 if (t.severity === 'Critical') badgeClass = 'badge-critical';
 
-                // Get Status indicator HTML
-                let statusHtml = '';
-                if (t.status === 'Pending') {
-                    statusHtml = `<span class="status-text"><span class="status-dot dot-pending"></span>Pending</span>`;
-                } else if (t.status === 'In Progress') {
-                    statusHtml = `<span class="status-text"><span class="status-dot dot-inprogress"></span>In Progress</span>`;
-                } else {
-                    statusHtml = `<span class="status-text"><span class="status-dot dot-resolved"></span>Resolved</span>`;
-                }
+                // Status pill class
+                let statusClass = 'ticket-status-pending';
+                if (t.status === 'In Progress') statusClass = 'ticket-status-inprogress';
+                if (t.status === 'Resolved') statusClass = 'ticket-status-resolved';
+                if (t.status === 'Closed') statusClass = 'ticket-status-closed';
 
                 return `
                     <tr>
-                        <td class="font-mono" style="font-weight: 700;">${t.id}</td>
-                        <td style="white-space: nowrap;">${t.date}</td>
                         <td>
-                            <div style="font-weight: 600;">${t.clientName}</div>
-                            <div class="text-muted text-small">${t.clientEmail}</div>
+                            <span style="font-family: monospace; font-weight: 700; font-size: 12px; background: rgba(255,255,255,0.06); border: 1px solid var(--border-color); padding: 4px 8px; border-radius: 6px; color: var(--accent-purple); letter-spacing: 0.5px;">
+                                ${this.escapeHtml(t.id)}
+                            </span>
+                        </td>
+                        <td style="white-space: nowrap; font-size: 12px; color: var(--text-muted);">${this.escapeHtml(t.date || '')}</td>
+                        <td>
+                            <div style="font-weight: 600; font-size: 13px; color: var(--text-primary);">${this.escapeHtml(t.clientName)}</div>
+                            <div class="text-muted" style="font-size: 11px; margin-top: 2px;">${this.escapeHtml(t.clientEmail || 'No email')}</div>
+                            ${t.clientPhone ? `
+                                <div style="margin-top: 5px;">
+                                    <a href="https://wa.me/${t.clientPhone.replace(/[^0-9]/g, '')}" target="_blank" style="background: rgba(34, 197, 94, 0.12); color: #22c55e; border: 1px solid rgba(34, 197, 94, 0.3); text-decoration: none; display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 12px; transition: all 0.2s;" title="Direct WhatsApp Chat with Client">
+                                        <svg width="10" height="10" viewBox="0 0 24 24" fill="#22c55e"><path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.711 2.598 2.664-.698c.97.549 1.954.848 3.01.848 3.182 0 5.767-2.586 5.767-5.766.001-3.182-2.584-5.768-5.766-5.768zm0 10.455c-.928 0-1.841-.264-2.617-.743l-.187-.116-1.579.414.421-1.54-.123-.197c-.504-.805-.793-1.638-.792-2.502.001-2.529 2.057-4.586 4.588-4.586 2.531 0 4.587 2.057 4.587 4.586-.001 2.53-2.057 4.586-4.587 4.586z"/></svg>
+                                        <span>${this.escapeHtml(t.clientPhone)}</span>
+                                    </a>
+                                </div>
+                            ` : ''}
                         </td>
                         <td>
-                            <a href="${t.siteUrl}" target="_blank" class="text-blue" style="text-decoration: none;">
-                                ${t.siteUrl.replace(/^https?:\/\//, '')}
-                                <i data-lucide="external-link" style="width: 10px; height: 10px; display: inline-block; vertical-align: middle; margin-left: 2px;"></i>
+                            <a href="${t.siteUrl}" target="_blank" style="color: var(--accent-blue); text-decoration: none; font-size: 12px; font-weight: 500; display: inline-flex; align-items: center; gap: 4px;">
+                                <span>${this.escapeHtml((t.siteUrl || '').replace(/^https?:\/\//, ''))}</span>
+                                <i data-lucide="external-link" style="width: 11px; height: 11px; opacity: 0.75;"></i>
                             </a>
                         </td>
-                        <td>${t.bugType}</td>
-                        <td><span class="badge ${badgeClass}">${t.severity}</span></td>
-                        <td>${statusHtml}</td>
-                        <td style="text-align: right;">
+                        <td style="font-size: 13px; font-weight: 500; color: var(--text-primary);">${this.escapeHtml(t.bugType || 'General')}</td>
+                        <td><span class="badge ${badgeClass}" style="font-size: 11px; padding: 3px 8px; font-weight: 700; letter-spacing: 0.5px;">${t.severity}</span></td>
+                        <td>
+                            <select class="ticket-status-pill ${statusClass}" onchange="app.quickUpdateTicketStatus('${t.id}', this.value)" title="Change status (dispatches WhatsApp & Email notification)">
+                                <option value="Pending" ${t.status === 'Pending' ? 'selected' : ''}>⏳ Pending</option>
+                                <option value="In Progress" ${t.status === 'In Progress' ? 'selected' : ''}>⚡ In Progress</option>
+                                <option value="Resolved" ${t.status === 'Resolved' ? 'selected' : ''}>✅ Resolved</option>
+                                <option value="Closed" ${t.status === 'Closed' ? 'selected' : ''}>🔒 Closed</option>
+                            </select>
+                        </td>
+                        <td style="text-align: right; white-space: nowrap;">
                             <div style="display: flex; gap: 8px; justify-content: flex-end;">
                                 <button class="btn btn-secondary btn-icon" data-action="edit-ticket" data-id="${t.id}" title="Inspect & Edit Ticket">
                                     <i data-lucide="sliders" style="width: 14px; height: 14px; color: var(--accent-purple); pointer-events: none;"></i>
@@ -1506,13 +1748,25 @@
             const editTitle = document.getElementById('edit-ticket-title');
             const editSubtitle = document.getElementById('edit-ticket-subtitle');
             const editSiteUrl = document.getElementById('edit-ticket-site-url');
+            const editPhone = document.getElementById('edit-ticket-phone');
+            const editWaBtn = document.getElementById('edit-ticket-wa-btn');
             const editDesc = document.getElementById('edit-ticket-description');
             const editStatus = document.getElementById('edit-ticket-status');
             const editNotes = document.getElementById('edit-ticket-notes');
 
             if (editTitle) editTitle.textContent = `Inspect Ticket ${ticketId}`;
-            if (editSubtitle) editSubtitle.textContent = `Submitted by ${ticket.clientName} (${ticket.clientEmail}) - Severity: ${ticket.severity}`;
+            if (editSubtitle) editSubtitle.textContent = `Submitted by ${ticket.clientName} (${ticket.clientEmail || 'No email'}) - Severity: ${ticket.severity}`;
             if (editSiteUrl) editSiteUrl.value = ticket.siteUrl;
+            if (editPhone) editPhone.value = ticket.clientPhone || 'Not provided';
+            if (editWaBtn) {
+                if (ticket.clientPhone) {
+                    const clean = ticket.clientPhone.replace(/[^0-9]/g, '');
+                    editWaBtn.href = `https://wa.me/${clean}`;
+                    editWaBtn.classList.remove('hidden');
+                } else {
+                    editWaBtn.classList.add('hidden');
+                }
+            }
             if (editDesc) editDesc.value = ticket.description || '';
             if (editStatus) editStatus.value = ticket.status;
             if (editNotes) editNotes.value = ticket.adminNotes || '';
@@ -1520,34 +1774,148 @@
             this.openModal('modal-ticket-edit');
         },
 
-        // Two-click inline delete helper
-        // First click: arms the button (turns red + shows "Confirm?", auto-resets in 3s)
+        // Quick status update directly from the table (with WA & Email alerts)
+        async quickUpdateTicketStatus(ticketId, newStatus) {
+            try {
+                const currentTicket = this.state.tickets.find(t => t.id === ticketId);
+                const wasResolved = currentTicket && currentTicket.status === 'Resolved';
+
+                const response = await this.authFetch('/api/tickets/update', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        id: ticketId,
+                        status: newStatus
+                    })
+                });
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    let msg = `Ticket ${ticketId} status changed to "${newStatus}"`;
+                    if (result.notified && (result.notified.wa || result.notified.email)) {
+                        const channels = [];
+                        if (result.notified.wa) channels.push('WhatsApp');
+                        if (result.notified.email) channels.push('Email');
+                        msg += ` · Client notified via ${channels.join(' & ')}!`;
+                    }
+                    this.showToast(msg, 'success');
+
+                    if (newStatus === 'Resolved' && !wasResolved && window.confetti) {
+                        window.confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+                    }
+
+                    await this.fetchState();
+                } else {
+                    this.showToast('Failed to update status: ' + (result.error || 'Unknown error'), 'error');
+                }
+            } catch (err) {
+                console.error('Quick status update error:', err);
+                this.showToast('Server connection error while updating status', 'error');
+            }
+        },
+
+        // Two-click inline confirmation helper
+        // First click: arms the button (turns red/amber + shows "Confirm?", auto-resets in 3.5s)
         // Second click: executes the callback
-        armDeleteButton(btn, onConfirm) {
+        armConfirmButton(btn, onConfirm, label = 'Confirm?', color = 'var(--accent-red)') {
+            if (!btn) {
+                if (typeof onConfirm === 'function') onConfirm();
+                return;
+            }
             if (btn.getAttribute('data-armed') === '1') {
                 // Second click — fire the action
                 btn.removeAttribute('data-armed');
                 clearTimeout(btn._armTimer);
+                if (btn._origHTML) btn.innerHTML = btn._origHTML;
+                if (btn._origBorder) btn.style.borderColor = btn._origBorder;
+                if (btn._origBg) btn.style.background = btn._origBg;
+                if (btn._origMinWidth) btn.style.minWidth = btn._origMinWidth;
+                if (window.lucide) window.lucide.createIcons();
                 onConfirm();
                 return;
             }
             // First click — arm it
-            const origHTML = btn.innerHTML;
-            const origBorder = btn.style.borderColor;
-            const origBg = btn.style.background;
+            btn._origHTML = btn.innerHTML;
+            btn._origBorder = btn.style.borderColor;
+            btn._origBg = btn.style.background;
+            btn._origMinWidth = btn.style.minWidth;
             btn.setAttribute('data-armed', '1');
-            btn.innerHTML = '<span style="font-size:11px;font-weight:700;color:var(--accent-red);letter-spacing:0.02em;">Confirm?</span>';
+            btn.innerHTML = `<span style="font-size:11px;font-weight:700;color:${color};letter-spacing:0.02em;white-space:nowrap;display:inline-flex;align-items:center;gap:4px;">⚠️ ${label}</span>`;
             btn.style.borderColor = 'rgba(239,68,68,0.8)';
             btn.style.background = 'rgba(239,68,68,0.12)';
-            btn.style.minWidth = '74px';
+            btn.style.minWidth = '82px';
             btn._armTimer = setTimeout(() => {
                 btn.removeAttribute('data-armed');
-                btn.innerHTML = origHTML;
-                btn.style.borderColor = origBorder;
-                btn.style.background = origBg;
-                btn.style.minWidth = '';
+                if (btn._origHTML) btn.innerHTML = btn._origHTML;
+                if (btn._origBorder) btn.style.borderColor = btn._origBorder;
+                if (btn._origBg) btn.style.background = btn._origBg;
+                if (btn._origMinWidth) btn.style.minWidth = btn._origMinWidth;
                 if (window.lucide) window.lucide.createIcons();
-            }, 3000);
+            }, 3500);
+        },
+
+        armDeleteButton(btn, onConfirm) {
+            this.armConfirmButton(btn, onConfirm, 'Confirm?');
+        },
+
+        // In-app modal confirmation dialog (fallback for non-button or file prompts)
+        showConfirmModal(title, message, confirmText = 'Confirm', isDanger = true) {
+            return new Promise((resolve) => {
+                const modal = document.getElementById('modal-confirm');
+                const titleEl = document.getElementById('confirm-title');
+                const msgEl = document.getElementById('confirm-message');
+                const okBtn = document.getElementById('confirm-ok-btn');
+                const cancelBtn = document.getElementById('confirm-cancel-btn');
+
+                if (!modal) {
+                    resolve(true);
+                    return;
+                }
+
+                if (titleEl) titleEl.textContent = title || 'Confirm Action';
+                if (msgEl) msgEl.textContent = message || 'Are you sure you want to proceed?';
+                if (okBtn) {
+                    okBtn.textContent = confirmText;
+                    if (isDanger) {
+                        okBtn.style.background = '#ef4444';
+                        okBtn.style.borderColor = '#ef4444';
+                    } else {
+                        okBtn.style.background = '';
+                        okBtn.style.borderColor = '';
+                    }
+                }
+
+                const cleanup = () => {
+                    modal.classList.add('hidden');
+                    if (okBtn) okBtn.onclick = null;
+                    if (cancelBtn) cancelBtn.onclick = null;
+                    modal.onclick = null;
+                    document.removeEventListener('keydown', onKeyDown);
+                };
+
+                const onOk = () => {
+                    cleanup();
+                    resolve(true);
+                };
+
+                const onCancel = () => {
+                    cleanup();
+                    resolve(false);
+                };
+
+                const onKeyDown = (e) => {
+                    if (e.key === 'Escape') onCancel();
+                };
+
+                if (okBtn) okBtn.onclick = onOk;
+                if (cancelBtn) cancelBtn.onclick = onCancel;
+                modal.onclick = (e) => {
+                    if (e.target === modal) onCancel();
+                };
+                document.addEventListener('keydown', onKeyDown);
+
+                modal.classList.remove('hidden');
+            });
         },
 
         // Delete a ticket
@@ -1556,7 +1924,7 @@
             if (!btn) return;
             app.armDeleteButton(btn, async () => {
                 try {
-                    const response = await fetch(app.getApiUrl('/api/tickets/delete'), {
+                    const response = await app.authFetch('/api/tickets/delete', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ id: ticketId })
@@ -1590,15 +1958,17 @@
         },
 
 
-        // Trigger Download DB Backup
+        // Trigger Download DB Backup (authenticated via query param token)
         downloadBackup() {
-            window.open(this.getApiUrl('/api/system/backup/download'), '_blank');
+            const token = sessionStorage.getItem('zannat_token');
+            const endpoint = token ? `/api/system/backup/download?token=${encodeURIComponent(token)}` : '/api/system/backup/download';
+            window.open(this.getApiUrl(endpoint), '_blank');
         },
 
         // Fetch System Version & Webhook Info
         async refreshSystemInfo() {
             try {
-                const res = await fetch(this.getApiUrl('/api/system/info'));
+                const res = await this.authFetch('/api/system/info');
                 const data = await res.json();
                 if (data.success) {
                     const badge = document.getElementById('sys-commit-badge');
@@ -1618,11 +1988,22 @@
         },
 
         // Trigger Safe Pull & Auto-Update from GitHub
-        async triggerSystemUpdate() {
-            if (!confirm('Pull latest code and migrate database schema from GitHub repository (abuzannat911-lab/zannat.bd)?\n\nA safe automatic backup of all existing records will be created before updating.')) {
+        async triggerSystemUpdate(btn) {
+            if (btn) {
+                this.armConfirmButton(btn, () => this.executeSystemUpdate(), 'Confirm Update?');
                 return;
             }
+            const confirmed = await this.showConfirmModal(
+                'Pull & Update from GitHub',
+                'Pull latest code and migrate database schema from GitHub repository (abuzannat911-lab/zannat.bd)? A safe automatic backup of all existing records will be created before updating.',
+                'Pull & Update',
+                false
+            );
+            if (!confirmed) return;
+            await this.executeSystemUpdate();
+        },
 
+        async executeSystemUpdate() {
             const btn = document.getElementById('btn-run-sys-update');
             const alertBox = document.getElementById('sys-update-status-alert');
             const origHtml = btn ? btn.innerHTML : '';
@@ -1640,7 +2021,7 @@
             }
 
             try {
-                const res = await fetch(this.getApiUrl('/api/system/update'), {
+                const res = await this.authFetch('/api/system/update', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' }
                 });
@@ -1685,7 +2066,13 @@
             const file = event.target.files[0];
             if (!file) return;
 
-            if (!confirm('Are you sure you want to restore the database? This will completely overwrite existing tickets and login credentials.')) {
+            const confirmed = await this.showConfirmModal(
+                'Restore Database',
+                'Are you sure you want to restore the database? This will completely overwrite existing tickets and login credentials.',
+                'Restore Database',
+                true
+            );
+            if (!confirmed) {
                 event.target.value = ''; // Reset file input
                 return;
             }
@@ -1695,7 +2082,7 @@
                 reader.onload = async (e) => {
                     const binaryData = e.target.result;
                     try {
-                        const response = await fetch(this.getApiUrl('/api/restore'), {
+                        const response = await this.authFetch('/api/restore', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/octet-stream' },
                             body: binaryData
@@ -1704,7 +2091,7 @@
                         const result = await response.json();
 
                         if (response.ok && result.success) {
-                            alert('Database restored successfully!');
+                            this.showToast('Database restored successfully!', 'success');
                             
                             // Visual effects
                             if (window.confetti) {
@@ -1718,17 +2105,17 @@
                             // Reload state
                             this.fetchState();
                         } else {
-                            alert('Restore failed: ' + (result.error || 'unknown error'));
+                            this.showToast('Restore failed: ' + (result.error || 'unknown error'), 'error');
                         }
                     } catch (err) {
                         console.error('Error posting restore:', err);
-                        alert('Server connection error.');
+                        this.showToast('Server connection error.', 'error');
                     }
                 };
                 reader.readAsArrayBuffer(file);
             } catch (err) {
                 console.error('File read error:', err);
-                alert('Failed to read file.');
+                this.showToast('Failed to read backup file.', 'error');
             } finally {
                 event.target.value = ''; // Reset input
             }
@@ -1736,6 +2123,115 @@
 
         // CMS Current Page Edit Tracking
         cmsCurrentEditingSlug: null,
+
+        // Public Separate Page Navigation System
+        switchPublicPage(pageName) {
+            const validPages = ['home', 'services', 'workflow', 'gallery', 'reviews', 'submit-ticket'];
+            let target = validPages.includes(pageName) ? pageName : 'home';
+
+            const publicLanding = document.getElementById('public-landing');
+            const adminShell = document.getElementById('admin-shell');
+            const customShell = document.getElementById('custom-page-shell');
+
+            if (publicLanding) publicLanding.classList.remove('hidden');
+            if (adminShell) adminShell.classList.add('hidden');
+            if (customShell) customShell.classList.add('hidden');
+
+            validPages.forEach(p => {
+                const el = document.getElementById('page-' + p);
+                if (el) {
+                    if (p === target) {
+                        el.classList.remove('hidden');
+                    } else {
+                        el.classList.add('hidden');
+                    }
+                }
+            });
+
+            // Show footer on separate pages, hide on strict single-screen homepage
+            const footer = document.getElementById('public-global-footer');
+            if (footer) {
+                if (target === 'home') {
+                    footer.classList.add('hidden');
+                } else {
+                    footer.classList.remove('hidden');
+                }
+            }
+
+            // Update active navbar item
+            const routeMap = {
+                'home': '/',
+                'services': '/services',
+                'workflow': '/workflow',
+                'gallery': '/gallery',
+                'reviews': '/reviews',
+                'submit-ticket': '/submit-ticket'
+            };
+            const currentPath = routeMap[target] || '/';
+            document.querySelectorAll('.landing-navbar .navbar-links a').forEach(a => {
+                const href = a.getAttribute('href');
+                if (href === currentPath) {
+                    a.classList.add('active');
+                } else {
+                    a.classList.remove('active');
+                }
+            });
+
+            // Document titles
+            const titles = {
+                'home': 'Abu Zannat | WordPress Bug Fixer & Web Developer',
+                'services': 'WordPress Debugging & Repair Services | Abu Zannat',
+                'workflow': 'How It Works - Bug Fix Workflow | Abu Zannat',
+                'gallery': 'Behind the Scenes - Life Behind the Screen | Abu Zannat',
+                'reviews': 'Verified Client Reviews & Testimonials | Abu Zannat',
+                'submit-ticket': 'Submit a Bug Ticket | Abu Zannat'
+            };
+            document.title = titles[target] || 'Abu Zannat | WordPress Bug Fixer & Web Developer';
+
+            // Scroll to top of viewport
+            window.scrollTo({ top: 0, behavior: 'instant' });
+
+            // If reviews page, ensure reviews are rendered
+            if (target === 'reviews' && typeof this.renderReviews === 'function') {
+                this.renderReviews();
+            }
+
+            if (typeof lucide !== 'undefined' && lucide.createIcons) {
+                lucide.createIcons();
+            }
+        },
+
+        // Backward compatibility helper
+        openSlidePage(targetSectionId) {
+            let cleanId = (targetSectionId || 'services').replace(/^#/, '');
+            const map = {
+                'services': '/services',
+                'workflow': '/workflow',
+                'gallery': '/gallery',
+                'behind-scenes': '/gallery',
+                'testimonials': '/reviews',
+                'reviews': '/reviews',
+                'submit-ticket-section': '/submit-ticket',
+                'submit-bug': '/submit-ticket',
+                'ticket': '/submit-ticket'
+            };
+            const path = map[cleanId] || '/services';
+            if (history.pushState) {
+                history.pushState(null, '', path);
+                this.router();
+            } else {
+                window.location.href = path;
+            }
+        },
+
+        closeSlidePage() {
+            if (history.pushState) {
+                history.pushState(null, '', '/');
+                this.router();
+            } else {
+                window.location.href = '/';
+            }
+        },
 
         // Setup SPA Client-Side Routing
         setupSPAClientRouting() {
@@ -1750,9 +2246,29 @@
                             if (path.startsWith('/api/') || path.includes('/api/auth/')) {
                                 return;
                             }
+
+                            // Handle anchor hash clicks smoothly
                             if (anchor.hash && (path === '/' || path === '' || path === window.location.pathname)) {
-                                return;
+                                const targetHash = anchor.hash;
+                                const hashMap = {
+                                    '#': '/',
+                                    '#hero': '/',
+                                    '#services': '/services',
+                                    '#workflow': '/workflow',
+                                    '#gallery': '/gallery',
+                                    '#testimonials': '/reviews',
+                                    '#reviews': '/reviews',
+                                    '#submit-ticket-section': '/submit-ticket',
+                                    '#submit-bug': '/submit-ticket'
+                                };
+                                if (hashMap[targetHash]) {
+                                    e.preventDefault();
+                                    history.pushState(null, '', hashMap[targetHash]);
+                                    this.router();
+                                    return;
+                                }
                             }
+
                             if (!anchor.getAttribute('download') && !anchor.getAttribute('target')) {
                                 e.preventDefault();
                                 history.pushState(null, '', path);
@@ -1804,7 +2320,10 @@
                 '/admin/maintenance': 'maintenance',
                 '/admin/cms': 'cms',
                 '/admin/invoices': 'invoices',
-                '/admin/clients': 'clients'
+                '/admin/clients': 'clients',
+                '/admin/settings': 'settings',
+                '/admin/notifications': 'notifications',
+                '/admin/settings/notifications': 'notifications'
             };
 
             if (cleanPath in adminRoutes) {
@@ -1818,10 +2337,23 @@
                 return;
             }
             
-            if (cleanPath === '/' || cleanPath === '' || cleanPath === '/index.html') {
+            const publicRoutes = {
+                '/': 'home',
+                '': 'home',
+                '/index.html': 'home',
+                '/services': 'services',
+                '/workflow': 'workflow',
+                '/gallery': 'gallery',
+                '/behind-scenes': 'gallery',
+                '/reviews': 'reviews',
+                '/testimonials': 'reviews',
+                '/submit-ticket': 'submit-ticket',
+                '/submit-bug': 'submit-ticket'
+            };
+
+            if (cleanPath in publicRoutes) {
                 this.switchTab('portfolio');
-                const customShell = document.getElementById('custom-page-shell');
-                if (customShell) customShell.classList.add('hidden');
+                this.switchPublicPage(publicRoutes[cleanPath]);
                 return;
             }
             
@@ -1993,7 +2525,7 @@
             if (!btn) return;
             app.armDeleteButton(btn, async () => {
                 try {
-                    const response = await fetch(app.getApiUrl('/api/pages/delete'), {
+                    const response = await app.authFetch('/api/pages/delete', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ slug })
@@ -2020,7 +2552,7 @@
             tbody.innerHTML = users.map(u => `
                 <tr>
                     <td style="font-weight: 600;">${u.username}</td>
-                    <td class="font-mono" style="-webkit-text-security: disc;">${u.password}</td>
+                    <td><span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #10b981; font-size: 0.75rem; padding: 3px 8px; border-radius: 6px;">Active (Hashed & Protected)</span></td>
                     <td style="text-align: right;">
                         <button class="btn btn-secondary btn-icon" data-action="delete-user" data-username="${u.username}" title="Delete User" style="border-color: rgba(239,68,68,0.2);">
                             <i data-lucide="trash-2" style="width: 14px; height: 14px; color: var(--accent-red); pointer-events: none;"></i>
@@ -2044,7 +2576,7 @@
             if (!btn) return;
             app.armDeleteButton(btn, async () => {
                 try {
-                    const response = await fetch(app.getApiUrl('/api/users/delete'), {
+                    const response = await app.authFetch('/api/users/delete', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ username })
@@ -2174,7 +2706,7 @@
 
             try {
                 // 1. Save credentials
-                const updateRes = await fetch(this.getApiUrl('/api/smtp/update'), {
+                const updateRes = await this.authFetch('/api/smtp/update', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -2193,7 +2725,7 @@
                 }
 
                 // 2. Perform live delivery test
-                const testRes = await fetch(this.getApiUrl('/api/smtp/test'), {
+                const testRes = await this.authFetch('/api/smtp/test', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ to: email })
@@ -2286,7 +2818,7 @@
             }
 
             try {
-                const updateRes = await fetch(this.getApiUrl('/api/smtp/update'), {
+                const updateRes = await this.authFetch('/api/smtp/update', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -2304,7 +2836,7 @@
                 }
 
                 // Test live email deliverability
-                const testRes = await fetch(this.getApiUrl('/api/smtp/test'), {
+                const testRes = await this.authFetch('/api/smtp/test', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ to: email })
@@ -2335,10 +2867,19 @@
         },
 
         // Disconnect Google OAuth2 / Gmail
-        async disconnectGmailOAuth() {
-            if (!confirm('Are you sure you want to disconnect this Gmail account and clear settings?')) return;
+        async disconnectGmailOAuth(btn) {
+            if (btn) {
+                this.armConfirmButton(btn, () => this.executeDisconnectGmail(), 'Confirm Disconnect?');
+                return;
+            }
+            const confirmed = await this.showConfirmModal('Disconnect Gmail', 'Are you sure you want to disconnect this Gmail account and clear settings?', 'Disconnect', true);
+            if (!confirmed) return;
+            await this.executeDisconnectGmail();
+        },
+
+        async executeDisconnectGmail() {
             try {
-                const res = await fetch(this.getApiUrl('/api/auth/google/disconnect'), {
+                const res = await this.authFetch('/api/auth/google/disconnect', {
                     method: 'POST'
                 });
                 const data = await res.json();
@@ -2393,7 +2934,7 @@
 
         async fetchWhatsAppStatus() {
             try {
-                const res = await fetch(this.getApiUrl('/api/whatsapp/status'));
+                const res = await this.authFetch('/api/whatsapp/status');
                 if (!res.ok) return;
                 const data = await res.json();
                 this.whatsAppStatus = data;
@@ -2526,7 +3067,7 @@
             if (alertBox) alertBox.style.display = 'none';
 
             try {
-                const res = await fetch(this.getApiUrl('/api/whatsapp/pair-code'), {
+                const res = await this.authFetch('/api/whatsapp/pair-code', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ phone })
@@ -2599,7 +3140,7 @@
             }
 
             try {
-                const res = await fetch(this.getApiUrl('/api/whatsapp/send'), {
+                const res = await this.authFetch('/api/whatsapp/send', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ to: phone, message })
@@ -2645,10 +3186,19 @@
             if (connectView) connectView.style.display = 'block';
         },
 
-        async disconnectWhatsApp() {
-            if (!confirm('Are you sure you want to disconnect and unlink this WhatsApp account?')) return;
+        async disconnectWhatsApp(btn) {
+            if (btn) {
+                this.armConfirmButton(btn, () => this.executeDisconnectWhatsApp(), 'Confirm Disconnect?');
+                return;
+            }
+            const confirmed = await this.showConfirmModal('Disconnect WhatsApp', 'Are you sure you want to disconnect and unlink this WhatsApp account?', 'Disconnect', true);
+            if (!confirmed) return;
+            await this.executeDisconnectWhatsApp();
+        },
+
+        async executeDisconnectWhatsApp() {
             try {
-                const res = await fetch(this.getApiUrl('/api/whatsapp/disconnect'), {
+                const res = await this.authFetch('/api/whatsapp/disconnect', {
                     method: 'POST'
                 });
                 const data = await res.json();
@@ -2841,7 +3391,7 @@
                     }
                 }
 
-                const res = await fetch(this.getApiUrl('/api/invoices/send-whatsapp'), {
+                const res = await this.authFetch('/api/invoices/send-whatsapp', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -2907,7 +3457,7 @@
 
         async loadInvoicesFromDatabase() {
             try {
-                const res = await fetch(this.getApiUrl('/api/invoices'));
+                const res = await this.authFetch('/api/invoices');
                 if (res.ok) {
                     const data = await res.json();
                     if (data.success && Array.isArray(data.invoices)) {
@@ -3017,7 +3567,7 @@
             };
 
             try {
-                const res = await fetch(this.getApiUrl('/api/bank-details'), {
+                const res = await this.authFetch('/api/bank-details', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(bankData)
@@ -3184,7 +3734,7 @@
             let nextNum = null;
 
             try {
-                const response = await fetch(this.getApiUrl('/api/invoices'), {
+                const response = await this.authFetch('/api/invoices', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(invoiceData)
@@ -3389,7 +3939,7 @@
             const invoiceData = this.currentPreviewInvoice || this.currentWhatsAppInvoice || this.getInvoiceFormData();
 
             try {
-                const res = await fetch(this.getApiUrl('/api/invoices/send-email'), {
+                const res = await this.authFetch('/api/invoices/send-email', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -3600,7 +4150,7 @@
             this.currentPreviewInvoice.status = newStatus;
 
             try {
-                const response = await fetch(this.getApiUrl('/api/invoices'), {
+                const response = await this.authFetch('/api/invoices', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(this.currentPreviewInvoice)
@@ -3673,7 +4223,7 @@
                             <button type="button" class="btn btn-outline btn-icon" title="Edit Invoice" onclick="app.editInvoice('${inv.id}')">
                                 <i data-lucide="edit" style="width: 14px; height: 14px; color: var(--accent-cyan);"></i>
                             </button>
-                            <button type="button" class="btn btn-secondary btn-icon" title="Delete Invoice" onclick="app.deleteInvoice('${inv.id}')">
+                            <button type="button" class="btn btn-secondary btn-icon" title="Delete Invoice" onclick="app.deleteInvoice('${inv.id}', this)">
                                 <i data-lucide="trash-2" style="width: 14px; height: 14px; color: var(--accent-red);"></i>
                             </button>
                         </div>
@@ -4073,11 +4623,18 @@
             html2pdf().set(opt).from(element).save();
         },
 
-        async deleteInvoice(id) {
-            if (!confirm('Are you sure you want to delete this invoice?')) return;
+        async deleteInvoice(id, btn) {
+            if (btn) {
+                this.armConfirmButton(btn, () => this.executeDeleteInvoice(id), 'Delete?');
+                return;
+            }
+            await this.executeDeleteInvoice(id);
+        },
+
+        async executeDeleteInvoice(id) {
 
             try {
-                const response = await fetch(this.getApiUrl('/api/invoices/delete'), {
+                const response = await this.authFetch('/api/invoices/delete', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ id })
@@ -4152,7 +4709,7 @@
             }
 
             try {
-                const response = await fetch(this.getApiUrl('/api/clients'), {
+                const response = await this.authFetch('/api/clients', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(clientData)
@@ -4266,7 +4823,7 @@
                             <button type="button" class="btn btn-secondary btn-icon" title="Edit Client" onclick="app.toggleAddClientForm(true, '${c.id}')" style="padding: 4px 8px;">
                                 <i data-lucide="edit" style="width: 13px; height: 13px; color: var(--accent-cyan);"></i>
                             </button>
-                            <button type="button" class="btn btn-secondary btn-icon" title="Delete Client" onclick="app.deleteSavedClient('${c.id}')" style="padding: 4px 8px;">
+                            <button type="button" class="btn btn-secondary btn-icon" title="Delete Client" onclick="app.deleteSavedClient('${c.id}', this)" style="padding: 4px 8px;">
                                 <i data-lucide="trash-2" style="width: 13px; height: 13px; color: var(--accent-red);"></i>
                             </button>
                         </div>
@@ -4365,11 +4922,18 @@
             }
         },
 
-        async deleteSavedClient(clientId) {
-            if (!confirm('Are you sure you want to delete this saved client?')) return;
+        async deleteSavedClient(clientId, btn) {
+            if (btn) {
+                this.armConfirmButton(btn, () => this.executeDeleteClient(clientId), 'Delete?');
+                return;
+            }
+            await this.executeDeleteClient(clientId);
+        },
+
+        async executeDeleteClient(clientId) {
 
             try {
-                const response = await fetch(this.getApiUrl('/api/clients/delete'), {
+                const response = await this.authFetch('/api/clients/delete', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ id: clientId })
@@ -4479,12 +5043,17 @@
             const clientStats = new Map();
             let totalInvoicedRevenue = 0;
             const invoicedClientIds = new Set();
+            const revenueByCurrency = {};
 
             invoices.forEach(inv => {
                 const invClientName = (inv.clientName || '').toLowerCase().trim();
                 const invClientEmail = (inv.clientEmail || '').toLowerCase().trim();
                 const amount = Number(inv.total) || 0;
+                const currency = (inv.currency || 'USD').toUpperCase();
                 totalInvoicedRevenue += amount;
+
+                if (!revenueByCurrency[currency]) revenueByCurrency[currency] = 0;
+                revenueByCurrency[currency] += amount;
 
                 // Match with client record
                 const matched = clients.find(c => 
@@ -4494,9 +5063,11 @@
 
                 if (matched) {
                     invoicedClientIds.add(matched.id);
-                    const curr = clientStats.get(matched.id) || { count: 0, total: 0 };
+                    const curr = clientStats.get(matched.id) || { count: 0, total: 0, currencies: {} };
                     curr.count += 1;
                     curr.total += amount;
+                    if (!curr.currencies[currency]) curr.currencies[currency] = 0;
+                    curr.currencies[currency] += amount;
                     clientStats.set(matched.id, curr);
                 }
             });
@@ -4504,7 +5075,33 @@
             // Update KPI cards
             if (totalKpi) totalKpi.textContent = clients.length;
             if (invoicedKpi) invoicedKpi.textContent = invoicedClientIds.size;
-            if (revenueKpi) revenueKpi.textContent = `$${totalInvoicedRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+            const revenueLabel = document.getElementById('clients-kpi-revenue-label');
+            if (revenueKpi) {
+                const currencies = Object.keys(revenueByCurrency);
+                if (currencies.length === 0) {
+                    revenueKpi.innerHTML = '<div style="font-size:1.4rem;font-weight:800;color:var(--accent-green);">$0</div>';
+                    if (revenueLabel) revenueLabel.textContent = 'Total Invoiced Value';
+                } else if (currencies.length === 1) {
+                    const cur = currencies[0];
+                    const symbol = this.getCurrencySymbol(cur);
+                    const amt = revenueByCurrency[cur];
+                    revenueKpi.innerHTML = `<div style="font-size:1.4rem;font-weight:800;color:var(--accent-green);">${symbol}${amt.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`;
+                    if (revenueLabel) revenueLabel.textContent = `Total Invoiced (${cur})`;
+                } else {
+                    if (revenueLabel) revenueLabel.textContent = `Total Invoiced (${currencies.length} currencies)`;
+                    let html = '';
+                    currencies.forEach(cur => {
+                        const symbol = this.getCurrencySymbol(cur);
+                        const amt = revenueByCurrency[cur];
+                        html += `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:1px 0;">
+                            <span style="font-size:10px;color:var(--text-muted);font-weight:600;text-transform:uppercase;min-width:28px;">${cur}</span>
+                            <span style="font-size:14px;font-weight:700;color:var(--accent-green);font-family:'Outfit',sans-serif;">${symbol}${amt.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                        </div>`;
+                    });
+                    revenueKpi.innerHTML = html;
+                }
+            }
 
             if (!tbody) return;
 
@@ -4563,9 +5160,15 @@
                             <span class="badge" style="background: rgba(99, 102, 241, 0.12); color: var(--accent-blue); font-size: 0.75rem; width: fit-content;">
                                 ${stats.count} ${stats.count === 1 ? 'Invoice' : 'Invoices'}
                             </span>
-                            <span style="font-size: 0.85rem; font-weight: 700; color: var(--accent-green);">
-                                $${stats.total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            </span>
+                            ${(() => {
+                                const curs = Object.keys(stats.currencies || {});
+                                if (curs.length === 0) return '<span style="font-size: 0.85rem; color: var(--text-muted);">—</span>';
+                                return curs.map(cur => {
+                                    const sym = app.getCurrencySymbol(cur);
+                                    const amt = stats.currencies[cur];
+                                    return `<span style="font-size: 0.85rem; font-weight: 700; color: var(--accent-green);">${sym}${amt.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>`;
+                                }).join('');
+                            })()}
                         </div>
                     </td>
                     <td style="text-align: right;">
@@ -4576,7 +5179,7 @@
                             <button type="button" class="btn btn-secondary btn-icon" title="Edit Client" onclick="app.toggleTabAddClientForm(true, '${c.id}')" style="padding: 4px 8px;">
                                 <i data-lucide="edit" style="width: 13px; height: 13px; color: var(--accent-cyan);"></i>
                             </button>
-                            <button type="button" class="btn btn-secondary btn-icon" title="Delete Client" onclick="app.deleteClientFromTab('${c.id}')" style="padding: 4px 8px;">
+                            <button type="button" class="btn btn-secondary btn-icon" title="Delete Client" onclick="app.deleteClientFromTab('${c.id}', this)" style="padding: 4px 8px;">
                                 <i data-lucide="trash-2" style="width: 13px; height: 13px; color: var(--accent-red);"></i>
                             </button>
                         </div>
@@ -4671,8 +5274,15 @@
             }
         },
 
-        async deleteClientFromTab(clientId) {
-            await this.deleteSavedClient(clientId);
+        async deleteClientFromTab(clientId, btn) {
+            if (btn) {
+                this.armConfirmButton(btn, async () => {
+                    await this.executeDeleteClient(clientId);
+                    this.renderClientsTab();
+                }, 'Delete?');
+                return;
+            }
+            await this.executeDeleteClient(clientId);
             this.renderClientsTab();
         },
 
@@ -4683,6 +5293,809 @@
             this.onSelectSavedClient(clientId);
             const selectEl = document.getElementById('inv-client-select');
             if (selectEl) selectEl.value = clientId;
+        },
+
+        // ==============================================================================
+        // SITE SETTINGS MANAGER METHODS
+        // ==============================================================================
+        switchSettingsSubtab(subtabKey) {
+            document.querySelectorAll('.settings-tab-btn').forEach(btn => {
+                if (btn.getAttribute('data-subtab') === subtabKey) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+
+            document.querySelectorAll('.settings-subtab-pane').forEach(pane => {
+                if (pane.id === `settings-subtab-${subtabKey}`) {
+                    pane.classList.add('active');
+                } else {
+                    pane.classList.remove('active');
+                }
+            });
+            if (subtabKey === 'reviews') {
+                this.renderSettingsReviewsTable();
+            }
+            if (window.lucide) window.lucide.createIcons();
+        },
+
+        renderSiteSettingsTab() {
+            const s = this.state.siteSettings;
+            if (!s) return;
+
+            const setVal = (id, val) => {
+                const el = document.getElementById(id);
+                if (el && val !== undefined && val !== null) el.value = val;
+            };
+
+            // 1. Header
+            if (s.header) {
+                setVal('set-header-brandName', s.header.brandName);
+                setVal('set-header-brandLogo', s.header.brandLogo || '/assets/zannat_inner_symbol_icon.png');
+                setVal('set-header-brandTagline', s.header.brandTagline);
+                setVal('set-header-statusBadgeText', s.header.statusBadgeText);
+                setVal('set-header-navHome', s.header.navHome);
+                setVal('set-header-navServices', s.header.navServices);
+                setVal('set-header-navWorkflow', s.header.navWorkflow);
+                setVal('set-header-navGallery', s.header.navGallery);
+                setVal('set-header-navReviews', s.header.navReviews);
+                setVal('set-header-navSubmitBug', s.header.navSubmitBug);
+            }
+
+            // 2. Footer
+            if (s.footer) {
+                setVal('set-footer-brandTitle', s.footer.brandTitle);
+                setVal('set-footer-brandDescription', s.footer.brandDescription);
+                setVal('set-footer-copyrightText', s.footer.copyrightText);
+                setVal('set-footer-linkHome', s.footer.linkHome);
+                setVal('set-footer-linkServices', s.footer.linkServices);
+                setVal('set-footer-linkWorkflow', s.footer.linkWorkflow);
+                setVal('set-footer-linkGallery', s.footer.linkGallery);
+                setVal('set-footer-linkReviews', s.footer.linkReviews);
+                setVal('set-footer-linkSubmitBug', s.footer.linkSubmitBug);
+            }
+
+            // 3. Homepage Body
+            if (s.homepage) {
+                setVal('set-hp-heroName', s.homepage.heroName);
+                setVal('set-hp-heroTitle', s.homepage.heroTitle);
+                setVal('set-hp-heroAvatar', s.homepage.heroAvatar);
+                setVal('set-hp-heroBadge', s.homepage.heroBadge);
+                setVal('set-hp-aboutHeading', s.homepage.aboutHeading);
+                setVal('set-hp-aboutText', s.homepage.aboutText);
+                setVal('set-hp-urgentFixPrompt', s.homepage.urgentFixPrompt);
+                setVal('set-hp-urgentFixText', s.homepage.urgentFixText);
+                setVal('set-hp-urgentFixLink', s.homepage.urgentFixLink);
+                setVal('set-hp-githubBtnText', s.homepage.githubBtnText);
+                setVal('set-hp-githubBtnLink', s.homepage.githubBtnLink);
+                setVal('set-hp-hireMeBtnText', s.homepage.hireMeBtnText);
+                setVal('set-hp-hireMeBtnLink', s.homepage.hireMeBtnLink);
+                setVal('set-hp-simulatorTitle', s.homepage.simulatorTitle);
+                setVal('set-hp-simulatorDesc', s.homepage.simulatorDesc);
+                setVal('set-hp-m1-val', s.homepage.metric1Value);
+                setVal('set-hp-m1-suf', s.homepage.metric1Suffix);
+                setVal('set-hp-m1-lbl', s.homepage.metric1Label);
+                setVal('set-hp-m2-val', s.homepage.metric2Value);
+                setVal('set-hp-m2-suf', s.homepage.metric2Suffix);
+                setVal('set-hp-m2-lbl', s.homepage.metric2Label);
+                setVal('set-hp-m3-val', s.homepage.metric3Value);
+                setVal('set-hp-m3-suf', s.homepage.metric3Suffix);
+                setVal('set-hp-m3-lbl', s.homepage.metric3Label);
+                setVal('set-hp-m4-val', s.homepage.metric4Value);
+                setVal('set-hp-m4-lbl', s.homepage.metric4Label);
+            }
+
+            // 4. Services
+            if (s.services) {
+                setVal('set-srv-badge', s.services.badge);
+                setVal('set-srv-title', s.services.title);
+                setVal('set-srv-subtitle', s.services.subtitle);
+                setVal('set-srv-c1-title', s.services.service1Title);
+                setVal('set-srv-c1-desc', s.services.service1Desc);
+                setVal('set-srv-c2-title', s.services.service2Title);
+                setVal('set-srv-c2-desc', s.services.service2Desc);
+                setVal('set-srv-c3-title', s.services.service3Title);
+                setVal('set-srv-c3-desc', s.services.service3Desc);
+                setVal('set-srv-c4-title', s.services.service4Title);
+                setVal('set-srv-c4-desc', s.services.service4Desc);
+            }
+
+            // 5. Workflow
+            if (s.workflow) {
+                setVal('set-wf-badge', s.workflow.badge);
+                setVal('set-wf-title', s.workflow.title);
+                setVal('set-wf-subtitle', s.workflow.subtitle);
+                setVal('set-wf-s1-num', s.workflow.step1Num);
+                setVal('set-wf-s1-title', s.workflow.step1Title);
+                setVal('set-wf-s1-desc', s.workflow.step1Desc);
+                setVal('set-wf-s2-num', s.workflow.step2Num);
+                setVal('set-wf-s2-title', s.workflow.step2Title);
+                setVal('set-wf-s2-desc', s.workflow.step2Desc);
+                setVal('set-wf-s3-num', s.workflow.step3Num);
+                setVal('set-wf-s3-title', s.workflow.step3Title);
+                setVal('set-wf-s3-desc', s.workflow.step3Desc);
+                setVal('set-wf-s4-num', s.workflow.step4Num);
+                setVal('set-wf-s4-title', s.workflow.step4Title);
+                setVal('set-wf-s4-desc', s.workflow.step4Desc);
+            }
+
+            // 6. Gallery
+            if (s.gallery) {
+                setVal('set-gal-badge', s.gallery.badge);
+                setVal('set-gal-title', s.gallery.title);
+                setVal('set-gal-subtitle', s.gallery.subtitle);
+                setVal('set-gal-c1-title', s.gallery.card1Title);
+                setVal('set-gal-c1-desc', s.gallery.card1Desc);
+                setVal('set-gal-c2-title', s.gallery.card2Title);
+                setVal('set-gal-c2-desc', s.gallery.card2Desc);
+                setVal('set-gal-c3-title', s.gallery.card3Title);
+                setVal('set-gal-c3-desc', s.gallery.card3Desc);
+                setVal('set-gal-c4-title', s.gallery.card4Title);
+                setVal('set-gal-c4-desc', s.gallery.card4Desc);
+            }
+
+            // 7. Reviews
+            if (s.reviews) {
+                setVal('set-rev-badge', s.reviews.badge);
+                setVal('set-rev-title', s.reviews.title);
+                setVal('set-rev-subtitle', s.reviews.subtitle);
+                setVal('set-rev-ratingNumber', s.reviews.ratingNumber);
+                setVal('set-rev-ratingLabel', s.reviews.ratingLabel);
+                setVal('set-rev-s1-num', s.reviews.stat1Num);
+                setVal('set-rev-s1-desc', s.reviews.stat1Desc);
+                setVal('set-rev-s2-num', s.reviews.stat2Num);
+                setVal('set-rev-s2-desc', s.reviews.stat2Desc);
+                setVal('set-rev-s3-num', s.reviews.stat3Num);
+                setVal('set-rev-s3-desc', s.reviews.stat3Desc);
+                setVal('set-rev-upworkText', s.reviews.upworkBtnText);
+                setVal('set-rev-upworkLink', s.reviews.upworkBtnLink);
+            }
+
+            // 8. Submit Ticket
+            if (s.submitTicket) {
+                setVal('set-sub-badge', s.submitTicket.badge);
+                setVal('set-sub-title', s.submitTicket.title);
+                setVal('set-sub-subtitle', s.submitTicket.subtitle);
+                setVal('set-sub-btnText', s.submitTicket.btnText);
+            }
+
+            // 9. Notifications
+            if (s.notifications) {
+                setVal('set-notif-adminEmail', s.notifications.adminEmail);
+                setVal('set-notif-adminWhatsApp', s.notifications.adminWhatsApp);
+                const cbEmail = document.getElementById('set-notif-enableAdminEmail');
+                if (cbEmail) cbEmail.checked = s.notifications.enableAdminEmail !== false;
+                const cbWa = document.getElementById('set-notif-enableAdminWhatsApp');
+                if (cbWa) cbWa.checked = s.notifications.enableAdminWhatsApp !== false;
+                const cbClient = document.getElementById('set-notif-enableClientWhatsApp');
+                if (cbClient) cbClient.checked = s.notifications.enableClientWhatsApp !== false;
+            }
+
+            // Render reviews table inside reviews subtab
+            this.renderSettingsReviewsTable();
+        },
+
+        applySiteSettingsToDOM() {
+            const s = this.state.siteSettings;
+            if (!s) return;
+
+            const setText = (id, text) => {
+                const el = document.getElementById(id);
+                if (el && text !== undefined && text !== null) el.textContent = text;
+            };
+
+            const setAttr = (id, attr, val) => {
+                const el = document.getElementById(id);
+                if (el && val !== undefined && val !== null) el.setAttribute(attr, val);
+            };
+
+            // 1. Header & Navigation
+            if (s.header) {
+                setText('navbar-brand-name', s.header.brandName);
+                setText('navbar-brand-tagline', s.header.brandTagline);
+                if (s.header.brandLogo) {
+                    setAttr('navbar-brand-logo', 'src', s.header.brandLogo);
+                }
+
+                // Admin Sidebar Brand & Logo
+                setText('sidebar-brand-name', s.header.brandName);
+                if (s.header.brandLogo) {
+                    setAttr('sidebar-brand-logo', 'src', s.header.brandLogo);
+                }
+
+                // Custom Page Shell Brand & Logo
+                setText('custom-brand-name', s.header.brandName);
+                setText('custom-brand-tagline', s.header.brandTagline);
+                if (s.header.brandLogo) {
+                    setAttr('custom-brand-logo', 'src', s.header.brandLogo);
+                }
+
+                setText('hero-badge-text', s.header.statusBadgeText);
+                setText('nav-link-home', s.header.navHome);
+                setText('nav-link-services', s.header.navServices);
+                setText('nav-link-workflow', s.header.navWorkflow);
+                setText('nav-link-gallery', s.header.navGallery);
+                setText('nav-link-reviews', s.header.navReviews);
+                setText('nav-link-submit-bug', s.header.navSubmitBug);
+            }
+
+            // 2. Footer
+            if (s.footer) {
+                setText('footer-brand-title', s.footer.brandTitle);
+                setText('footer-brand-desc', s.footer.brandDescription);
+                setText('footer-copyright', s.footer.copyrightText);
+                setText('footer-link-home', s.footer.linkHome);
+                setText('footer-link-services', s.footer.linkServices);
+                setText('footer-link-workflow', s.footer.linkWorkflow);
+                setText('footer-link-gallery', s.footer.linkGallery);
+                setText('footer-link-reviews', s.footer.linkReviews);
+                setText('footer-link-submit-bug', s.footer.linkSubmitBug);
+            }
+
+            // 3. Homepage Body
+            if (s.homepage) {
+                setText('hero-profile-name', s.homepage.heroName);
+                setText('hero-profile-title', s.homepage.heroTitle);
+                setText('hero-about-heading', s.homepage.aboutHeading);
+                setText('hero-profile-about', s.homepage.aboutText);
+                setText('hero-urgent-prompt', s.homepage.urgentFixPrompt);
+                setText('hero-urgent-link', s.homepage.urgentFixText);
+                setAttr('hero-urgent-link', 'href', s.homepage.urgentFixLink || '/submit-ticket');
+                setText('hero-github-text', s.homepage.githubBtnText);
+                setAttr('hero-github-btn', 'href', s.homepage.githubBtnLink || 'https://github.com');
+                setText('hero-hireme-text', s.homepage.hireMeBtnText);
+                setAttr('hero-hireme-btn', 'href', s.homepage.hireMeBtnLink || 'https://upwork.com');
+
+                if (s.homepage.heroAvatar) {
+                    setAttr('hero-profile-avatar', 'src', s.homepage.heroAvatar);
+                }
+
+                setText('slider-case-title', s.homepage.simulatorTitle);
+                setText('slider-case-desc', s.homepage.simulatorDesc);
+
+                // Metrics
+                const m1 = document.getElementById('metric-item-1-num');
+                if (m1) {
+                    m1.setAttribute('data-target', s.homepage.metric1Value || '1500');
+                    m1.setAttribute('data-suffix', s.homepage.metric1Suffix || '+');
+                    m1.textContent = (s.homepage.metric1Value || '1500') + (s.homepage.metric1Suffix || '+');
+                }
+                setText('metric-item-1-label', s.homepage.metric1Label);
+
+                const m2 = document.getElementById('metric-item-2-num');
+                if (m2) {
+                    m2.setAttribute('data-target', s.homepage.metric2Value || '2');
+                    m2.setAttribute('data-suffix', s.homepage.metric2Suffix || ' Hours');
+                    m2.textContent = (s.homepage.metric2Value || '2') + (s.homepage.metric2Suffix || ' Hours');
+                }
+                setText('metric-item-2-label', s.homepage.metric2Label);
+
+                const m3 = document.getElementById('metric-item-3-num');
+                if (m3) {
+                    m3.setAttribute('data-target', s.homepage.metric3Value || '99.9');
+                    m3.setAttribute('data-suffix', s.homepage.metric3Suffix || '%');
+                    m3.textContent = (s.homepage.metric3Value || '99.9') + (s.homepage.metric3Suffix || '%');
+                }
+                setText('metric-item-3-label', s.homepage.metric3Label);
+
+                setText('metric-item-4-num', s.homepage.metric4Value);
+                setText('metric-item-4-label', s.homepage.metric4Label);
+            }
+
+            // 4. Services Page
+            if (s.services) {
+                setText('services-badge', s.services.badge);
+                setText('services-title', s.services.title);
+                setText('services-subtitle', s.services.subtitle);
+                setText('services-card1-title', s.services.service1Title);
+                setText('services-card1-desc', s.services.service1Desc);
+                setText('services-card2-title', s.services.service2Title);
+                setText('services-card2-desc', s.services.service2Desc);
+                setText('services-card3-title', s.services.service3Title);
+                setText('services-card3-desc', s.services.service3Desc);
+                setText('services-card4-title', s.services.service4Title);
+                setText('services-card4-desc', s.services.service4Desc);
+            }
+
+            // 5. Workflow Page
+            if (s.workflow) {
+                setText('workflow-badge', s.workflow.badge);
+                setText('workflow-title', s.workflow.title);
+                setText('workflow-subtitle', s.workflow.subtitle);
+                setText('workflow-step1-num', s.workflow.step1Num);
+                setText('workflow-step1-title', s.workflow.step1Title);
+                setText('workflow-step1-desc', s.workflow.step1Desc);
+                setText('workflow-step2-num', s.workflow.step2Num);
+                setText('workflow-step2-title', s.workflow.step2Title);
+                setText('workflow-step2-desc', s.workflow.step2Desc);
+                setText('workflow-step3-num', s.workflow.step3Num);
+                setText('workflow-step3-title', s.workflow.step3Title);
+                setText('workflow-step3-desc', s.workflow.step3Desc);
+                setText('workflow-step4-num', s.workflow.step4Num);
+                setText('workflow-step4-title', s.workflow.step4Title);
+                setText('workflow-step4-desc', s.workflow.step4Desc);
+            }
+
+            // 6. Gallery Page
+            if (s.gallery) {
+                setText('gallery-badge', s.gallery.badge);
+                setText('gallery-title', s.gallery.title);
+                setText('gallery-subtitle', s.gallery.subtitle);
+                setText('gallery-card1-title', s.gallery.card1Title);
+                setText('gallery-card1-desc', s.gallery.card1Desc);
+                setText('gallery-card2-title', s.gallery.card2Title);
+                setText('gallery-card2-desc', s.gallery.card2Desc);
+                setText('gallery-card3-title', s.gallery.card3Title);
+                setText('gallery-card3-desc', s.gallery.card3Desc);
+                setText('gallery-card4-title', s.gallery.card4Title);
+                setText('gallery-card4-desc', s.gallery.card4Desc);
+            }
+
+            // 7. Reviews Page
+            if (s.reviews) {
+                setText('reviews-badge', s.reviews.badge);
+                setText('reviews-title', s.reviews.title);
+                setText('reviews-subtitle', s.reviews.subtitle);
+                setText('reviews-rating-number', s.reviews.ratingNumber);
+                setText('reviews-rating-label', s.reviews.ratingLabel);
+                setText('reviews-stat1-num', s.reviews.stat1Num);
+                setText('reviews-stat1-desc', s.reviews.stat1Desc);
+                setText('reviews-stat2-num', s.reviews.stat2Num);
+                setText('reviews-stat2-desc', s.reviews.stat2Desc);
+                setText('reviews-stat3-num', s.reviews.stat3Num);
+                setText('reviews-stat3-desc', s.reviews.stat3Desc);
+                setText('reviews-upwork-text', s.reviews.upworkBtnText);
+                setAttr('reviews-upwork-link', 'href', s.reviews.upworkBtnLink || 'https://upwork.com');
+            }
+
+            // 8. Submit Ticket Page
+            if (s.submitTicket) {
+                setText('submit-ticket-badge', s.submitTicket.badge);
+                setText('submit-ticket-title', s.submitTicket.title);
+                setText('submit-ticket-subtitle', s.submitTicket.subtitle);
+                setText('submit-ticket-btn-text', s.submitTicket.btnText);
+            }
+
+            // Re-render dynamic reviews grid
+            this.renderReviews();
+        },
+
+        async saveSiteSettings() {
+            const getVal = (id, fallback = '') => {
+                const el = document.getElementById(id);
+                return el ? el.value : fallback;
+            };
+
+            const payload = {
+                header: {
+                    brandName: getVal('set-header-brandName', 'Zannat.me'),
+                    brandLogo: getVal('set-header-brandLogo', '/assets/zannat_inner_symbol_icon.png'),
+                    brandTagline: getVal('set-header-brandTagline', 'WordPress Specialist'),
+                    statusBadgeText: getVal('set-header-statusBadgeText', 'Available for fixing bugs'),
+                    navHome: getVal('set-header-navHome', 'Home'),
+                    navServices: getVal('set-header-navServices', 'Services'),
+                    navWorkflow: getVal('set-header-navWorkflow', 'Workflow'),
+                    navGallery: getVal('set-header-navGallery', 'Behind Scenes'),
+                    navReviews: getVal('set-header-navReviews', 'Reviews'),
+                    navSubmitBug: getVal('set-header-navSubmitBug', 'Submit Bug')
+                },
+                footer: {
+                    brandTitle: getVal('set-footer-brandTitle', 'Zannat.me'),
+                    brandDescription: getVal('set-footer-brandDescription', 'WordPress specialist available globally for emergency repairs.'),
+                    copyrightText: getVal('set-footer-copyrightText', '© 2026 Zannat.me. All rights reserved. WordPress is a registered trademark of the WordPress Foundation.'),
+                    linkHome: getVal('set-footer-linkHome', 'Home'),
+                    linkServices: getVal('set-footer-linkServices', 'Services'),
+                    linkWorkflow: getVal('set-footer-linkWorkflow', 'Workflow'),
+                    linkGallery: getVal('set-footer-linkGallery', 'Behind Scenes'),
+                    linkReviews: getVal('set-footer-linkReviews', 'Reviews'),
+                    linkSubmitBug: getVal('set-footer-linkSubmitBug', 'Submit Bug')
+                },
+                homepage: {
+                    heroName: getVal('set-hp-heroName', 'Abu Zannat'),
+                    heroTitle: getVal('set-hp-heroTitle', 'WordPress Specialist & Web Developer'),
+                    heroAvatar: getVal('set-hp-heroAvatar', '/assets/photo1.jpg'),
+                    heroBadge: getVal('set-hp-heroBadge', 'AVAILABLE FOR FIXING BUGS'),
+                    aboutHeading: getVal('set-hp-aboutHeading', 'About Me'),
+                    aboutText: getVal('set-hp-aboutText', ''),
+                    urgentFixPrompt: getVal('set-hp-urgentFixPrompt', 'Active and available for urgent bug dispatch.'),
+                    urgentFixText: getVal('set-hp-urgentFixText', 'Request Urgent Fix'),
+                    urgentFixLink: getVal('set-hp-urgentFixLink', '/submit-ticket'),
+                    githubBtnText: getVal('set-hp-githubBtnText', 'Github'),
+                    githubBtnLink: getVal('set-hp-githubBtnLink', 'https://github.com/abuzannat911-lab'),
+                    hireMeBtnText: getVal('set-hp-hireMeBtnText', 'Hire Me'),
+                    hireMeBtnLink: getVal('set-hp-hireMeBtnLink', 'https://upwork.com'),
+                    simulatorTitle: getVal('set-hp-simulatorTitle', 'WooCommerce Spinner Fix'),
+                    simulatorDesc: getVal('set-hp-simulatorDesc', ''),
+                    metric1Value: getVal('set-hp-m1-val', '1500'),
+                    metric1Suffix: getVal('set-hp-m1-suf', '+'),
+                    metric1Label: getVal('set-hp-m1-lbl', 'Bugs Fixed'),
+                    metric2Value: getVal('set-hp-m2-val', '2'),
+                    metric2Suffix: getVal('set-hp-m2-suf', ' Hours'),
+                    metric2Label: getVal('set-hp-m2-lbl', 'Avg. Turnaround'),
+                    metric3Value: getVal('set-hp-m3-val', '99.9'),
+                    metric3Suffix: getVal('set-hp-m3-suf', '%'),
+                    metric3Label: getVal('set-hp-m3-lbl', 'Success Rate'),
+                    metric4Value: getVal('set-hp-m4-val', '24/7'),
+                    metric4Label: getVal('set-hp-m4-lbl', 'Emergency Fixes')
+                },
+                services: {
+                    badge: getVal('set-srv-badge', 'Expert Services'),
+                    title: getVal('set-srv-title', 'WordPress Debugging & Repair Services'),
+                    subtitle: getVal('set-srv-subtitle', 'Common issues I resolve daily for clients globally.'),
+                    service1Title: getVal('set-srv-c1-title', 'Malware Cleanup & Security'),
+                    service1Desc: getVal('set-srv-c1-desc', ''),
+                    service2Title: getVal('set-srv-c2-title', 'Page Speed Optimization'),
+                    service2Desc: getVal('set-srv-c2-desc', ''),
+                    service3Title: getVal('set-srv-c3-title', 'Plugin & Theme Conflicts'),
+                    service3Desc: getVal('set-srv-c3-desc', ''),
+                    service4Title: getVal('set-srv-c4-title', 'Database & Server Recovery'),
+                    service4Desc: getVal('set-srv-c4-desc', '')
+                },
+                workflow: {
+                    badge: getVal('set-wf-badge', 'Workflow'),
+                    title: getVal('set-wf-title', 'How It Works'),
+                    subtitle: getVal('set-wf-subtitle', 'Get your WordPress site fixed in four simple, clean steps.'),
+                    step1Num: getVal('set-wf-s1-num', '01'),
+                    step1Title: getVal('set-wf-s1-title', 'Submit Ticket'),
+                    step1Desc: getVal('set-wf-s1-desc', ''),
+                    step2Num: getVal('set-wf-s2-num', '02'),
+                    step2Title: getVal('set-wf-s2-title', 'Diagnostics'),
+                    step2Desc: getVal('set-wf-s2-desc', ''),
+                    step3Num: getVal('set-wf-s3-num', '03'),
+                    step3Title: getVal('set-wf-s3-title', 'Smashed'),
+                    step3Desc: getVal('set-wf-s3-desc', ''),
+                    step4Num: getVal('set-wf-s4-num', '04'),
+                    step4Title: getVal('set-wf-s4-title', 'Handback'),
+                    step4Desc: getVal('set-wf-s4-desc', '')
+                },
+                gallery: {
+                    badge: getVal('set-gal-badge', 'Behind the Scenes'),
+                    title: getVal('set-gal-title', 'Life Behind the Screen'),
+                    subtitle: getVal('set-gal-subtitle', 'A glimpse into the real-world experiences...'),
+                    card1Title: getVal('set-gal-c1-title', 'Resilience & Adaptability'),
+                    card1Desc: getVal('set-gal-c1-desc', ''),
+                    card2Title: getVal('set-gal-c2-title', 'Focus & Analytical Clarity'),
+                    card2Desc: getVal('set-gal-c2-desc', ''),
+                    card3Title: getVal('set-gal-c3-title', 'Continuous Movement'),
+                    card3Desc: getVal('set-gal-c3-desc', ''),
+                    card4Title: getVal('set-gal-c4-title', 'Reliable Partner'),
+                    card4Desc: getVal('set-gal-c4-desc', '')
+                },
+                reviews: {
+                    badge: getVal('set-rev-badge', '⭐ Verified Client Reviews'),
+                    title: getVal('set-rev-title', 'Trusted by Clients Worldwide'),
+                    subtitle: getVal('set-rev-subtitle', 'Real reviews from real clients — sourced directly from Fiverr.'),
+                    ratingNumber: getVal('set-rev-ratingNumber', '5.0'),
+                    ratingLabel: getVal('set-rev-ratingLabel', 'Average Rating'),
+                    stat1Num: getVal('set-rev-s1-num', '100%'),
+                    stat1Desc: getVal('set-rev-s1-desc', '5-Star Reviews'),
+                    stat2Num: getVal('set-rev-s2-num', '20+'),
+                    stat2Desc: getVal('set-rev-s2-desc', 'Happy Clients'),
+                    stat3Num: getVal('set-rev-s3-num', '12+'),
+                    stat3Desc: getVal('set-rev-s3-desc', 'Countries'),
+                    upworkBtnText: getVal('set-rev-upworkText', 'View on Upwork'),
+                    upworkBtnLink: getVal('set-rev-upworkLink', 'https://upwork.com'),
+                    items: this.getReviewsList()
+                },
+                submitTicket: {
+                    badge: getVal('set-sub-badge', 'Submit a Bug'),
+                    title: getVal('set-sub-title', 'Request Urgent WordPress Fix'),
+                    subtitle: getVal('set-sub-subtitle', 'Describe the issue you\'re facing. I\'ll inspect it and get back to you with a quote within 2 hours.'),
+                    btnText: getVal('set-sub-btnText', 'Send Query')
+                },
+                notifications: {
+                    adminEmail: getVal('set-notif-adminEmail', 'abuzannat911@gmail.com'),
+                    adminWhatsApp: getVal('set-notif-adminWhatsApp', ''),
+                    enableAdminEmail: document.getElementById('set-notif-enableAdminEmail')?.checked ?? true,
+                    enableAdminWhatsApp: document.getElementById('set-notif-enableAdminWhatsApp')?.checked ?? true,
+                    enableClientWhatsApp: document.getElementById('set-notif-enableClientWhatsApp')?.checked ?? true
+                }
+            };
+
+            try {
+                const response = await this.authFetch('/api/settings/update', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const res = await response.json();
+                if (res.success && res.siteSettings) {
+                    this.state.siteSettings = res.siteSettings;
+                    this.applySiteSettingsToDOM();
+                    this.renderSiteSettingsTab();
+                    this.showToast('All website settings and texts saved successfully!', 'success');
+                } else {
+                    this.showToast(res.error || 'Failed to save settings', 'error');
+                }
+            } catch (err) {
+                console.error('Error saving settings:', err);
+                this.showToast('Network error while saving settings', 'error');
+            }
+        },
+
+        async resetSiteSettingsToDefaults(btn) {
+            if (btn) {
+                this.armConfirmButton(btn, () => this.executeResetSiteSettings(), 'Reset All?', '#ef4444');
+                return;
+            }
+            await this.executeResetSiteSettings();
+        },
+
+        async executeResetSiteSettings() {
+            try {
+                const response = await this.authFetch('/api/settings/reset', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const res = await response.json();
+                if (res.success && res.siteSettings) {
+                    this.state.siteSettings = res.siteSettings;
+                    this.applySiteSettingsToDOM();
+                    this.renderSiteSettingsTab();
+                    this.showToast('Settings reset to defaults successfully!', 'info');
+                } else {
+                    this.showToast('Failed to reset settings', 'error');
+                }
+            } catch (err) {
+                console.error('Error resetting settings:', err);
+                this.showToast('Network error while resetting settings', 'error');
+            }
+        },
+
+        renderNotificationReceiverTab() {
+            const s = this.state.siteSettings;
+            if (!s || !s.notifications) return;
+
+            const setVal = (id, val) => {
+                const el = document.getElementById(id);
+                if (el && val !== undefined && val !== null) el.value = val;
+            };
+
+            setVal('set-notif-adminEmail', s.notifications.adminEmail || '');
+            setVal('set-notif-adminWhatsApp', s.notifications.adminWhatsApp || '');
+            const cbEmail = document.getElementById('set-notif-enableAdminEmail');
+            if (cbEmail) cbEmail.checked = s.notifications.enableAdminEmail !== false;
+            const cbWa = document.getElementById('set-notif-enableAdminWhatsApp');
+            if (cbWa) cbWa.checked = s.notifications.enableAdminWhatsApp !== false;
+            const cbClient = document.getElementById('set-notif-enableClientWhatsApp');
+            if (cbClient) cbClient.checked = s.notifications.enableClientWhatsApp !== false;
+            if (window.lucide) window.lucide.createIcons();
+        },
+
+        async saveNotificationSettings() {
+            const getVal = (id, fallback = '') => {
+                const el = document.getElementById(id);
+                return el ? el.value : fallback;
+            };
+
+            const notifPayload = {
+                notifications: {
+                    adminEmail: getVal('set-notif-adminEmail', 'abuzannat911@gmail.com'),
+                    adminWhatsApp: getVal('set-notif-adminWhatsApp', ''),
+                    enableAdminEmail: document.getElementById('set-notif-enableAdminEmail')?.checked ?? true,
+                    enableAdminWhatsApp: document.getElementById('set-notif-enableAdminWhatsApp')?.checked ?? true,
+                    enableClientWhatsApp: document.getElementById('set-notif-enableClientWhatsApp')?.checked ?? true
+                }
+            };
+
+            try {
+                const response = await this.authFetch('/api/settings/update', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(notifPayload)
+                });
+                const res = await response.json();
+                if (res.success && res.siteSettings) {
+                    this.state.siteSettings = res.siteSettings;
+                    this.renderNotificationReceiverTab();
+                    this.showToast('Notification Receiver settings saved successfully!', 'success');
+                } else {
+                    this.showToast(res.error || 'Failed to save notification settings', 'error');
+                }
+            } catch (err) {
+                console.error('Error saving notification settings:', err);
+                this.showToast('Network error while saving notification settings', 'error');
+            }
+        },
+
+        // =============================================
+        // CLIENT REVIEWS MANAGEMENT (ADMIN PANEL)
+        // =============================================
+        renderSettingsReviewsTable() {
+            const tbody = document.getElementById('settings-reviews-tbody');
+            if (!tbody) return;
+
+            const items = this.getReviewsList();
+            if (!items || items.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" style="text-align:center; padding: 32px; color: var(--text-muted); font-size: 13px;">
+                            <i data-lucide="message-square" style="width: 28px; height: 28px; display: block; margin: 0 auto 8px auto; opacity: 0.5;"></i>
+                            No reviews found. Click "Add New Review" above to create your first client testimonial.
+                        </td>
+                    </tr>
+                `;
+                if (window.lucide) window.lucide.createIcons();
+                return;
+            }
+
+            tbody.innerHTML = items.map((rev, idx) => {
+                const stars = '★'.repeat(Math.max(1, Math.min(5, rev.rating || 5)));
+                const verifiedBadge = rev.real
+                    ? `<span style="background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 6px; padding: 2px 8px; font-size: 11px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;"><svg width="10" height="10" viewBox="0 0 24 24"><circle cx="12" cy="12" r="12" fill="#1DBF73"/><text x="12" y="17" text-anchor="middle" font-size="13" font-family="Arial" font-weight="bold" fill="white">f</text></svg> Verified</span>`
+                    : `<span style="background: rgba(255, 255, 255, 0.05); color: var(--text-muted); border: 1px solid var(--border-color); border-radius: 6px; padding: 2px 8px; font-size: 11px; font-weight: 500;">Standard</span>`;
+                
+                const comment = rev.comment || '';
+                const commentPreview = comment.length > 60 ? (comment.slice(0, 60) + '...') : comment;
+
+                return `
+                    <tr>
+                        <td style="color: var(--text-muted); font-weight: 600; font-size: 12px;">${idx + 1}</td>
+                        <td>
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <span style="font-size:18px; line-height: 1;">${rev.flag || '🌐'}</span>
+                                <div>
+                                    <div style="font-weight:600; color:var(--text-main); font-size:13px;">${this.escapeHtml(rev.username)}</div>
+                                    <div style="font-size:12px; color:var(--text-muted);">${this.escapeHtml(rev.country)}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td style="color: #fbbf24; font-size: 13px; white-space: nowrap; letter-spacing: 1px;">${stars}</td>
+                        <td style="max-width: 260px; font-size: 12px; color: var(--text-muted); line-height: 1.4;" title="${this.escapeHtml(comment)}">
+                            "${this.escapeHtml(commentPreview)}"
+                        </td>
+                        <td style="font-size: 12px; color: var(--text-muted); white-space: nowrap;">${this.escapeHtml(rev.date || '')}</td>
+                        <td>${verifiedBadge}</td>
+                        <td style="text-align: right; white-space: nowrap;">
+                            <div style="display:flex; gap: 6px; justify-content: flex-end;">
+                                <button type="button" class="btn btn-secondary btn-icon" onclick="app.openEditReviewModal('${rev.id}')" title="Edit Review">
+                                    <i data-lucide="edit-3" style="width: 14px; height: 14px; color: var(--accent-purple); pointer-events: none;"></i>
+                                </button>
+                                <button type="button" class="btn btn-secondary btn-icon" onclick="app.deleteReview('${rev.id}', this)" title="Delete Review" style="border-color: rgba(239,68,68,0.2);">
+                                    <i data-lucide="trash-2" style="width: 14px; height: 14px; color: var(--accent-red); pointer-events: none;"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            if (window.lucide) window.lucide.createIcons();
+        },
+
+        openAddReviewModal() {
+            const modal = document.getElementById('modal-review-edit');
+            if (!modal) return;
+            document.getElementById('modal-review-title').textContent = 'Add New Review';
+            document.getElementById('modal-review-subtitle').textContent = 'Create a new client testimonial for your reviews page';
+            document.getElementById('modal-review-id').value = '';
+            document.getElementById('modal-review-username').value = '';
+            document.getElementById('modal-review-country').value = '';
+            document.getElementById('modal-review-flag').value = '🇺🇸';
+            document.getElementById('modal-review-rating').value = '5';
+            
+            const now = new Date();
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const todayStr = `${months[now.getMonth()]} ${now.getDate()}, ${now.getFullYear()}`;
+            document.getElementById('modal-review-date').value = todayStr;
+            document.getElementById('modal-review-comment').value = '';
+            document.getElementById('modal-review-real').checked = true;
+
+            modal.classList.remove('hidden');
+            if (window.lucide) window.lucide.createIcons();
+        },
+
+        openEditReviewModal(reviewId) {
+            const modal = document.getElementById('modal-review-edit');
+            if (!modal) return;
+            const items = this.getReviewsList();
+            const rev = items.find(r => String(r.id) === String(reviewId));
+            if (!rev) {
+                this.showToast('Review not found', 'error');
+                return;
+            }
+
+            document.getElementById('modal-review-title').textContent = 'Edit Review';
+            document.getElementById('modal-review-subtitle').textContent = `Editing testimonial for ${rev.username}`;
+            document.getElementById('modal-review-id').value = rev.id;
+            document.getElementById('modal-review-username').value = rev.username || '';
+            document.getElementById('modal-review-country').value = rev.country || '';
+            document.getElementById('modal-review-flag').value = rev.flag || '🌐';
+            document.getElementById('modal-review-rating').value = String(rev.rating || 5);
+            document.getElementById('modal-review-date').value = rev.date || '';
+            document.getElementById('modal-review-comment').value = rev.comment || '';
+            document.getElementById('modal-review-real').checked = rev.real !== false;
+
+            modal.classList.remove('hidden');
+            if (window.lucide) window.lucide.createIcons();
+        },
+
+        async saveReviewModal() {
+            const id = document.getElementById('modal-review-id').value;
+            const username = document.getElementById('modal-review-username').value.trim();
+            const country = document.getElementById('modal-review-country').value.trim();
+            const flag = document.getElementById('modal-review-flag').value.trim() || '🌐';
+            const rating = parseInt(document.getElementById('modal-review-rating').value, 10) || 5;
+            const date = document.getElementById('modal-review-date').value.trim();
+            const comment = document.getElementById('modal-review-comment').value.trim();
+            const real = document.getElementById('modal-review-real').checked;
+
+            if (!username || !comment) {
+                this.showToast('Please enter both client name and testimonial comment', 'warning');
+                return;
+            }
+
+            if (!this.state.siteSettings) this.state.siteSettings = {};
+            if (!this.state.siteSettings.reviews) this.state.siteSettings.reviews = {};
+            if (!Array.isArray(this.state.siteSettings.reviews.items)) {
+                this.state.siteSettings.reviews.items = JSON.parse(JSON.stringify(this.getReviewsList()));
+            }
+
+            const items = this.state.siteSettings.reviews.items;
+
+            if (id) {
+                const idx = items.findIndex(r => String(r.id) === String(id));
+                if (idx !== -1) {
+                    items[idx] = {
+                        ...items[idx],
+                        username,
+                        country,
+                        flag,
+                        rating,
+                        date,
+                        comment,
+                        real
+                    };
+                } else {
+                    items.push({ id, username, country, flag, rating, date, comment, real });
+                }
+            } else {
+                const newId = 'rev_' + Date.now();
+                items.unshift({
+                    id: newId,
+                    username,
+                    country,
+                    flag,
+                    rating,
+                    date,
+                    comment,
+                    real
+                });
+            }
+
+            this.closeModal('modal-review-edit');
+            this.renderSettingsReviewsTable();
+            this.renderReviews();
+
+            await this.saveSiteSettings();
+        },
+
+        async deleteReview(reviewId, btn) {
+            if (btn) {
+                this.armConfirmButton(btn, () => this.executeDeleteReview(reviewId), 'Delete?');
+                return;
+            }
+            await this.executeDeleteReview(reviewId);
+        },
+
+        async executeDeleteReview(reviewId) {
+            if (!this.state.siteSettings) this.state.siteSettings = {};
+            if (!this.state.siteSettings.reviews) this.state.siteSettings.reviews = {};
+            if (!Array.isArray(this.state.siteSettings.reviews.items)) {
+                this.state.siteSettings.reviews.items = JSON.parse(JSON.stringify(this.getReviewsList()));
+            }
+
+            const items = this.state.siteSettings.reviews.items;
+            const initialLen = items.length;
+            this.state.siteSettings.reviews.items = items.filter(r => String(r.id) !== String(reviewId));
+
+            if (this.state.siteSettings.reviews.items.length < initialLen) {
+                this.renderSettingsReviewsTable();
+                this.renderReviews();
+                await this.saveSiteSettings();
+                this.showToast('Review removed successfully', 'info');
+            }
         }
     };
 

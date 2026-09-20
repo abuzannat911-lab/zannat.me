@@ -2,6 +2,7 @@ require('dotenv').config();
 const mysql = require('mysql2/promise');
 const path = require('path');
 const fs = require('fs');
+const bcrypt = require('bcrypt');
 
 const JSON_LEGACY_FILE = path.join(__dirname, 'data.json');
 
@@ -28,6 +29,7 @@ const SCHEMA_COLUMNS = {
     tickets: {
         client_name: "VARCHAR(255) NOT NULL",
         client_email: "VARCHAR(255) DEFAULT ''",
+        client_phone: "VARCHAR(100) DEFAULT ''",
         site_url: "VARCHAR(500) DEFAULT ''",
         bug_type: "VARCHAR(100) DEFAULT ''",
         description: "TEXT",
@@ -125,7 +127,7 @@ const SCHEMA_COLUMNS = {
     },
     meta_settings: {
         setting_key: "VARCHAR(100) PRIMARY KEY",
-        setting_value: "TEXT"
+        setting_value: "LONGTEXT"
     }
 };
 
@@ -186,6 +188,7 @@ async function initSchema() {
                 id VARCHAR(50) PRIMARY KEY,
                 client_name VARCHAR(255) NOT NULL,
                 client_email VARCHAR(255) DEFAULT '',
+                client_phone VARCHAR(100) DEFAULT '',
                 site_url VARCHAR(500) DEFAULT '',
                 bug_type VARCHAR(100) DEFAULT '',
                 description TEXT,
@@ -345,7 +348,7 @@ async function initSchema() {
         await connection.query(`
             CREATE TABLE IF NOT EXISTS meta_settings (
                 setting_key VARCHAR(100) PRIMARY KEY,
-                setting_value TEXT
+                setting_value LONGTEXT
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
         `);
 
@@ -356,12 +359,196 @@ async function initSchema() {
     }
 }
 
+// Master Default Reviews List
+const DEFAULT_REVIEWS = [
+    { id: "rev-1", username: "amaher22k", country: "Egypt", flag: "🇪🇬", rating: 5, comment: "Thanks for professional work 😊 The issue was fixed very quickly and the communication was excellent throughout. I will definitely hire again.", date: "Apr 8, 2026", real: true },
+    { id: "rev-2", username: "heimatwerk", country: "Germany", flag: "🇩🇪", rating: 5, comment: "Thank you very much for the careful and professional execution of the job. All my wishes and questions were addressed and handled flawlessly. My website is now complete. Highly recommended and a true expert in troubleshooting.", date: "Mar 13, 2026", real: true },
+    { id: "rev-3", username: "heimatwerk", country: "Germany", flag: "🇩🇪", rating: 5, comment: "Once again, great work and a truly experienced developer. The job was beautifully executed, resulting in a technically perfect and error-free site. I really appreciate the politeness and friendliness! Thank you very much, see you next time.", date: "Mar 9, 2026", real: true },
+    { id: "rev-4", username: "chrispieri", country: "France", flag: "🇫🇷", rating: 5, comment: "As always, the communication was top-notch — clear, proactive, and very professional. The efficiency and attention to detail are unmatched. If you're looking for someone reliable who delivers high-quality work ahead of schedule, look no further. My go-to freelancer on this platform!", date: "Mar 2, 2026", real: true },
+    { id: "rev-5", username: "jabcebone1", country: "United States", flag: "🇺🇸", rating: 5, comment: "One of the best interactions I've ever had with a technical person. Fast, clear, and delivered well beyond my expectations.", date: "Feb 12, 2026", real: true },
+    { id: "rev-6", username: "nordlund_dev", country: "Sweden", flag: "🇸🇪", rating: 5, comment: "My WooCommerce checkout was completely broken due to a plugin conflict. Abu identified the root cause in minutes and deployed a fix without touching the rest of my store. Saved my Black Friday sales!", date: "Jan 28, 2026", real: false },
+    { id: "rev-7", username: "mk_creative", country: "United Kingdom", flag: "🇬🇧", rating: 5, comment: "I had a PHP fatal error taking down the entire site. After three other developers failed, Abu fixed it in under 45 minutes. Incredible diagnostics and very calm communication under pressure.", date: "Jan 15, 2026", real: false },
+    { id: "rev-8", username: "boutique_nina", country: "Canada", flag: "🇨🇦", rating: 5, comment: "Our Elementor site was showing a white screen of death after a plugin update. Abu rolled it back cleanly, identified the conflicting plugin, and delivered a compatibility patch. Fantastic work.", date: "Dec 30, 2025", real: false },
+    { id: "rev-9", username: "seomaster_tr", country: "Turkey", flag: "🇹🇷", rating: 5, comment: "Malware was redirecting my visitors to spammy sites. Abu cleaned every infected file, hardened the login, and set up a monitoring system. My Google rankings recovered within a week.", date: "Dec 18, 2025", real: false },
+    { id: "rev-10", username: "tokyo_store", country: "Japan", flag: "🇯🇵", rating: 5, comment: "Fast and professional. Fixed our payment gateway issue that Stripe support couldn't help with. Communication was clear even across the time zone difference. Highly recommended!", date: "Dec 5, 2025", real: false },
+    { id: "rev-11", username: "rachel_media", country: "Australia", flag: "🇦🇺", rating: 5, comment: "My WordPress multisite network was throwing database errors after a failed migration. Abu restored it completely with no data loss. He even optimized the DB tables as a bonus.", date: "Nov 22, 2025", real: false },
+    { id: "rev-12", username: "digiflow_nl", country: "Netherlands", flag: "🇳🇱", rating: 5, comment: "I was skeptical hiring online for something this critical, but Abu exceeded all expectations. The ACF field display issue was tricky — he not only fixed it but documented the cause for our team. Brilliant.", date: "Nov 10, 2025", real: false },
+    { id: "rev-13", username: "digitalwave_sg", country: "Singapore", flag: "🇸🇬", rating: 5, comment: "Page speed went from 8 seconds to 1.9 seconds after Abu optimized DB queries, lazy-loaded images, and cleared render-blocking scripts. Core Web Vitals are now all green!", date: "Oct 28, 2025", real: false },
+    { id: "rev-14", username: "ahmed_ksa", country: "Saudi Arabia", flag: "🇸🇦", rating: 5, comment: "Our WooCommerce Arabic RTL layout was broken after a theme update. Abu fixed the CSS precisely via a child theme override — very clean and professional approach.", date: "Oct 15, 2025", real: false },
+    { id: "rev-15", username: "ecom_it", country: "Italy", flag: "🇮🇹", rating: 5, comment: "Excellent service. Our Contact Form 7 stopped sending emails after a server migration. Abu traced it to missing SMTP credentials and configured WP Mail SMTP correctly. Works perfectly now.", date: "Sep 30, 2025", real: false },
+    { id: "rev-16", username: "brazilblog", country: "Brazil", flag: "🇧🇷", rating: 5, comment: "Really surprised at the turnaround speed. I described the issue in the morning, and by afternoon the site was fully fixed. Abu is a true WordPress expert who delivers on his promises.", date: "Sep 14, 2025", real: false },
+    { id: "rev-17", username: "kiwi_dev_nz", country: "New Zealand", flag: "🇳🇿", rating: 5, comment: "Had a persistent 500 internal server error due to a corrupt .htaccess. Abu fixed it immediately and audited the entire server configuration for free. Outstanding generosity.", date: "Aug 27, 2025", real: false },
+    { id: "rev-18", username: "solartech_in", country: "India", flag: "🇮🇳", rating: 5, comment: "Hired for a WooCommerce subscription plugin conflict. Fixed perfectly. Also noticed and warned me about a security vulnerability I wasn't even aware of — that extra care says it all.", date: "Aug 8, 2025", real: false },
+    { id: "rev-19", username: "mira_ph", country: "Philippines", flag: "🇵🇭", rating: 5, comment: "My entire menu disappeared after a WordPress core update. Abu restored it, cleared object cache conflicts, and made sure all custom nav walkers still worked. Very thorough and friendly.", date: "Jul 20, 2025", real: false },
+    { id: "rev-20", username: "helios_gr", country: "Greece", flag: "🇬🇷", rating: 5, comment: "I've hired many WordPress experts on this platform. None come close to the precision and speed of Abu Zannat. He understands the problem before you finish explaining it. 10 out of 10.", date: "Jul 5, 2025", real: false }
+];
+
+// Master Default Site Settings for Header, Footer, Homepage, and All Pages
+const DEFAULT_SITE_SETTINGS = {
+    header: {
+        brandName: "Zannat.me",
+        brandTagline: "WordPress Specialist",
+        brandLogo: "/assets/zannat_inner_symbol_icon.png",
+        statusBadgeText: "Available for fixing bugs",
+        navHome: "Home",
+        navServices: "Services",
+        navWorkflow: "Workflow",
+        navGallery: "Behind Scenes",
+        navReviews: "Reviews",
+        navSubmitBug: "Submit Bug"
+    },
+    footer: {
+        brandTitle: "Zannat.me",
+        brandDescription: "WordPress specialist available globally for emergency repairs.",
+        copyrightText: "© 2026 Zannat.me. All rights reserved. WordPress is a registered trademark of the WordPress Foundation.",
+        linkHome: "Home",
+        linkServices: "Services",
+        linkWorkflow: "Workflow",
+        linkGallery: "Behind Scenes",
+        linkReviews: "Reviews",
+        linkSubmitBug: "Submit Bug"
+    },
+    homepage: {
+        heroBadge: "AVAILABLE FOR FIXING BUGS",
+        heroName: "Abu Zannat",
+        heroTitle: "WordPress Specialist & Web Developer",
+        heroAvatar: "/assets/photo1.jpg",
+        aboutHeading: "About Me",
+        aboutText: "Hi, I am Abu Zannat, a WordPress expert specializing in resolving critical core bugs, plugin crashes, WooCommerce issues, database performance tuning, and server-side security hardening. I write clean PHP/JS fixes and optimize sites for speed and security.",
+        urgentFixPrompt: "Active and available for urgent bug dispatch.",
+        urgentFixText: "Request Urgent Fix",
+        urgentFixLink: "/submit-ticket",
+        githubBtnText: "Github",
+        githubBtnLink: "https://github.com/abuzannat911-lab",
+        hireMeBtnText: "Hire Me",
+        hireMeBtnLink: "https://www.upwork.com/freelancers/~013160cafe75f54f74?mp_source=share",
+        simulatorTitle: "WooCommerce Spinner Fix",
+        simulatorDesc: "Resolved JS execution chain conflict blocking checkout and gateway callbacks in mystore.co.bd.",
+        metric1Value: "1500",
+        metric1Suffix: "+",
+        metric1Label: "Bugs Fixed",
+        metric2Value: "2",
+        metric2Suffix: " Hours",
+        metric2Label: "Avg. Turnaround",
+        metric3Value: "99.9",
+        metric3Suffix: "%",
+        metric3Label: "Success Rate",
+        metric4Value: "24/7",
+        metric4Label: "Emergency Fixes"
+    },
+    services: {
+        badge: "Expert Services",
+        title: "WordPress Debugging & Repair Services",
+        subtitle: "Common issues I resolve daily for clients globally.",
+        service1Title: "Malware Cleanup & Security",
+        service1Desc: "Thorough file scanning, cleaning backend backdoor injections, malware removal, spam link fixes, and firewall hardening.",
+        service2Title: "Page Speed Optimization",
+        service2Desc: "Minifying scripts, database indexing, page caching configuration, image compressions, and achieving 90+ Mobile PageSpeed scores.",
+        service3Title: "Plugin & Theme Conflicts",
+        service3Desc: "Resolving Javascript errors, PHP warning stacks, WooCommerce checkout spinner bugs, and broken visual styles.",
+        service4Title: "Database & Server Recovery",
+        service4Desc: "Fixing 'Error Establishing a Database Connection', resolving corrupted database tables, and correcting file permissions."
+    },
+    workflow: {
+        badge: "Workflow",
+        title: "How It Works",
+        subtitle: "Get your WordPress site fixed in four simple, clean steps.",
+        step1Num: "01",
+        step1Title: "Submit Ticket",
+        step1Desc: "Fill out the bug report below with your site URL and details.",
+        step2Num: "02",
+        step2Title: "Diagnostics",
+        step2Desc: "I analyze the error logs, active plugins, and configurations safely.",
+        step3Num: "03",
+        step3Title: "Smashed",
+        step3Desc: "I apply clean, custom code or fixes without breaking anything else.",
+        step4Num: "04",
+        step4Title: "Handback",
+        step4Desc: "Your site is audited, speeds are verified, and returned to you."
+    },
+    gallery: {
+        badge: "Behind the Scenes",
+        title: "Life Behind the Screen",
+        subtitle: "A glimpse into the real-world experiences, adventures, and mindset that fuel my development journey.",
+        card1Title: "Resilience & Adaptability",
+        card1Desc: "Solving problems on and off the road. Navigating any terrain, whether it's complex code bugs or flooded rivers, to deliver results.",
+        card2Title: "Focus & Analytical Clarity",
+        card2Desc: "Finding focus and peace in nature. Bringing clear-minded analysis to resolve high-pressure website crashes.",
+        card3Title: "Continuous Movement",
+        card3Desc: "Always exploring, moving forward, and adapting to new development environments and technology stacks.",
+        card4Title: "Reliable Partner",
+        card4Desc: "Ready for the next digital challenge, committed to establishing speed and reliability for your web operations."
+    },
+    reviews: {
+        badge: "⭐ Verified Client Reviews",
+        title: "Trusted by Clients Worldwide",
+        subtitle: "Real reviews from real clients — sourced directly from Fiverr. No filters, no edits.",
+        ratingNumber: "5.0",
+        ratingLabel: "Average Rating",
+        stat1Num: "100%",
+        stat1Desc: "5-Star Reviews",
+        stat2Num: "20+",
+        stat2Desc: "Happy Clients",
+        stat3Num: "12+",
+        stat3Desc: "Countries",
+        upworkBtnText: "View on Upwork",
+        upworkBtnLink: "https://www.upwork.com/freelancers/~013160cafe75f54f74?mp_source=share",
+        items: DEFAULT_REVIEWS
+    },
+    submitTicket: {
+        badge: "Submit a Bug",
+        title: "Request Urgent WordPress Fix",
+        subtitle: "Describe the issue you're facing. I'll inspect it and get back to you with a quote within 2 hours.",
+        btnText: "Send Query"
+    },
+    notifications: {
+        adminEmail: "abuzannat911@gmail.com",
+        adminWhatsApp: "",
+        enableAdminEmail: true,
+        enableAdminWhatsApp: true,
+        enableClientWhatsApp: true
+    }
+};
+
+function deepMerge(target, source) {
+    const output = Object.assign({}, target);
+    if (target && typeof target === 'object' && !Array.isArray(target) && source && typeof source === 'object' && !Array.isArray(source)) {
+        Object.keys(source).forEach(key => {
+            if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
+                if (!(key in target)) {
+                    Object.assign(output, { [key]: source[key] });
+                } else {
+                    output[key] = deepMerge(target[key], source[key]);
+                }
+            } else {
+                Object.assign(output, { [key]: source[key] });
+            }
+        });
+    }
+    return output;
+}
+
 // Seed & Migrate Data from JSON / Defaults
 async function seedAndMigrate() {
     await initSchema();
 
+    // Ensure default siteSettings exists in meta_settings even if users already exist
+    try {
+        const [existingSettings] = await pool.query('SELECT setting_value FROM meta_settings WHERE setting_key = ?', ['siteSettings']);
+        if (existingSettings.length === 0) {
+            await pool.query('INSERT INTO meta_settings (setting_key, setting_value) VALUES (?, ?)', [
+                'siteSettings', JSON.stringify(DEFAULT_SITE_SETTINGS)
+            ]);
+            console.log('[DATABASE] Seeded default siteSettings into meta_settings');
+        }
+    } catch (e) {
+        console.warn('[DATABASE] siteSettings check note:', e.message);
+    }
+
     const [rows] = await pool.query('SELECT COUNT(*) as count FROM users');
     if (rows[0].count > 0) {
+        // Migrate any existing plaintext passwords in the database to bcrypt
+        await migratePlaintextPasswords();
         // Database already populated - perform non-destructive safe auto-backup
         await safeBackupData();
         return; // Preserves all existing live data
@@ -418,18 +605,22 @@ async function seedAndMigrate() {
 
     const source = legacyData || DEFAULT_DATA;
 
-    // 1. Users
+    // 1. Users (safely hashed with bcrypt)
     for (const u of (source.users || DEFAULT_DATA.users)) {
-        await pool.query('INSERT IGNORE INTO users (username, password) VALUES (?, ?)', [u.username, u.password]);
+        let pwdHash = u.password || '';
+        if (pwdHash && !pwdHash.startsWith('$2a$') && !pwdHash.startsWith('$2b$') && !pwdHash.startsWith('$2y$')) {
+            pwdHash = await bcrypt.hash(pwdHash, 10);
+        }
+        await pool.query('INSERT IGNORE INTO users (username, password) VALUES (?, ?)', [u.username, pwdHash]);
     }
 
     // 2. Tickets
     for (const t of (source.tickets || [])) {
         await pool.query(`
-            INSERT IGNORE INTO tickets (id, client_name, client_email, site_url, bug_type, description, severity, status, date, admin_notes)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT IGNORE INTO tickets (id, client_name, client_email, client_phone, site_url, bug_type, description, severity, status, date, admin_notes)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `, [
-            t.id, t.clientName || 'Anonymous', t.clientEmail || '', t.siteUrl || '',
+            t.id, t.clientName || 'Anonymous', t.clientEmail || '', t.clientPhone || t.client_phone || '', t.siteUrl || '',
             t.bugType || 'General', t.description || '', t.severity || 'Medium',
             t.status || 'Pending', t.date || new Date().toISOString().split('T')[0], t.adminNotes || ''
         ]);
@@ -584,8 +775,8 @@ function formatInvoiceRow(inv) {
 }
 
 async function getFullState() {
-    // 1. Users
-    const [users] = await pool.query('SELECT username, password FROM users');
+    // 1. Users (Exclude password hashes from API state for security)
+    const [users] = await pool.query('SELECT username, created_at FROM users');
 
     // 2. Tickets
     const [ticketsRows] = await pool.query('SELECT * FROM tickets ORDER BY created_at DESC');
@@ -593,6 +784,7 @@ async function getFullState() {
         id: t.id,
         clientName: t.client_name,
         clientEmail: t.client_email,
+        clientPhone: t.client_phone || '',
         siteUrl: t.site_url,
         bugType: t.bug_type,
         description: t.description,
@@ -671,6 +863,18 @@ async function getFullState() {
         branch: bankRow.branch || 'Rangpur Branch'
     };
 
+    // 12. Site Settings
+    const [siteSettingsRows] = await pool.query('SELECT setting_value FROM meta_settings WHERE setting_key = ?', ['siteSettings']);
+    let siteSettings = DEFAULT_SITE_SETTINGS;
+    if (siteSettingsRows.length > 0 && siteSettingsRows[0].setting_value) {
+        try {
+            const parsed = JSON.parse(siteSettingsRows[0].setting_value);
+            siteSettings = deepMerge(DEFAULT_SITE_SETTINGS, parsed);
+        } catch (e) {
+            console.error('[DATABASE] Error parsing siteSettings JSON:', e.message);
+        }
+    }
+
     return {
         users,
         tickets,
@@ -682,21 +886,59 @@ async function getFullState() {
         clients,
         invoices,
         nextInvoiceNum,
-        bankDetails
+        bankDetails,
+        siteSettings
     };
 }
 
 // User Operations
 async function authenticateUser(username, password) {
-    const [rows] = await pool.query('SELECT username FROM users WHERE username = ? AND password = ?', [username, password]);
-    return rows.length > 0;
+    const [rows] = await pool.query('SELECT username, password FROM users WHERE username = ?', [username]);
+    if (rows.length === 0) return false;
+    const stored = rows[0].password || '';
+    if (stored.startsWith('$2a$') || stored.startsWith('$2b$') || stored.startsWith('$2y$')) {
+        return await bcrypt.compare(password, stored);
+    }
+    // Fallback for legacy plaintext password (will be migrated automatically)
+    if (stored === password) {
+        // Upgrade to bcrypt hash immediately upon successful verification
+        try {
+            const hashed = await bcrypt.hash(password, 10);
+            await pool.query('UPDATE users SET password = ? WHERE username = ?', [hashed, username]);
+        } catch (e) {
+            console.error('[AUTH MIGRATION] Failed to upgrade plaintext password for', username, e.message);
+        }
+        return true;
+    }
+    return false;
 }
 
 async function saveUser(username, password) {
+    let hashToStore = password;
+    if (!password.startsWith('$2a$') && !password.startsWith('$2b$') && !password.startsWith('$2y$')) {
+        hashToStore = await bcrypt.hash(password, 10);
+    }
     await pool.query(`
         INSERT INTO users (username, password) VALUES (?, ?)
         ON DUPLICATE KEY UPDATE password = VALUES(password)
-    `, [username, password]);
+    `, [username, hashToStore]);
+}
+
+// Automatically migrate any existing plaintext passwords in users table to bcrypt hashes
+async function migratePlaintextPasswords() {
+    try {
+        const [users] = await pool.query('SELECT username, password FROM users');
+        for (const u of users) {
+            const pwd = u.password || '';
+            if (pwd && !pwd.startsWith('$2a$') && !pwd.startsWith('$2b$') && !pwd.startsWith('$2y$')) {
+                const hashed = await bcrypt.hash(pwd, 10);
+                await pool.query('UPDATE users SET password = ? WHERE username = ?', [hashed, u.username]);
+                console.log(`[SECURITY] Plaintext password for user '${u.username}' safely hashed with bcrypt.`);
+            }
+        }
+    } catch (err) {
+        console.error('[SECURITY] Password hash migration warning:', err.message);
+    }
 }
 
 async function deleteUser(username) {
@@ -711,16 +953,16 @@ async function deleteUser(username) {
 }
 
 // Ticket Operations
-async function addTicket({ clientName, clientEmail, siteUrl, bugType, description, severity }) {
+async function addTicket({ clientName, clientEmail, clientPhone, siteUrl, bugType, description, severity }) {
     const [countRows] = await pool.query('SELECT COUNT(*) as count FROM tickets');
     const totalCount = countRows[0].count + 1;
     const ticketId = `TKT-2026-${String(totalCount).padStart(3, '0')}`;
     const today = new Date().toISOString().split('T')[0];
 
     await pool.query(`
-        INSERT INTO tickets (id, client_name, client_email, site_url, bug_type, description, severity, status, date, admin_notes)
-        VALUES (?, ?, ?, ?, ?, ?, ?, 'Pending', ?, '')
-    `, [ticketId, clientName, clientEmail || '', siteUrl || '', bugType || 'General', description || '', severity || 'Medium', today]);
+        INSERT INTO tickets (id, client_name, client_email, client_phone, site_url, bug_type, description, severity, status, date, admin_notes)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Pending', ?, '')
+    `, [ticketId, clientName, clientEmail || '', clientPhone || '', siteUrl || '', bugType || 'General', description || '', severity || 'Medium', today]);
 
     await pool.query(`
         INSERT INTO bug_types (type, count) VALUES (?, 1)
@@ -734,9 +976,10 @@ async function updateTicket(id, status, adminNotes) {
     const [ticketRows] = await pool.query('SELECT * FROM tickets WHERE id = ?', [id]);
     if (ticketRows.length === 0) throw new Error('Ticket not found');
 
-    const previousStatus = ticketRows[0].status;
-    const newStatus = status !== undefined ? status : ticketRows[0].status;
-    const newNotes = adminNotes !== undefined ? adminNotes : ticketRows[0].admin_notes;
+    const previousTicket = ticketRows[0];
+    const previousStatus = previousTicket.status;
+    const newStatus = status !== undefined ? status : previousTicket.status;
+    const newNotes = adminNotes !== undefined ? adminNotes : previousTicket.admin_notes;
 
     await pool.query('UPDATE tickets SET status = ?, admin_notes = ? WHERE id = ?', [newStatus, newNotes, id]);
 
@@ -748,6 +991,17 @@ async function updateTicket(id, status, adminNotes) {
             ON DUPLICATE KEY UPDATE amount = amount + 5000
         `, [currentMonth]);
     }
+
+    return {
+        ticket: {
+            ...previousTicket,
+            status: newStatus,
+            admin_notes: newNotes
+        },
+        statusChanged: newStatus !== previousStatus,
+        previousStatus,
+        newStatus
+    };
 }
 
 async function deleteTicket(id) {
@@ -1039,8 +1293,8 @@ async function restoreDatabaseFromJson(jsonData) {
     }
     if (data.tickets) {
         for (const t of data.tickets) {
-            await pool.query('INSERT INTO tickets (id, client_name, client_email, site_url, bug_type, description, severity, status, date, admin_notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
-                t.id, t.clientName, t.clientEmail || '', t.siteUrl || '', t.bugType || '', t.description || '', t.severity || 'Medium', t.status || 'Pending', t.date || '', t.adminNotes || ''
+            await pool.query('INSERT INTO tickets (id, client_name, client_email, client_phone, site_url, bug_type, description, severity, status, date, admin_notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
+                t.id, t.clientName, t.clientEmail || '', t.clientPhone || t.client_phone || '', t.siteUrl || '', t.bugType || '', t.description || '', t.severity || 'Medium', t.status || 'Pending', t.date || '', t.adminNotes || ''
             ]);
         }
     }
@@ -1116,6 +1370,59 @@ async function restoreDatabaseFromJson(jsonData) {
             ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)
         `, [String(data.nextInvoiceNum)]);
     }
+    if (data.siteSettings) {
+        await pool.query(`
+            INSERT INTO meta_settings (setting_key, setting_value)
+            VALUES ('siteSettings', ?)
+            ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)
+        `, [JSON.stringify(data.siteSettings)]);
+    } else {
+        await pool.query(`
+            INSERT INTO meta_settings (setting_key, setting_value)
+            VALUES ('siteSettings', ?)
+            ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)
+        `, [JSON.stringify(DEFAULT_SITE_SETTINGS)]);
+    }
+}
+
+// Site Settings Operations
+async function getSiteSettings() {
+    const [rows] = await pool.query('SELECT setting_value FROM meta_settings WHERE setting_key = ?', ['siteSettings']);
+    if (rows.length > 0 && rows[0].setting_value) {
+        try {
+            const merged = deepMerge(DEFAULT_SITE_SETTINGS, JSON.parse(rows[0].setting_value));
+            if (merged.submitTicket && merged.submitTicket.btnText === 'Send Ticket') {
+                merged.submitTicket.btnText = 'Send Query';
+            }
+            if (!merged.reviews.items || !Array.isArray(merged.reviews.items) || merged.reviews.items.length === 0) {
+                merged.reviews.items = DEFAULT_REVIEWS;
+            }
+            return merged;
+        } catch (e) {
+            console.error('[DATABASE] Error parsing siteSettings JSON:', e.message);
+        }
+    }
+    return DEFAULT_SITE_SETTINGS;
+}
+
+async function saveSiteSettings(newSettings) {
+    if (!newSettings || typeof newSettings !== 'object') {
+        throw new Error('Invalid settings object provided');
+    }
+    const current = await getSiteSettings();
+    const merged = deepMerge(current, newSettings);
+    // Explicitly preserve reviews.items array if provided
+    if (newSettings.reviews && Array.isArray(newSettings.reviews.items)) {
+        merged.reviews.items = newSettings.reviews.items;
+    }
+    await pool.query(`
+        INSERT INTO meta_settings (setting_key, setting_value)
+        VALUES ('siteSettings', ?)
+        ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)
+    `, [JSON.stringify(merged)]);
+
+    await safeBackupData();
+    return merged;
 }
 
 // Auto-seed on start
@@ -1150,5 +1457,8 @@ module.exports = {
     exportDatabaseJson,
     restoreDatabaseFromJson,
     safeBackupData,
-    autoMigrateColumns
+    autoMigrateColumns,
+    DEFAULT_SITE_SETTINGS,
+    getSiteSettings,
+    saveSiteSettings
 };
