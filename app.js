@@ -959,6 +959,7 @@
                     case 'maintenance':
                         pageTitle.textContent = 'Maintenance & Database Control';
                         pageSubtitle.textContent = 'Download backups, restore files, and seed mock datasets.';
+                        this.refreshSystemInfo();
                         break;
                     case 'cms':
                         pageTitle.textContent = 'Pages & CMS';
@@ -1591,7 +1592,92 @@
 
         // Trigger Download DB Backup
         downloadBackup() {
-            window.open(this.getApiUrl('/api/backup'), '_blank');
+            window.open(this.getApiUrl('/api/system/backup/download'), '_blank');
+        },
+
+        // Fetch System Version & Webhook Info
+        async refreshSystemInfo() {
+            try {
+                const res = await fetch(this.getApiUrl('/api/system/info'));
+                const data = await res.json();
+                if (data.success) {
+                    const badge = document.getElementById('sys-commit-badge');
+                    if (badge) {
+                        badge.textContent = data.commit || 'Up to date';
+                        badge.title = `Branch: ${data.branch} | Remote: ${data.remote}`;
+                    }
+                    const webhookDisplay = document.getElementById('webhook-url-display');
+                    if (webhookDisplay) {
+                        const host = window.location.origin;
+                        webhookDisplay.textContent = `${host}/api/system/webhook`;
+                    }
+                }
+            } catch (e) {
+                console.warn('Could not fetch system info:', e);
+            }
+        },
+
+        // Trigger Safe Pull & Auto-Update from GitHub
+        async triggerSystemUpdate() {
+            if (!confirm('Pull latest code and migrate database schema from GitHub repository (abuzannat911-lab/zannat.bd)?\n\nA safe automatic backup of all existing records will be created before updating.')) {
+                return;
+            }
+
+            const btn = document.getElementById('btn-run-sys-update');
+            const alertBox = document.getElementById('sys-update-status-alert');
+            const origHtml = btn ? btn.innerHTML : '';
+
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<span>⏳ Pulling &amp; Updating...</span>';
+            }
+            if (alertBox) {
+                alertBox.style.display = 'block';
+                alertBox.style.background = 'rgba(59, 130, 246, 0.1)';
+                alertBox.style.color = '#1d4ed8';
+                alertBox.style.border = '1px solid rgba(59, 130, 246, 0.3)';
+                alertBox.innerHTML = '<strong>Updating system:</strong> Creating database snapshot, pulling code from GitHub, and running non-destructive schema auto-migration...';
+            }
+
+            try {
+                const res = await fetch(this.getApiUrl('/api/system/update'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const result = await res.json();
+
+                if (res.ok && result.success) {
+                    if (alertBox) {
+                        alertBox.style.background = 'rgba(16, 185, 129, 0.1)';
+                        alertBox.style.color = '#065f46';
+                        alertBox.style.border = '1px solid rgba(16, 185, 129, 0.3)';
+                        alertBox.innerHTML = `<strong>✅ Success!</strong> ${result.message}<br><small style="opacity: 0.85;">${(result.logs || []).join(' → ')}</small>`;
+                    }
+                    if (window.confetti) {
+                        window.confetti({ particleCount: 70, spread: 60, origin: { y: 0.6 } });
+                    }
+                    this.refreshSystemInfo();
+                } else {
+                    if (alertBox) {
+                        alertBox.style.background = 'rgba(239, 68, 68, 0.1)';
+                        alertBox.style.color = '#b91c1c';
+                        alertBox.style.border = '1px solid rgba(239, 68, 68, 0.3)';
+                        alertBox.innerHTML = `<strong>Update notice:</strong> ${result.error || result.message || 'Operation failed'}`;
+                    }
+                }
+            } catch (err) {
+                if (alertBox) {
+                    alertBox.style.background = 'rgba(239, 68, 68, 0.1)';
+                    alertBox.style.color = '#b91c1c';
+                    alertBox.style.border = '1px solid rgba(239, 68, 68, 0.3)';
+                    alertBox.innerHTML = `<strong>Error:</strong> Failed to communicate with update server (${err.message})`;
+                }
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = origHtml;
+                }
+            }
         },
 
         // Handle Database Restore File Upload

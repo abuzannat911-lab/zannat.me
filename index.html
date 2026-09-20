@@ -1020,6 +1020,84 @@
               </div>
             </div>
 
+            <!-- SYSTEM & GITHUB AUTO-UPDATE WITH ZERO-DATA-LOSS -->
+            <div class="card" style="border: 1px solid var(--border-color, #e2e8f0); border-radius: 14px; overflow: hidden; padding: 0; box-shadow: 0 4px 20px rgba(0,0,0,0.06);">
+              <!-- Header -->
+              <div style="background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%); color: #fff; padding: 22px 28px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+                <div style="display: flex; align-items: center; gap: 14px;">
+                  <div style="width: 44px; height: 44px; background: rgba(255,255,255,0.1); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 22px;">
+                    🔄
+                  </div>
+                  <div>
+                    <h3 style="margin: 0; font-size: 1.2rem; font-weight: 700; color: #fff;">System &amp; GitHub Auto-Update</h3>
+                    <p style="margin: 4px 0 0 0; font-size: 0.85rem; color: #cbd5e1;">Synchronize code from GitHub and automatically migrate database tables without data loss.</p>
+                  </div>
+                </div>
+                <div>
+                  <span style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 600; background: rgba(16,185,129,0.2); color: #34d399; border: 1px solid rgba(16,185,129,0.3);">
+                    <span style="width: 8px; height: 8px; border-radius: 50%; background: #10b981;"></span> Zero-Data-Loss Protection Active
+                  </span>
+                </div>
+              </div>
+
+              <!-- Body -->
+              <div style="padding: 24px 28px; display: flex; flex-direction: column; gap: 20px;">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px;">
+                  <div style="background: var(--bg-surface-2, #f8fafc); border: 1px solid var(--border-color, #e2e8f0); border-radius: 10px; padding: 16px;">
+                    <div style="font-size: 12px; color: var(--text-muted, #64748b); margin-bottom: 4px;">Connected Repository</div>
+                    <div style="font-size: 0.95rem; font-weight: 700; color: #2563eb; word-break: break-all;">
+                      <a href="https://github.com/abuzannat911-lab/zannat.bd" target="_blank" style="color: inherit; text-decoration: none;">github.com/abuzannat911-lab/zannat.bd ↗</a>
+                    </div>
+                  </div>
+                  <div style="background: var(--bg-surface-2, #f8fafc); border: 1px solid var(--border-color, #e2e8f0); border-radius: 10px; padding: 16px;">
+                    <div style="font-size: 12px; color: var(--text-muted, #64748b); margin-bottom: 4px;">Live Commit Version</div>
+                    <div id="sys-commit-badge" style="font-size: 0.9rem; font-weight: 600; color: #1e293b;">Loading...</div>
+                  </div>
+                  <div style="background: var(--bg-surface-2, #f8fafc); border: 1px solid var(--border-color, #e2e8f0); border-radius: 10px; padding: 16px;">
+                    <div style="font-size: 12px; color: var(--text-muted, #64748b); margin-bottom: 4px;">Database Auto-Migration</div>
+                    <div style="font-size: 0.9rem; font-weight: 600; color: #059669;">Auto ADD COLUMN / CREATE TABLE</div>
+                  </div>
+                </div>
+
+                <!-- Actions & Webhook Info -->
+                <div style="display: flex; gap: 14px; flex-wrap: wrap; align-items: center; justify-content: space-between; padding-top: 10px; border-top: 1px solid var(--border-color, #e2e8f0);">
+                  <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                    <button type="button" id="btn-run-sys-update" class="btn btn-primary" onclick="app.triggerSystemUpdate()" style="background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%); border: none; font-weight: 700; padding: 10px 20px; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;">
+                      <span>🔄 Pull &amp; Update from GitHub</span>
+                    </button>
+                    <button type="button" class="btn btn-outline" onclick="app.refreshSystemInfo()" style="padding: 10px 18px; border-radius: 8px; font-weight: 600; cursor: pointer;">
+                      Refresh Status
+                    </button>
+                  </div>
+                  <div style="font-size: 12px; color: var(--text-muted, #64748b);">
+                    Auto-backup runs before every update.
+                  </div>
+                </div>
+
+                <!-- Webhook instruction accordion -->
+                <details style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px 16px; font-size: 13px;">
+                  <summary style="font-weight: 600; cursor: pointer; color: #334155;">
+                    ⚡ Automatic GitHub Push Deployment (Webhook Guide)
+                  </summary>
+                  <div style="margin-top: 12px; line-height: 1.6; color: #475569;">
+                    <p style="margin: 0 0 8px 0;">To update the website automatically whenever you push to GitHub:</p>
+                    <ol style="margin: 0; padding-left: 20px;">
+                      <li>Go to GitHub: <strong>abuzannat911-lab/zannat.bd</strong> &gt; <strong>Settings</strong> &gt; <strong>Webhooks</strong> &gt; <strong>Add webhook</strong></li>
+                      <li>Payload URL: <code id="webhook-url-display" style="background: #e2e8f0; padding: 2px 6px; border-radius: 4px; font-weight: 600;">https://your-domain.com/api/system/webhook</code></li>
+                      <li>Content type: <code style="background: #e2e8f0; padding: 2px 6px; border-radius: 4px;">application/json</code></li>
+                      <li>Select: <em>Just the push event</em> and click <strong>Add webhook</strong>.</li>
+                    </ol>
+                    <p style="margin: 8px 0 0 0; font-size: 12px; color: #059669; font-weight: 600;">
+                      ✅ The server will automatically back up the database, pull the new code, migrate any new tables/columns without data loss, and reload the application!
+                    </p>
+                  </div>
+                </details>
+
+                <div id="sys-update-status-alert" style="display: none; padding: 12px 16px; border-radius: 8px; font-size: 13px;"></div>
+              </div>
+            </div>
+
+
           </div>
         </section>
 
@@ -2047,6 +2125,6 @@ Bangladesh</textarea>
   </div>
 
   <!-- App Main Scripts -->
-  <script src="/app.js?v=41"></script>
+  <script src="/app.js?v=42"></script>
 </body>
 </html>

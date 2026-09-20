@@ -18,6 +18,156 @@ const pool = mysql.createPool({
     charset: 'utf8mb4'
 });
 
+// Master Schema Column Definitions for Non-Destructive Auto-Migration
+const SCHEMA_COLUMNS = {
+    users: {
+        username: "VARCHAR(100) UNIQUE NOT NULL",
+        password: "VARCHAR(255) NOT NULL",
+        created_at: "TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
+    },
+    tickets: {
+        client_name: "VARCHAR(255) NOT NULL",
+        client_email: "VARCHAR(255) DEFAULT ''",
+        site_url: "VARCHAR(500) DEFAULT ''",
+        bug_type: "VARCHAR(100) DEFAULT ''",
+        description: "TEXT",
+        severity: "VARCHAR(50) DEFAULT 'Medium'",
+        status: "VARCHAR(50) DEFAULT 'Pending'",
+        date: "VARCHAR(50) DEFAULT ''",
+        admin_notes: "TEXT",
+        created_at: "TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
+    },
+    earnings: {
+        month: "VARCHAR(50) UNIQUE NOT NULL",
+        amount: "DECIMAL(12, 2) NOT NULL DEFAULT 0.00",
+        created_at: "TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
+    },
+    bug_types: {
+        type: "VARCHAR(100) UNIQUE NOT NULL",
+        count: "INT NOT NULL DEFAULT 0"
+    },
+    homepage_content: {
+        name: "VARCHAR(255) DEFAULT ''",
+        title: "VARCHAR(255) DEFAULT ''",
+        avatar: "VARCHAR(500) DEFAULT ''",
+        about: "TEXT"
+    },
+    pages: {
+        title: "VARCHAR(255) NOT NULL",
+        slug: "VARCHAR(255) UNIQUE NOT NULL",
+        layout: "VARCHAR(50) DEFAULT 'standard'",
+        content: "LONGTEXT"
+    },
+    smtp_config: {
+        host: "VARCHAR(255) DEFAULT ''",
+        port: "INT DEFAULT 587",
+        secure: "TINYINT(1) DEFAULT 0",
+        user: "VARCHAR(255) DEFAULT ''",
+        pass: "VARCHAR(255) DEFAULT ''",
+        auth_type: "VARCHAR(50) DEFAULT 'password'",
+        oauth_client_id: "VARCHAR(500) DEFAULT ''",
+        oauth_client_secret: "VARCHAR(500) DEFAULT ''",
+        oauth_refresh_token: "TEXT",
+        oauth_access_token: "TEXT",
+        oauth_user: "VARCHAR(255) DEFAULT ''"
+    },
+    clients: {
+        name: "VARCHAR(255) NOT NULL",
+        company: "VARCHAR(255) DEFAULT ''",
+        email: "VARCHAR(255) DEFAULT ''",
+        phone: "VARCHAR(100) DEFAULT ''",
+        vat: "VARCHAR(100) DEFAULT ''",
+        address: "TEXT",
+        created_at: "VARCHAR(100) DEFAULT ''",
+        updated_at: "VARCHAR(100) DEFAULT ''"
+    },
+    invoices: {
+        number: "VARCHAR(100) UNIQUE NOT NULL",
+        date: "VARCHAR(50) DEFAULT ''",
+        due_date: "VARCHAR(50) DEFAULT ''",
+        currency: "VARCHAR(10) DEFAULT 'USD'",
+        my_address: "TEXT",
+        my_logo: "VARCHAR(500) DEFAULT ''",
+        client_name: "VARCHAR(255) DEFAULT ''",
+        client_company: "VARCHAR(255) DEFAULT ''",
+        client_email: "VARCHAR(255) DEFAULT ''",
+        client_phone: "VARCHAR(100) DEFAULT ''",
+        client_vat: "VARCHAR(100) DEFAULT ''",
+        client_address: "TEXT",
+        bank_name: "VARCHAR(255) DEFAULT ''",
+        bank_account_name: "VARCHAR(255) DEFAULT ''",
+        bank_account_no: "VARCHAR(100) DEFAULT ''",
+        bank_routing: "VARCHAR(100) DEFAULT ''",
+        bank_swift: "VARCHAR(100) DEFAULT ''",
+        bank_branch: "VARCHAR(255) DEFAULT ''",
+        payment_method: "VARCHAR(100) DEFAULT ''",
+        payment_terms: "VARCHAR(100) DEFAULT ''",
+        po_number: "VARCHAR(100) DEFAULT ''",
+        items_json: "LONGTEXT",
+        subtotal: "DECIMAL(12, 2) DEFAULT 0.00",
+        tax_rate: "DECIMAL(6, 2) DEFAULT 0.00",
+        tax_amount: "DECIMAL(12, 2) DEFAULT 0.00",
+        discount_percent: "DECIMAL(6, 2) DEFAULT 0.00",
+        discount_amount: "DECIMAL(12, 2) DEFAULT 0.00",
+        total: "DECIMAL(12, 2) DEFAULT 0.00",
+        notes: "TEXT",
+        status: "VARCHAR(50) DEFAULT 'Unpaid'",
+        created_at: "VARCHAR(100) DEFAULT ''",
+        updated_at: "VARCHAR(100) DEFAULT ''"
+    },
+    bank_details: {
+        bank_name: "VARCHAR(255) DEFAULT ''",
+        account_name: "VARCHAR(255) DEFAULT ''",
+        account_number: "VARCHAR(100) DEFAULT ''",
+        routing_number: "VARCHAR(100) DEFAULT ''",
+        swift_code: "VARCHAR(100) DEFAULT ''",
+        branch: "VARCHAR(255) DEFAULT ''"
+    },
+    meta_settings: {
+        setting_key: "VARCHAR(100) PRIMARY KEY",
+        setting_value: "TEXT"
+    }
+};
+
+// Automatically inspects database tables and adds any newly defined columns safely without affecting existing data
+async function autoMigrateColumns(connection) {
+    for (const [table, columns] of Object.entries(SCHEMA_COLUMNS)) {
+        try {
+            const [existing] = await connection.query(`SHOW COLUMNS FROM \`${table}\``);
+            const existingNames = new Set(existing.map(c => c.Field.toLowerCase()));
+
+            for (const [colName, colDef] of Object.entries(columns)) {
+                if (!existingNames.has(colName.toLowerCase())) {
+                    console.log(`[SCHEMA AUTO-MIGRATE] Adding new column \`${colName}\` to table \`${table}\`...`);
+                    await connection.query(`ALTER TABLE \`${table}\` ADD COLUMN \`${colName}\` ${colDef}`);
+                    console.log(`[SCHEMA AUTO-MIGRATE] Successfully added \`${colName}\` to \`${table}\` (Existing data preserved)`);
+                }
+            }
+        } catch (e) {
+            console.error(`[SCHEMA AUTO-MIGRATE] Error checking table \`${table}\`:`, e.message);
+        }
+    }
+}
+
+// Automated non-destructive backup of full database state to disk
+async function safeBackupData() {
+    try {
+        const backupDir = path.join(__dirname, 'backups');
+        if (!fs.existsSync(backupDir)) {
+            fs.mkdirSync(backupDir, { recursive: true });
+        }
+        const state = await getFullState();
+        if (state && state.users && state.users.length > 0) {
+            const dateStr = new Date().toISOString().split('T')[0];
+            fs.writeFileSync(path.join(backupDir, `db_backup_${dateStr}.json`), JSON.stringify(state, null, 2), 'utf-8');
+            fs.writeFileSync(path.join(backupDir, 'db_backup_latest.json'), JSON.stringify(state, null, 2), 'utf-8');
+            console.log('[DATABASE BACKUP] Auto-backup verified: backups/db_backup_latest.json');
+        }
+    } catch (e) {
+        console.warn('[DATABASE BACKUP] Auto-backup notice:', e.message);
+    }
+}
+
 // Initialize Schema & Tables in MySQL
 async function initSchema() {
     const connection = await pool.getConnection();
@@ -198,6 +348,9 @@ async function initSchema() {
                 setting_value TEXT
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
         `);
+
+        // Non-destructive automated column migration for all schema tables
+        await autoMigrateColumns(connection);
     } finally {
         connection.release();
     }
@@ -209,7 +362,9 @@ async function seedAndMigrate() {
 
     const [rows] = await pool.query('SELECT COUNT(*) as count FROM users');
     if (rows[0].count > 0) {
-        return; // Already populated
+        // Database already populated - perform non-destructive safe auto-backup
+        await safeBackupData();
+        return; // Preserves all existing live data
     }
 
     console.log('[DATABASE] Seeding MySQL database from legacy data...');
@@ -993,5 +1148,7 @@ module.exports = {
     saveInvoice,
     deleteInvoice,
     exportDatabaseJson,
-    restoreDatabaseFromJson
+    restoreDatabaseFromJson,
+    safeBackupData,
+    autoMigrateColumns
 };

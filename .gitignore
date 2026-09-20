@@ -15,3 +15,6 @@ yarn-debug.log*
 *.sqlite-wal
 whatsapp_auth/
 whatsapp_session/
+backups/*.json
+backups/*.sql
+!backups/.gitkeep
