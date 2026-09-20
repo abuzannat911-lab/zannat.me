@@ -151,7 +151,55 @@ async function autoMigrateColumns(connection) {
     }
 }
 
-// Automated non-destructive backup of full database state to disk
+// Automated non-destructive backup of full database state to disk with 30-day auto-rotation
+async function cleanOldBackups(retentionDays = 30) {
+    try {
+        const backupDir = path.join(__dirname, 'backups');
+        if (!fs.existsSync(backupDir)) return;
+        const files = fs.readdirSync(backupDir);
+        const now = Date.now();
+        const maxAgeMs = retentionDays * 24 * 60 * 60 * 1000;
+
+        for (const file of files) {
+            // Only prune dated backup files (e.g. db_backup_2026-09-20.json)
+            if (file.startsWith('db_backup_') && file !== 'db_backup_latest.json' && file.endsWith('.json')) {
+                const filePath = path.join(backupDir, file);
+                const stats = fs.statSync(filePath);
+                if (now - stats.mtimeMs > maxAgeMs) {
+                    fs.unlinkSync(filePath);
+                    console.log(`[DATABASE BACKUP] Pruned expired backup older than ${retentionDays} days: ${file}`);
+                }
+            }
+        }
+    } catch (e) {
+        console.warn('[DATABASE BACKUP] Auto-prune notice:', e.message);
+    }
+}
+
+async function listAvailableBackups() {
+    const backupDir = path.join(__dirname, 'backups');
+    if (!fs.existsSync(backupDir)) return [];
+    const files = fs.readdirSync(backupDir);
+    const backups = [];
+
+    for (const file of files) {
+        if (file.endsWith('.json') && file !== '.gitkeep') {
+            const filePath = path.join(backupDir, file);
+            const stats = fs.statSync(filePath);
+            backups.push({
+                filename: file,
+                sizeBytes: stats.size,
+                sizeFormatted: (stats.size / 1024).toFixed(1) + ' KB',
+                createdAt: stats.mtime.toISOString(),
+                isLatest: file === 'db_backup_latest.json'
+            });
+        }
+    }
+    // Sort newest first
+    backups.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    return backups;
+}
+
 async function safeBackupData() {
     try {
         const backupDir = path.join(__dirname, 'backups');
@@ -165,6 +213,7 @@ async function safeBackupData() {
             fs.writeFileSync(path.join(backupDir, 'db_backup_latest.json'), JSON.stringify(state, null, 2), 'utf-8');
             console.log('[DATABASE BACKUP] Auto-backup verified: backups/db_backup_latest.json');
         }
+        await cleanOldBackups(30);
     } catch (e) {
         console.warn('[DATABASE BACKUP] Auto-backup notice:', e.message);
     }
@@ -1288,7 +1337,18 @@ async function restoreDatabaseFromJson(jsonData) {
 
     if (data.users) {
         for (const u of data.users) {
-            await pool.query('INSERT INTO users (username, password) VALUES (?, ?)', [u.username, u.password]);
+            // If password hash was excluded (e.g. from an exported backup without password), preserve existing or use default bcrypt
+            let pwd = u.password;
+            if (!pwd) {
+                // Check if user already exists
+                const [existing] = await pool.query('SELECT password FROM users WHERE username = ?', [u.username]);
+                if (existing.length > 0) {
+                    pwd = existing[0].password;
+                } else {
+                    pwd = await bcrypt.hash('zannatbugfix', 10);
+                }
+            }
+            await pool.query('INSERT INTO users (username, password) VALUES (?, ?)', [u.username, pwd]);
         }
     }
     if (data.tickets) {
@@ -1457,6 +1517,8 @@ module.exports = {
     exportDatabaseJson,
     restoreDatabaseFromJson,
     safeBackupData,
+    listAvailableBackups,
+    cleanOldBackups,
     autoMigrateColumns,
     DEFAULT_SITE_SETTINGS,
     getSiteSettings,

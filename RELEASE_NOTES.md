@@ -25,7 +25,11 @@ This release establishes **Zannat.bd** as a robust, secure, and production-ready
 - **Pure MySQL Backend (`zannat_db`)**: The application connects to MySQL via connection pooling (`mysql2/promise`), ensuring lightning-fast concurrent operations.
 - **Elimination of Local Data Files**: Completely purged all obsolete flat files (`data.json`, `zannat.sqlite`, `zannat.sqlite-shm`, `zannat.sqlite-wal`, `backup_zannat_db.sql`) to guarantee MySQL is the sole source of truth.
 - **Non-Destructive Schema Auto-Migration**: The schema bootloader inspects and updates MySQL table columns dynamically using non-destructive `ADD COLUMN` queries. Existing data is never truncated or overwritten.
-- **Automated Backup Engine**: Performs automatic non-destructive JSON state snapshots before any destructive operations or updates (`backups/db_backup_latest.json`).
+- **Backup & Restore Suite under Site Settings**:
+  - **Instant Snapshot & Download**: Generate and download full JSON snapshots with 1 click.
+  - **Upload & Restore**: Upload external backup JSON files to restore the MySQL database, protected by an automatic pre-restore safety snapshot.
+  - **Daily Auto-Backup & 30-Day Retention**: Automated background scheduler executes backups every 24 hours and automatically purges backups older than 30 days.
+  - **Interactive Backup Browser**: View dates, file sizes, and restore directly from any historical daily backup.
 
 ---
 

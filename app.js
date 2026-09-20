@@ -5317,6 +5317,9 @@
             if (subtabKey === 'reviews') {
                 this.renderSettingsReviewsTable();
             }
+            if (subtabKey === 'backup') {
+                this.loadAvailableBackups();
+            }
             if (window.lucide) window.lucide.createIcons();
         },
 
@@ -6096,6 +6099,215 @@
                 await this.saveSiteSettings();
                 this.showToast('Review removed successfully', 'info');
             }
+        },
+
+        // ==============================================================================
+        // BACKUP & RESTORE DATABASE SUITE (Full Backup, Upload & 30-Day Auto Retention)
+        // ==============================================================================
+        async loadAvailableBackups() {
+            const tbody = document.getElementById('backups-table-tbody');
+            if (!tbody) return;
+
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="5" style="text-align: center; padding: 24px; color: var(--text-muted);">
+                        <i data-lucide="loader-2" class="spin" style="width: 18px; height: 18px; vertical-align: middle; margin-right: 6px;"></i>
+                        Fetching available backups from server...
+                    </td>
+                </tr>
+            `;
+            if (window.lucide) window.lucide.createIcons();
+
+            try {
+                const res = await this.authFetch('/api/system/backups');
+                const data = await res.json();
+
+                if (!data.success || !data.backups || data.backups.length === 0) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="5" style="text-align: center; padding: 32px; color: var(--text-muted);">
+                                <i data-lucide="database" style="width: 32px; height: 32px; stroke-width: 1.5; opacity: 0.5; margin-bottom: 8px; display: block; margin: 0 auto 8px auto;"></i>
+                                No daily backups found yet. Click <strong>Take Snapshot Now</strong> to create your first backup.
+                            </td>
+                        </tr>
+                    `;
+                    if (window.lucide) window.lucide.createIcons();
+                    return;
+                }
+
+                tbody.innerHTML = data.backups.map((b, idx) => {
+                    const isLatest = b.isLatest || b.filename === 'db_backup_latest.json';
+                    const dateFormatted = new Date(b.createdAt).toLocaleString();
+                    const badge = isLatest
+                        ? `<span class="badge" style="background: rgba(99, 102, 241, 0.18); color: var(--accent-purple); font-weight: 700;">★ Latest Snapshot</span>`
+                        : `<span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #10b981; font-weight: 600;">Daily Auto-Backup</span>`;
+
+                    return `
+                        <tr>
+                            <td style="font-family: monospace; font-weight: 600; color: #0f172a; font-size: 0.84rem;">
+                                <i data-lucide="file-json" style="width: 16px; height: 16px; vertical-align: middle; margin-right: 6px; color: var(--accent-purple);"></i>
+                                ${b.filename}
+                            </td>
+                            <td style="font-size: 0.8rem; color: var(--text-muted);">${dateFormatted}</td>
+                            <td style="font-size: 0.8rem; font-weight: 600;">${b.sizeFormatted}</td>
+                            <td>${badge}</td>
+                            <td style="text-align: right;">
+                                <div style="display: flex; gap: 8px; justify-content: flex-end; align-items: center;">
+                                    <a href="/api/system/backup/download?file=${encodeURIComponent(b.filename)}" class="btn btn-secondary btn-icon-text btn-small" title="Download JSON file">
+                                        <i data-lucide="download" style="width: 13px; height: 13px;"></i>
+                                        <span>Download</span>
+                                    </a>
+                                    <button type="button" class="btn btn-danger btn-icon-text btn-small" data-action="restore-db" data-filename="${b.filename}" title="Restore database from this snapshot">
+                                        <i data-lucide="rotate-ccw" style="width: 13px; height: 13px;"></i>
+                                        <span>Restore</span>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+
+                // Bind restore button confirmations
+                tbody.querySelectorAll('button[data-action="restore-db"]').forEach(btn => {
+                    const fname = btn.getAttribute('data-filename');
+                    btn.addEventListener('click', () => {
+                        this.armConfirmButton(btn, () => this.executeRestoreDatabaseFromDisk(fname), 'Restore All?', '#ef4444');
+                    });
+                });
+
+                if (window.lucide) window.lucide.createIcons();
+            } catch (err) {
+                console.error('[BACKUP LOAD ERROR]', err);
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" style="text-align: center; padding: 24px; color: #ef4444;">
+                            Failed to load backups list: ${err.message}
+                        </td>
+                    </tr>
+                `;
+            }
+        },
+
+        async createManualBackup(btn) {
+            const origHTML = btn ? btn.innerHTML : '';
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = `<i data-lucide="loader-2" class="spin"></i> Creating...`;
+                if (window.lucide) window.lucide.createIcons();
+            }
+
+            try {
+                const res = await this.authFetch('/api/system/backup/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const data = await res.json();
+                if (data.success) {
+                    this.showToast(data.message || 'Backup snapshot created successfully!', 'success');
+                    await this.loadAvailableBackups();
+                } else {
+                    this.showToast(data.error || 'Failed to create backup', 'error');
+                }
+            } catch (err) {
+                console.error('[MANUAL BACKUP ERROR]', err);
+                this.showToast('Network error while creating backup', 'error');
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = origHTML;
+                    if (window.lucide) window.lucide.createIcons();
+                }
+            }
+        },
+
+        async executeRestoreDatabaseFromDisk(filename) {
+            this.showToast(`Restoring database from ${filename}...`, 'info');
+            try {
+                const res = await this.authFetch('/api/system/backup/restore', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ filename })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    this.showToast(data.message || 'Database restored successfully!', 'success');
+                    // Refresh app full state
+                    await this.fetchState();
+                    await this.loadAvailableBackups();
+                } else {
+                    this.showToast(data.error || 'Failed to restore database', 'error');
+                }
+            } catch (err) {
+                console.error('[RESTORE FROM DISK ERROR]', err);
+                this.showToast('Network error during database restore', 'error');
+            }
+        },
+
+        async handleDatabaseFileUpload(input) {
+            if (!input || !input.files || input.files.length === 0) return;
+            const file = input.files[0];
+            const label = document.getElementById('db-upload-btn-label');
+
+            if (!file.name.endsWith('.json')) {
+                this.showToast('Please select a valid JSON database backup file (.json)', 'error');
+                input.value = '';
+                return;
+            }
+
+            const confirmed = await this.showConfirmModal(
+                'Confirm Database Restore',
+                `Are you sure you want to upload and restore <strong>${file.name}</strong>?<br><br><span style="color: #ef4444; font-weight: 600;">⚠️ This will replace current database tables with the contents of this file.</span> A safety backup will be taken before restoring.`,
+                'Restore Database',
+                true
+            );
+
+            if (!confirmed) {
+                input.value = '';
+                return;
+            }
+
+            if (label) label.textContent = `Uploading and restoring ${file.name}...`;
+            this.showToast('Reading and validating backup file...', 'info');
+
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const text = e.target.result;
+                    const parsed = JSON.parse(text);
+
+                    const res = await this.authFetch('/api/system/backup/upload', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            backupData: parsed,
+                            filename: file.name
+                        })
+                    });
+
+                    const result = await res.json();
+                    if (result.success) {
+                        this.showToast(result.message || 'Database restored successfully from file!', 'success');
+                        await this.fetchState();
+                        await this.loadAvailableBackups();
+                    } else {
+                        this.showToast(result.error || 'Failed to restore uploaded database', 'error');
+                    }
+                } catch (parseErr) {
+                    console.error('[FILE PARSE ERROR]', parseErr);
+                    this.showToast('Invalid JSON in uploaded file: ' + parseErr.message, 'error');
+                } finally {
+                    input.value = '';
+                    if (label) label.textContent = 'Choose Backup JSON File to Restore';
+                }
+            };
+
+            reader.onerror = () => {
+                this.showToast('Failed to read file from local disk', 'error');
+                input.value = '';
+                if (label) label.textContent = 'Choose Backup JSON File to Restore';
+            };
+
+            reader.readAsText(file);
         }
     };
 

@@ -1332,21 +1332,139 @@ app.post('/api/system/webhook', async (req, res) => {
     }
 });
 
-// GET Instant Database Backup Download
-app.get('/api/system/backup/download', requireAdminAuth, async (req, res) => {
+// GET List Available Daily Backups (up to last 30 days)
+app.get('/api/system/backups', requireAdminAuth, async (req, res) => {
+    try {
+        const backups = await db.listAvailableBackups();
+        res.json({ success: true, backups });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// POST Create Instant Manual Backup
+app.post('/api/system/backup/create', requireAdminAuth, async (req, res) => {
     try {
         await db.safeBackupData();
-        const backupPath = path.join(__dirname, 'backups', 'db_backup_latest.json');
+        const backups = await db.listAvailableBackups();
+        res.json({
+            success: true,
+            message: 'Database backup snapshot created successfully!',
+            backups
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// GET Instant Database Backup Download (supports specific file or latest)
+app.get('/api/system/backup/download', requireAdminAuth, async (req, res) => {
+    try {
+        const requestedFile = req.query.file;
+        let backupPath = path.join(__dirname, 'backups', 'db_backup_latest.json');
+        let downloadName = `zannat_db_backup_${new Date().toISOString().split('T')[0]}.json`;
+
+        if (requestedFile) {
+            // Prevent directory traversal
+            const cleanName = path.basename(requestedFile);
+            if (cleanName.endsWith('.json')) {
+                backupPath = path.join(__dirname, 'backups', cleanName);
+                downloadName = cleanName;
+            }
+        } else {
+            await db.safeBackupData();
+        }
+
         if (fs.existsSync(backupPath)) {
-            res.download(backupPath, `zannat_db_backup_${new Date().toISOString().split('T')[0]}.json`);
+            res.download(backupPath, downloadName);
         } else {
             const json = await db.exportDatabaseJson();
             res.setHeader('Content-Type', 'application/json');
-            res.setHeader('Content-Disposition', `attachment; filename="zannat_db_backup_${new Date().toISOString().split('T')[0]}.json"`);
+            res.setHeader('Content-Disposition', `attachment; filename="${downloadName}"`);
             res.send(json);
         }
     } catch (err) {
         res.status(500).json({ error: err.message });
+    }
+});
+
+// POST Restore Database from an existing backup file on disk
+app.post('/api/system/backup/restore', requireAdminAuth, async (req, res) => {
+    try {
+        const { filename } = req.body;
+        if (!filename) {
+            return res.status(400).json({ error: 'Filename is required for restore' });
+        }
+        const cleanName = path.basename(filename);
+        const backupPath = path.join(__dirname, 'backups', cleanName);
+
+        if (!fs.existsSync(backupPath)) {
+            return res.status(404).json({ error: `Backup file ${cleanName} not found` });
+        }
+
+        const raw = fs.readFileSync(backupPath, 'utf-8');
+        const parsed = JSON.parse(raw);
+
+        // Perform non-destructive pre-restore safety snapshot
+        const dateStr = new Date().toISOString().replace(/[:.]/g, '-');
+        fs.writeFileSync(path.join(__dirname, 'backups', `pre_restore_${dateStr}.json`), await db.exportDatabaseJson(), 'utf-8');
+
+        await db.restoreDatabaseFromJson(parsed);
+        res.json({
+            success: true,
+            message: `Database successfully restored from ${cleanName}!`
+        });
+    } catch (err) {
+        console.error('[DATABASE RESTORE ERROR]', err);
+        res.status(500).json({ error: 'Failed to restore database: ' + err.message });
+    }
+});
+
+// POST Upload & Restore Database from JSON Payload / File
+app.post('/api/system/backup/upload', requireAdminAuth, async (req, res) => {
+    try {
+        const { backupData, filename } = req.body;
+        let dataObj = null;
+
+        if (typeof backupData === 'string') {
+            try {
+                dataObj = JSON.parse(backupData);
+            } catch (e) {
+                return res.status(400).json({ error: 'Invalid JSON file format: ' + e.message });
+            }
+        } else if (backupData && typeof backupData === 'object') {
+            dataObj = backupData;
+        } else {
+            return res.status(400).json({ error: 'No valid database backup JSON provided.' });
+        }
+
+        // Validate basic structure
+        if (!dataObj || typeof dataObj !== 'object') {
+            return res.status(400).json({ error: 'Invalid backup structure. Must contain JSON database state.' });
+        }
+
+        // Save uploaded backup file into backups directory with timestamp
+        const dateStr = new Date().toISOString().split('T')[0];
+        const saveName = filename ? `uploaded_${path.basename(filename)}` : `uploaded_db_backup_${dateStr}_${Date.now()}.json`;
+        const backupDir = path.join(__dirname, 'backups');
+        if (!fs.existsSync(backupDir)) fs.mkdirSync(backupDir, { recursive: true });
+        
+        fs.writeFileSync(path.join(backupDir, saveName), JSON.stringify(dataObj, null, 2), 'utf-8');
+
+        // Create a safety snapshot of current database state before replacing
+        fs.writeFileSync(path.join(backupDir, `pre_upload_restore_${Date.now()}.json`), await db.exportDatabaseJson(), 'utf-8');
+
+        // Restore into MySQL
+        await db.restoreDatabaseFromJson(dataObj);
+
+        res.json({
+            success: true,
+            message: 'Database backup uploaded and applied to MySQL successfully!',
+            savedAs: saveName
+        });
+    } catch (err) {
+        console.error('[DATABASE UPLOAD ERROR]', err);
+        res.status(500).json({ error: 'Failed to upload and restore database: ' + err.message });
     }
 });
 
@@ -1400,8 +1518,19 @@ app.use((req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
+// Automated Daily Backup Scheduler: runs everyday (every 24 hours) & retains last 30 days
+const DAILY_BACKUP_INTERVAL_MS = 24 * 60 * 60 * 1000;
+setInterval(() => {
+    console.log('[AUTO BACKUP] Executing scheduled daily database backup & 30-day rotation...');
+    db.safeBackupData().catch(err => {
+        console.error('[AUTO BACKUP ERROR]', err.message);
+    });
+}, DAILY_BACKUP_INTERVAL_MS);
+
 app.listen(PORT, () => {
     console.log(`Zannat.bd MySQL-Backed Server running on port ${PORT}`);
+    // Execute safety backup on boot
+    db.safeBackupData().catch(e => console.warn('[DATABASE BACKUP] Boot backup notice:', e.message));
     // Initialize WhatsApp connection
     whatsapp.initWhatsApp();
 });
