@@ -499,6 +499,12 @@
               <span>Invoice Generate</span>
             </a>
           </li>
+          <li>
+            <a href="/admin/clients" class="nav-link" data-tab="clients" onclick="event.preventDefault(); app.switchTab('clients');">
+              <i data-lucide="users"></i>
+              <span>Clients</span>
+            </a>
+          </li>
           <li style="margin-top: 24px; border-top: 1px solid var(--border-color); padding-top: 16px;">
             <a href="/" class="nav-link" data-tab="portfolio" id="back-to-site-btn" onclick="event.preventDefault(); app.switchTab('portfolio');">
               <i data-lucide="arrow-left-circle"></i>
@@ -653,60 +659,367 @@
 
         <!-- ================= MAINTENANCE TAB ================= -->
         <section id="tab-maintenance" class="tab-pane">
-          <div class="card" style="max-width: 500px; margin: 0 auto;">
-            <div class="card-header">
-              <h3>Maintenance and Database Control</h3>
-              <p class="text-muted">Import/Export your tickets and database states safely.</p>
-            </div>
-            <div style="display: flex; flex-direction: column; gap: 16px; margin-top: 24px;">
-              <button class="btn btn-primary btn-icon-text" onclick="app.downloadBackup()">
-                <i data-lucide="download"></i>
-                <span>Download DB Backup (.json)</span>
-              </button>
-              
-              <button class="btn btn-outline btn-icon-text" onclick="document.getElementById('db-restore-input').click()">
-                <i data-lucide="upload"></i>
-                <span>Upload DB Backup (.json)</span>
-              </button>
-              <input type="file" id="db-restore-input" style="display: none;" accept=".json" onchange="app.uploadRestore(event)">
-            </div>
-          </div>
+          <div style="max-width: 900px; margin: 0 auto; display: flex; flex-direction: column; gap: 28px;">
 
-          <div class="card" style="max-width: 500px; margin: 24px auto 0 auto;">
-            <div class="card-header">
-              <h3>SMTP Mail Server Settings</h3>
-              <p class="text-muted">Configure external SMTP mail delivery details for form alerts.</p>
+            <!-- GMAIL & EMAIL DELIVERY SUITE -->
+            <div class="card" style="border: 1px solid var(--border-color, #e2e8f0); box-shadow: 0 4px 20px rgba(0,0,0,0.06); border-radius: 14px; overflow: hidden; padding: 0;">
+              <!-- Header -->
+              <div style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); color: #fff; padding: 24px 28px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+                <div style="display: flex; align-items: center; gap: 14px;">
+                  <div style="width: 44px; height: 44px; background: rgba(255,255,255,0.1); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 22px;">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                      <path d="M22 6C22 4.9 21.1 4 20 4H4C2.9 4 2 4.9 2 6V18C2 19.1 2.9 20 4 20H20C21.1 20 22 19.1 22 18V6Z" fill="#EA4335" opacity="0.9"/>
+                      <path d="M22 6L12 13L2 6" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 style="margin: 0; font-size: 1.25rem; font-weight: 700; color: #fff;">Gmail & Email Delivery Settings</h3>
+                    <p style="margin: 4px 0 0 0; font-size: 0.875rem; color: #94a3b8;">Authenticate your Gmail account directly to send inquiry alerts and invoice emails.</p>
+                  </div>
+                </div>
+                <div id="gmail-status-badge">
+                  <span style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 600; background: rgba(239,68,68,0.15); color: #f87171; border: 1px solid rgba(239,68,68,0.3);">
+                    <span style="width: 8px; height: 8px; border-radius: 50%; background: #ef4444;"></span> Not Connected
+                  </span>
+                </div>
+              </div>
+
+              <div style="padding: 28px; display: flex; flex-direction: column; gap: 24px;">
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 24px; align-items: start;">
+                  
+                  <!-- Left: Gmail Authentication Panel -->
+                  <div style="background: var(--bg-surface-2, #f8fafc); border: 1px solid var(--border-color, #e2e8f0); border-radius: 12px; padding: 24px;">
+                    
+                    <!-- Connected State View -->
+                    <div id="gmail-connected-view" style="display: none;">
+                      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+                        <h4 style="margin: 0; font-size: 1.05rem; font-weight: 700; color: #059669; display: flex; align-items: center; gap: 8px;">
+                          <span style="width: 10px; height: 10px; border-radius: 50%; background: #10b981; display: inline-block;"></span>
+                          Gmail Active & Connected
+                        </h4>
+                        <span style="font-size: 11px; padding: 3px 8px; border-radius: 6px; background: rgba(16,185,129,0.15); color: #059669; font-weight: 600;">Verified</span>
+                      </div>
+                      <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px; margin-bottom: 20px;">
+                        <div style="font-size: 12px; color: var(--text-muted, #64748b); margin-bottom: 4px;">Active Sender Account</div>
+                        <div id="active-connected-email" style="font-size: 1.05rem; font-weight: 700; color: #1e293b;">abuzannat911@gmail.com</div>
+                        <p style="font-size: 0.8rem; color: #64748b; margin: 8px 0 0 0; line-height: 1.4;">
+                          Your website is configured to send all inquiry alerts, client ticket responses, and invoices directly through this Gmail account.
+                        </p>
+                      </div>
+                      <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                        <button type="button" class="btn" onclick="app.disconnectGmailOAuth()" style="background: rgba(239,68,68,0.1); color: #dc2626; border: 1px solid rgba(239,68,68,0.3); font-weight: 600; padding: 9px 18px; border-radius: 8px; cursor: pointer;">
+                          Disconnect Account
+                        </button>
+                        <button type="button" class="btn btn-outline" onclick="app.showGmailConnectForm()" style="font-weight: 600; padding: 9px 18px; border-radius: 8px; cursor: pointer;">
+                          Change Email / Re-authenticate
+                        </button>
+                      </div>
+                    </div>
+
+                    <!-- Disconnected / Connect Form View -->
+                    <div id="gmail-connect-view">
+                      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;">
+                        <h4 style="margin: 0; font-size: 1.05rem; font-weight: 700;">Connect Gmail Account</h4>
+                        <span style="font-size: 11px; padding: 3px 8px; border-radius: 6px; background: rgba(239,68,68,0.1); color: #ef4444; font-weight: 600;">Not Connected</span>
+                      </div>
+                      <p style="font-size: 0.85rem; color: var(--text-muted, #64748b); margin: 0 0 16px 0; line-height: 1.4;">
+                        Enter your Gmail address and 16-character App Password to connect instantly.
+                      </p>
+
+                      <form id="form-connect-gmail" onsubmit="app.submitConnectGmailForm(event)" style="display: flex; flex-direction: column; gap: 14px;">
+                        <input type="hidden" id="smtp-host" value="smtp.gmail.com">
+                        <input type="hidden" id="smtp-port" value="587">
+                        <input type="hidden" id="smtp-secure" value="false">
+
+                        <div class="form-group">
+                          <label for="smtp-user" style="font-size: 13px; font-weight: 600;">Gmail Address *</label>
+                          <input type="email" id="smtp-user" class="form-control" placeholder="yourname@gmail.com" autocomplete="off" required>
+                        </div>
+
+                        <div class="form-group">
+                          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                            <label for="smtp-pass" style="font-size: 13px; font-weight: 600; margin: 0;">16-Character App Password *</label>
+                            <a href="https://myaccount.google.com/apppasswords" target="_blank" style="font-size: 11px; color: #2563eb; text-decoration: none; font-weight: 600;">Get App Password ↗</a>
+                          </div>
+                          <input type="text" id="smtp-pass" class="form-control" placeholder="xxxx xxxx xxxx xxxx" autocomplete="new-password" style="font-family: monospace; letter-spacing: 1px;" required>
+                          <p style="font-size: 0.775rem; color: var(--text-muted, #64748b); margin: 6px 0 0 0;">
+                            Generated from: Google Account &gt; Security &gt; 2-Step Verification &gt; App Passwords.
+                          </p>
+                        </div>
+
+                        <div id="connect-gmail-alert" style="display: none; padding: 10px 14px; border-radius: 8px; font-size: 13px;"></div>
+
+                        <button type="submit" id="btn-submit-connect-gmail" class="btn btn-primary" style="padding: 11px 20px; font-size: 14px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; gap: 8px; margin-top: 4px; background: #10b981; border-color: #10b981; cursor: pointer;">
+                          <svg width="18" height="18" viewBox="0 0 24 24">
+                            <path fill="#ffffff" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                            <path fill="#ffffff" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                            <path fill="#ffffff" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+                            <path fill="#ffffff" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+                          </svg>
+                          <span>Connect with Gmail</span>
+                        </button>
+
+                        <div style="display: flex; justify-content: center; margin-top: 6px;">
+                          <a href="/api/auth/google" style="font-size: 12px; color: var(--text-muted, #64748b); text-decoration: underline;">Or sign in via Google OAuth 2.0</a>
+                        </div>
+                      </form>
+                    </div>
+
+                  </div>
+
+                  <!-- Right: Live Email Deliverability Tester -->
+                  <div style="background: var(--bg-surface-2, #f8fafc); border: 1px solid var(--border-color, #e2e8f0); border-radius: 12px; padding: 24px;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+                      <h4 style="margin: 0; font-size: 1.05rem; font-weight: 700;">Live Email Test</h4>
+                      <span style="font-size: 11px; padding: 3px 8px; border-radius: 6px; background: rgba(16,185,129,0.1); color: #059669; font-weight: 600;">Deliverability</span>
+                    </div>
+                    <p style="font-size: 0.85rem; color: var(--text-muted, #64748b); margin: 0 0 16px 0; line-height: 1.4;">
+                      Verify that your authenticated Gmail account can successfully send real emails.
+                    </p>
+                    <form id="form-test-email" style="display: flex; flex-direction: column; gap: 14px;">
+                      <div class="form-group">
+                        <label for="test-email-recipient" style="font-size: 13px; font-weight: 600;">Recipient Email Address</label>
+                        <input type="email" id="test-email-recipient" class="form-control" placeholder="your-email@example.com" required>
+                      </div>
+                      <button type="submit" id="btn-send-test-email" class="btn btn-primary" style="padding: 11px 20px; font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <line x1="22" y1="2" x2="11" y2="13"></line>
+                          <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                        </svg>
+                        <span>Send Test Email Now</span>
+                      </button>
+                    </form>
+                    <div id="test-email-result" style="margin-top: 14px; display: none;"></div>
+                  </div>
+
+                </div>
+
+                <!-- Google API Credentials Accordion (Optional / Developer Settings) -->
+                <details style="background: var(--bg-surface-1, #ffffff); border: 1px dashed var(--border-color, #cbd5e1); border-radius: 10px; padding: 14px 18px;">
+                  <summary style="font-size: 0.875rem; font-weight: 600; cursor: pointer; color: var(--text-primary, #334155); display: flex; align-items: center; justify-content: space-between;">
+                    <span>⚙️ Custom Google OAuth App Credentials (Optional / Developer Settings)</span>
+                    <span style="font-size: 12px; color: var(--text-muted, #64748b);">Expand</span>
+                  </summary>
+                  <div style="margin-top: 14px; font-size: 0.85rem; color: var(--text-muted, #64748b); line-height: 1.6;">
+                    <p style="margin: 0 0 10px 0;">
+                      To use your own Google Cloud Console OAuth 2.0 Web Client credentials, enter them below:
+                    </p>
+                    <div style="margin-bottom: 12px; background: rgba(59,130,246,0.06); padding: 10px 14px; border-radius: 6px; border: 1px solid rgba(59,130,246,0.2);">
+                      <strong>Authorized Redirect URI:</strong> <code id="google-redirect-uri-display" style="color: #2563eb; user-select: all;">http://localhost:8080/api/auth/google/callback</code>
+                    </div>
+                    <form id="form-google-credentials" style="display: flex; flex-direction: column; gap: 12px;">
+                      <div class="form-group">
+                        <label for="oauth-client-id" style="font-weight: 600; font-size: 13px;">Google OAuth Client ID</label>
+                        <input type="text" id="oauth-client-id" class="form-control" placeholder="123456789-xxxxxx.apps.googleusercontent.com">
+                      </div>
+                      <div class="form-group">
+                        <label for="oauth-client-secret" style="font-weight: 600; font-size: 13px;">Google OAuth Client Secret</label>
+                        <input type="password" id="oauth-client-secret" class="form-control" placeholder="GOCSPX-xxxxxx">
+                      </div>
+                      <button type="submit" class="btn btn-outline" style="align-self: flex-start; padding: 6px 18px; font-size: 13px;">
+                        Save Credentials
+                      </button>
+                    </form>
+                  </div>
+                </details>
+
+              </div>
             </div>
-            <form id="form-smtp-config" style="margin-top: 20px; display: flex; flex-direction: column; gap: 16px;">
-              <div class="form-group">
-                <label for="smtp-host">SMTP Host</label>
-                <input type="text" id="smtp-host" class="form-control" placeholder="smtp.gmail.com">
-              </div>
-              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-                <div class="form-group">
-                  <label for="smtp-port">SMTP Port</label>
-                  <input type="number" id="smtp-port" class="form-control" placeholder="587">
+
+            <!-- ================= WHATSAPP NOTIFICATION SUITE ================= -->
+            <div class="card" style="border: 1px solid var(--border-color, #e2e8f0); box-shadow: 0 4px 20px rgba(0,0,0,0.06); border-radius: 14px; overflow: hidden; padding: 0;">
+              <!-- Header -->
+              <div style="background: linear-gradient(135deg, #064e3b 0%, #022c22 100%); color: #fff; padding: 24px 28px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+                <div style="display: flex; align-items: center; gap: 14px;">
+                  <div style="width: 44px; height: 44px; background: rgba(255,255,255,0.12); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 22px;">
+                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+                      <path fill="#25D366" d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91C2.13 13.66 2.59 15.36 3.45 16.86L2.05 22L7.3 20.62C8.75 21.41 10.38 21.83 12.04 21.83C17.5 21.83 21.95 17.38 21.95 11.92C21.95 9.27 20.92 6.78 19.05 4.91C17.18 3.03 14.69 2 12.04 2Z"/>
+                      <path fill="#ffffff" fill-rule="evenodd" clip-rule="evenodd" d="M9.6 7.63C9.37 7.12 9.13 7.11 8.91 7.1C8.73 7.09 8.52 7.09 8.31 7.09C8.1 7.09 7.76 7.17 7.48 7.48C7.19 7.79 6.39 8.56 6.39 10.13C6.39 11.69 7.53 13.2 7.69 13.41C7.85 13.62 9.88 16.94 13.1 18.2C15.26 19.04 16.03 18.89 16.63 18.83C17.36 18.76 18.72 17.97 19.03 17.06C19.34 16.14 19.34 15.36 19.25 15.2C19.16 15.04 18.95 14.95 18.63 14.79C18.32 14.63 16.79 13.88 16.51 13.78C16.22 13.67 16.01 13.62 15.8 13.93C15.59 14.24 15 14.95 14.82 15.16C14.64 15.36 14.47 15.39 14.16 15.23C13.84 15.08 12.83 14.75 11.64 13.68C10.71 12.85 10.08 11.83 9.9 11.52C9.72 11.21 9.88 11.04 10.04 10.89C10.18 10.75 10.35 10.52 10.51 10.34C10.67 10.15 10.72 10.02 10.83 9.81C10.93 9.61 10.88 9.42 10.8 9.27C10.72 9.11 10.1 7.58 9.6 7.63Z"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 style="margin: 0; font-size: 1.25rem; font-weight: 700; color: #fff;">WhatsApp Notification Suite</h3>
+                    <p style="margin: 4px 0 0 0; font-size: 0.875rem; color: #a7f3d0;">Connect your personal WhatsApp to send live customer notifications, invoice links, and bug alerts.</p>
+                  </div>
                 </div>
-                <div class="form-group">
-                  <label for="smtp-secure">Encryption</label>
-                  <select id="smtp-secure" class="form-control">
-                    <option value="false">STARTTLS (Port 587)</option>
-                    <option value="true">SSL/TLS (Port 465)</option>
-                  </select>
+                <div id="wa-status-badge">
+                  <span style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 600; background: rgba(239,68,68,0.15); color: #f87171; border: 1px solid rgba(239,68,68,0.3);">
+                    <span style="width: 8px; height: 8px; border-radius: 50%; background: #ef4444;"></span> Not Connected
+                  </span>
                 </div>
               </div>
-              <div class="form-group">
-                <label for="smtp-user">SMTP Username / Email</label>
-                <input type="text" id="smtp-user" class="form-control" placeholder="sender@gmail.com">
+
+              <div style="padding: 28px; display: flex; flex-direction: column; gap: 24px;">
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 24px; align-items: start;">
+                  
+                  <!-- Left: WhatsApp Authentication Hub -->
+                  <div style="background: var(--bg-surface-2, #f8fafc); border: 1px solid var(--border-color, #e2e8f0); border-radius: 12px; padding: 24px;">
+                    
+                    <!-- Connected State View -->
+                    <div id="wa-connected-view" style="display: none;">
+                      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+                        <h4 style="margin: 0; font-size: 1.05rem; font-weight: 700; color: #059669; display: flex; align-items: center; gap: 8px;">
+                          <span style="width: 10px; height: 10px; border-radius: 50%; background: #10b981; display: inline-block;"></span>
+                          WhatsApp Active & Linked
+                        </h4>
+                        <span style="font-size: 11px; padding: 3px 8px; border-radius: 6px; background: rgba(16,185,129,0.15); color: #059669; font-weight: 600;">Multi-Device Active</span>
+                      </div>
+                      <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 18px; margin-bottom: 20px;">
+                        <div style="font-size: 12px; color: var(--text-muted, #64748b); margin-bottom: 4px;">Connected WhatsApp Account</div>
+                        <div id="wa-connected-number" style="font-size: 1.15rem; font-weight: 700; color: #1e293b; letter-spacing: 0.5px;">+8801700000000</div>
+                        <div id="wa-connected-name" style="font-size: 0.85rem; color: #10b981; font-weight: 600; margin-top: 2px;">Abu Zannat</div>
+                        <p style="font-size: 0.8rem; color: #64748b; margin: 10px 0 0 0; line-height: 1.4;">
+                          Your website is actively linked. Outgoing WhatsApp notifications and invoice links will be dispatched directly from this WhatsApp account.
+                        </p>
+                      </div>
+                      <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                        <button type="button" class="btn" onclick="app.disconnectWhatsApp()" style="background: rgba(239,68,68,0.1); color: #dc2626; border: 1px solid rgba(239,68,68,0.3); font-weight: 600; padding: 9px 18px; border-radius: 8px; cursor: pointer;">
+                          Disconnect WhatsApp
+                        </button>
+                        <button type="button" class="btn btn-outline" onclick="app.showWhatsAppConnectForm()" style="font-weight: 600; padding: 9px 18px; border-radius: 8px; cursor: pointer;">
+                          Link Another Number
+                        </button>
+                      </div>
+                    </div>
+
+                    <!-- Disconnected / Connect Form View -->
+                    <div id="wa-connect-view">
+                      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;">
+                        <h4 style="margin: 0; font-size: 1.05rem; font-weight: 700;">Link Personal WhatsApp</h4>
+                        <span style="font-size: 11px; padding: 3px 8px; border-radius: 6px; background: rgba(239,68,68,0.1); color: #ef4444; font-weight: 600;">Not Linked</span>
+                      </div>
+                      <p style="font-size: 0.85rem; color: var(--text-muted, #64748b); margin: 0 0 16px 0; line-height: 1.4;">
+                        Link your personal WhatsApp using either a QR Code scan or an 8-character Pairing Code.
+                      </p>
+
+                      <!-- Method Selector Buttons -->
+                      <div style="display: flex; gap: 8px; margin-bottom: 16px; background: rgba(0,0,0,0.04); padding: 4px; border-radius: 8px;">
+                        <button type="button" id="btn-wa-tab-qr" onclick="app.switchWhatsAppTab('qr')" class="btn btn-sm" style="flex: 1; font-weight: 600; background: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border: none; border-radius: 6px; padding: 8px; cursor: pointer;">
+                          Option 1: Scan QR Code
+                        </button>
+                        <button type="button" id="btn-wa-tab-code" onclick="app.switchWhatsAppTab('code')" class="btn btn-sm" style="flex: 1; font-weight: 600; background: transparent; border: none; border-radius: 6px; padding: 8px; color: var(--text-muted, #64748b); cursor: pointer;">
+                          Option 2: 8-Digit Pairing Code
+                        </button>
+                      </div>
+
+                      <!-- TAB 1: QR Code Scanner -->
+                      <div id="wa-tab-qr-content" style="display: flex; flex-direction: column; align-items: center; gap: 14px;">
+                        <div id="wa-qr-container" style="width: 220px; height: 220px; background: #ffffff; border: 2px dashed #cbd5e1; border-radius: 12px; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+                          <div id="wa-qr-loading" style="display: flex; flex-direction: column; align-items: center; gap: 8px; color: #64748b; font-size: 13px;">
+                            <span style="display:inline-block; width:22px; height:22px; border:2px solid #25D366; border-top-color:transparent; border-radius:50%; animation:spin 0.8s linear infinite;"></span>
+                            Generating QR Code...
+                          </div>
+                          <img id="wa-qr-image" src="" alt="WhatsApp QR Code" style="display: none; width: 100%; height: 100%; object-fit: contain; padding: 8px;">
+                        </div>
+
+                        <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px 16px; width: 100%; box-sizing: border-box;">
+                          <div style="font-size: 12px; font-weight: 700; color: #1e293b; margin-bottom: 6px;">How to link with QR code:</div>
+                          <ol style="margin: 0; padding-left: 18px; font-size: 12px; color: #64748b; line-height: 1.5;">
+                            <li>Open <strong>WhatsApp</strong> on your mobile phone</li>
+                            <li>Tap <strong>Settings</strong> (iOS) or <strong>⋮ Menu</strong> (Android) &gt; <strong>Linked Devices</strong></li>
+                            <li>Tap <strong>Link a Device</strong> and scan the QR code above</li>
+                          </ol>
+                        </div>
+
+                        <button type="button" onclick="app.refreshWhatsAppQR()" class="btn btn-outline btn-sm" style="font-size: 12px; display: inline-flex; align-items: center; gap: 6px;">
+                          <i data-lucide="refresh-cw" style="width: 14px; height: 14px;"></i> Refresh QR Code
+                        </button>
+                      </div>
+
+                      <!-- TAB 2: Pairing Code -->
+                      <div id="wa-tab-code-content" style="display: none; flex-direction: column; gap: 14px;">
+                        <p style="font-size: 0.82rem; color: #64748b; margin: 0; line-height: 1.4;">
+                          Enter your phone number with country code (e.g. <code>8801712345678</code> or <code>15551234567</code>) to get an 8-character code.
+                        </p>
+                        <div class="form-group">
+                          <label for="wa-pairing-phone-input" style="font-size: 13px; font-weight: 600;">Your WhatsApp Phone Number *</label>
+                          <input type="text" id="wa-pairing-phone-input" class="form-control" placeholder="e.g. +8801700000000 or +1..." autocomplete="off">
+                        </div>
+                        <button type="button" id="btn-wa-get-code" onclick="app.requestWhatsAppPairingCode()" class="btn btn-primary" style="background: #25D366; border-color: #25D366; font-weight: 700; padding: 10px 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                          <span>Generate 8-Digit Pairing Code</span>
+                        </button>
+
+                        <div id="wa-pairing-code-result" style="display: none; background: #ffffff; border: 2px solid #25D366; border-radius: 10px; padding: 16px; text-align: center;">
+                          <div style="font-size: 12px; color: #64748b; margin-bottom: 6px;">Enter this code in your WhatsApp app:</div>
+                          <div id="wa-display-code" style="font-family: monospace; font-size: 1.8rem; font-weight: 800; letter-spacing: 4px; color: #0f172a; margin: 8px 0;">
+                            ---- ----
+                          </div>
+                          <button type="button" onclick="app.copyWhatsAppPairingCode()" class="btn btn-outline btn-sm" style="font-size: 12px; margin-top: 4px;">
+                            📋 Copy Code
+                          </button>
+                          <div style="font-size: 11px; color: #64748b; margin-top: 10px; text-align: left; background: #f8fafc; padding: 8px 12px; border-radius: 6px;">
+                            👉 WhatsApp &gt; Linked Devices &gt; Link a Device &gt; <strong>Link with phone number instead</strong> &gt; Type this code.
+                          </div>
+                        </div>
+
+                        <div id="wa-pairing-alert" style="display: none; padding: 10px 14px; border-radius: 8px; font-size: 13px;"></div>
+                      </div>
+
+                    </div>
+
+                  </div>
+
+                  <!-- Right: Live WhatsApp Notification Tester -->
+                  <div style="background: var(--bg-surface-2, #f8fafc); border: 1px solid var(--border-color, #e2e8f0); border-radius: 12px; padding: 24px;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+                      <h4 style="margin: 0; font-size: 1.05rem; font-weight: 700;">Live WhatsApp Dispatch</h4>
+                      <span style="font-size: 11px; padding: 3px 8px; border-radius: 6px; background: rgba(37,211,102,0.15); color: #059669; font-weight: 600;">Instant Dispatch</span>
+                    </div>
+                    <p style="font-size: 0.85rem; color: var(--text-muted, #64748b); margin: 0 0 16px 0; line-height: 1.4;">
+                      Dispatch custom notifications or test messages directly from your personal WhatsApp to any mobile number.
+                    </p>
+                    <form id="form-test-whatsapp" onsubmit="app.submitSendWhatsAppTest(event)" style="display: flex; flex-direction: column; gap: 14px;">
+                      <div class="form-group">
+                        <label for="wa-test-recipient-phone" style="font-size: 13px; font-weight: 600;">Recipient Phone Number *</label>
+                        <input type="text" id="wa-test-recipient-phone" class="form-control" placeholder="e.g. +8801700000000 or +1..." required autocomplete="off">
+                        <p style="font-size: 0.775rem; color: var(--text-muted, #64748b); margin: 4px 0 0 0;">
+                          Include country code (e.g. 880 for Bangladesh, 1 for USA/Canada, 44 for UK).
+                        </p>
+                      </div>
+
+                      <div class="form-group">
+                        <label for="wa-test-msg-body" style="font-size: 13px; font-weight: 600;">Message Content *</label>
+                        <textarea id="wa-test-msg-body" class="form-control" rows="3" required placeholder="Type your WhatsApp notification message here...">Hello! This is a live notification test sent directly from Abu Zannat website administration.</textarea>
+                      </div>
+
+                      <button type="submit" id="btn-send-wa-test" class="btn btn-primary" style="padding: 11px 20px; font-size: 14px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; gap: 8px; background: #25D366; border-color: #25D366; cursor: pointer;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                          <path fill="#ffffff" d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91C2.13 13.66 2.59 15.36 3.45 16.86L2.05 22L7.3 20.62C8.75 21.41 10.38 21.83 12.04 21.83C17.5 21.83 21.95 17.38 21.95 11.92C21.95 9.27 20.92 6.78 19.05 4.91C17.18 3.03 14.69 2 12.04 2Z"/>
+                          <path fill="#25D366" fill-rule="evenodd" clip-rule="evenodd" d="M9.6 7.63C9.37 7.12 9.13 7.11 8.91 7.1C8.73 7.09 8.52 7.09 8.31 7.09C8.1 7.09 7.76 7.17 7.48 7.48C7.19 7.79 6.39 8.56 6.39 10.13C6.39 11.69 7.53 13.2 7.69 13.41C7.85 13.62 9.88 16.94 13.1 18.2C15.26 19.04 16.03 18.89 16.63 18.83C17.36 18.76 18.72 17.97 19.03 17.06C19.34 16.14 19.34 15.36 19.25 15.2C19.16 15.04 18.95 14.95 18.63 14.79C18.32 14.63 16.79 13.88 16.51 13.78C16.22 13.67 16.01 13.62 15.8 13.93C15.59 14.24 15 14.95 14.82 15.16C14.64 15.36 14.47 15.39 14.16 15.23C13.84 15.08 12.83 14.75 11.64 13.68C10.71 12.85 10.08 11.83 9.9 11.52C9.72 11.21 9.88 11.04 10.04 10.89C10.18 10.75 10.35 10.52 10.51 10.34C10.67 10.15 10.72 10.02 10.83 9.81C10.93 9.61 10.88 9.42 10.8 9.27C10.72 9.11 10.1 7.58 9.6 7.63Z"/>
+                        </svg>
+                        <span>Send WhatsApp Message</span>
+                      </button>
+
+                      <div id="wa-test-result" style="display: none;"></div>
+                    </form>
+                  </div>
+
+                </div>
+
               </div>
-              <div class="form-group">
-                <label for="smtp-pass">SMTP Password / App Key</label>
-                <input type="password" id="smtp-pass" class="form-control" placeholder="••••••••">
+            </div>
+
+            <!-- DATABASE BACKUP & RESTORE -->
+            <div class="card" style="border-radius: 14px; padding: 24px;">
+              <div class="card-header">
+                <h3>Database Backup & Restore</h3>
+                <p class="text-muted">Export your full MySQL state (tickets, invoices, clients, CMS) to JSON or restore anytime.</p>
               </div>
-              <button type="submit" class="btn btn-primary" style="align-self: flex-start; padding: 10px 24px;">
-                <i data-lucide="mail" style="width: 16px; height: 16px; display: inline-block; vertical-align: middle; margin-right: 4px;"></i> Save SMTP Config
-              </button>
-            </form>
+              <div style="display: flex; gap: 16px; margin-top: 20px; flex-wrap: wrap;">
+                <button class="btn btn-primary btn-icon-text" onclick="app.downloadBackup()">
+                  <i data-lucide="download"></i>
+                  <span>Download DB Backup (.json)</span>
+                </button>
+                <button class="btn btn-outline btn-icon-text" onclick="document.getElementById('db-restore-input').click()">
+                  <i data-lucide="upload"></i>
+                  <span>Upload DB Backup (.json)</span>
+                </button>
+                <input type="file" id="db-restore-input" style="display: none;" accept=".json" onchange="app.uploadRestore(event)">
+              </div>
+            </div>
+
           </div>
         </section>
 
@@ -868,11 +1181,11 @@
               <p class="text-muted text-small">Create professional PDF invoices with auto-increment numbers, client addresses, and tax options.</p>
             </div>
             <div style="display: flex; gap: 12px;">
-              <button class="btn btn-outline btn-icon-text" onclick="app.toggleInvoiceView('list')">
+              <button class="btn btn-outline btn-icon-text" id="btn-tab-invoice-history" onclick="app.toggleInvoiceView('list')">
                 <i data-lucide="list"></i>
                 <span>Invoice History</span>
               </button>
-              <button class="btn btn-primary btn-icon-text" onclick="app.resetInvoiceForm(); app.toggleInvoiceView('create');">
+              <button class="btn btn-primary btn-icon-text" id="btn-tab-invoice-create" onclick="app.resetInvoiceForm(); app.toggleInvoiceView('create');">
                 <i data-lucide="plus-circle"></i>
                 <span>Create New Invoice</span>
               </button>
@@ -1120,10 +1433,10 @@ Bangladesh</textarea>
               </div>
 
               <div style="display: flex; gap: 12px; justify-content: flex-end; align-items: center; flex-wrap: wrap;">
-                <button type="button" class="btn btn-secondary" onclick="app.toggleInvoiceView('list')">Cancel</button>
-                <button type="button" class="btn btn-outline btn-icon-text" onclick="app.handlePreviewInvoice(event)" style="padding: 11px 20px;">
-                  <i data-lucide="eye" style="width: 16px; height: 16px; color: var(--accent-blue);"></i>
-                  <span>Preview</span>
+                <button type="button" class="btn btn-secondary" onclick="app.toggleInvoiceView('list')" style="padding: 11px 20px;">Cancel</button>
+                <button type="button" class="btn btn-primary btn-icon-text" onclick="app.handleSaveInvoice(event)" style="padding: 11px 24px;">
+                  <i data-lucide="save" style="width: 16px; height: 16px;"></i>
+                  <span>Save</span>
                 </button>
                 <button type="button" class="btn btn-outline btn-icon-text" onclick="app.handlePrintInvoice(event)" style="padding: 11px 20px;">
                   <i data-lucide="printer" style="width: 16px; height: 16px; color: var(--accent-amber);"></i>
@@ -1133,9 +1446,16 @@ Bangladesh</textarea>
                   <i data-lucide="mail" style="width: 16px; height: 16px; color: var(--accent-cyan);"></i>
                   <span>Email to Client</span>
                 </button>
-                <button type="button" class="btn btn-primary btn-icon-text" onclick="app.handleSaveInvoice(event)" style="padding: 11px 24px;">
-                  <i data-lucide="save" style="width: 16px; height: 16px;"></i>
-                  <span>Save</span>
+                <button type="button" class="btn btn-outline btn-icon-text" onclick="app.handleOpenWhatsAppModalFromForm(event)" style="padding: 11px 20px; color: #25D366; border-color: rgba(37,211,102,0.4); background: rgba(37, 211, 102, 0.08);">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+                    <path fill="#25D366" d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91C2.13 13.66 2.59 15.36 3.45 16.86L2.05 22L7.3 20.62C8.75 21.41 10.38 21.83 12.04 21.83C17.5 21.83 21.95 17.38 21.95 11.92C21.95 9.27 20.92 6.78 19.05 4.91C17.18 3.03 14.69 2 12.04 2Z"/>
+                    <path fill="#ffffff" fill-rule="evenodd" clip-rule="evenodd" d="M9.6 7.63C9.37 7.12 9.13 7.11 8.91 7.1C8.73 7.09 8.52 7.09 8.31 7.09C8.1 7.09 7.76 7.17 7.48 7.48C7.19 7.79 6.39 8.56 6.39 10.13C6.39 11.69 7.53 13.2 7.69 13.41C7.85 13.62 9.88 16.94 13.1 18.2C15.26 19.04 16.03 18.89 16.63 18.83C17.36 18.76 18.72 17.97 19.03 17.06C19.34 16.14 19.34 15.36 19.25 15.2C19.16 15.04 18.95 14.95 18.63 14.79C18.32 14.63 16.79 13.88 16.51 13.78C16.22 13.67 16.01 13.62 15.8 13.93C15.59 14.24 15 14.95 14.82 15.16C14.64 15.36 14.47 15.39 14.16 15.23C13.84 15.08 12.83 14.75 11.64 13.68C10.71 12.85 10.08 11.83 9.9 11.52C9.72 11.21 9.88 11.04 10.04 10.89C10.18 10.75 10.35 10.52 10.51 10.34C10.67 10.15 10.72 10.02 10.83 9.81C10.93 9.61 10.88 9.42 10.8 9.27C10.72 9.11 10.1 7.58 9.6 7.63Z"/>
+                  </svg>
+                  <span>Send In WA</span>
+                </button>
+                <button type="button" class="btn btn-outline btn-icon-text" onclick="app.handlePreviewInvoice(event)" style="padding: 11px 20px;">
+                  <i data-lucide="eye" style="width: 16px; height: 16px; color: var(--accent-blue);"></i>
+                  <span>Preview</span>
                 </button>
               </div>
             </form>
@@ -1143,19 +1463,150 @@ Bangladesh</textarea>
 
           <!-- INVOICE LIST PANEL -->
           <div id="invoice-list-panel" class="invoice-panel hidden">
+            <div class="card table-card" style="box-shadow: 0 4px 20px rgba(0,0,0,0.06); border-radius: 14px; overflow: hidden; padding: 0;">
+              <div class="card-header flex-header" style="border-bottom: 1px solid var(--border-color); padding: 18px 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+                <div>
+                  <h3 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 2px;">Issued Invoices History</h3>
+                  <p class="text-muted text-small" style="margin-bottom: 0;">All generated invoices, status, totals, and client records.</p>
+                </div>
+                <button type="button" class="btn btn-primary btn-sm btn-icon-text" onclick="app.resetInvoiceForm(); app.toggleInvoiceView('create');">
+                  <i data-lucide="plus-circle" style="width: 15px; height: 15px;"></i>
+                  <span>Create New Invoice</span>
+                </button>
+              </div>
+              <div class="table-responsive">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Invoice #</th>
+                      <th>Client</th>
+                      <th>Date</th>
+                      <th>Total</th>
+                      <th>Status</th>
+                      <th style="text-align: right;">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="invoices-list-tbody">
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================= CLIENTS DIRECTORY TAB ================= -->
+        <section id="tab-clients" class="tab-pane">
+          <div style="display: flex; gap: 16px; margin-bottom: 24px; border-bottom: 1px solid var(--border-color); padding-bottom: 16px; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+            <div>
+              <h2 style="font-size: 1.4rem; font-weight: 700; margin-bottom: 4px;">Clients Directory</h2>
+              <p class="text-muted text-small">All clients extracted from commercial invoices and saved profiles in the MySQL database.</p>
+            </div>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+              <button type="button" class="btn btn-secondary btn-sm" onclick="app.syncClientsFromInvoices()" style="display: flex; align-items: center; gap: 6px;">
+                <i data-lucide="refresh-cw" style="width: 14px; height: 14px;"></i> <span>Sync from Invoices</span>
+              </button>
+              <button type="button" class="btn btn-primary btn-sm" onclick="app.toggleTabAddClientForm()" style="display: flex; align-items: center; gap: 6px;">
+                <i data-lucide="user-plus" style="width: 14px; height: 14px;"></i> <span id="tab-btn-add-client-text">Add New Client</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- KPI Summary Cards -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px;">
+            <div class="card" style="padding: 16px; display: flex; align-items: center; gap: 14px;">
+              <div style="width: 44px; height: 44px; border-radius: 10px; background: rgba(99, 102, 241, 0.12); display: flex; align-items: center; justify-content: center; color: var(--accent-blue);">
+                <i data-lucide="users" style="width: 22px; height: 22px;"></i>
+              </div>
+              <div>
+                <div style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;">Total Clients</div>
+                <div id="clients-kpi-total" style="font-size: 1.4rem; font-weight: 800; color: var(--text-primary);">0</div>
+              </div>
+            </div>
+            <div class="card" style="padding: 16px; display: flex; align-items: center; gap: 14px;">
+              <div style="width: 44px; height: 44px; border-radius: 10px; background: rgba(16, 185, 129, 0.12); display: flex; align-items: center; justify-content: center; color: var(--accent-green);">
+                <i data-lucide="file-check" style="width: 22px; height: 22px;"></i>
+              </div>
+              <div>
+                <div style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;">Invoiced Clients</div>
+                <div id="clients-kpi-invoiced" style="font-size: 1.4rem; font-weight: 800; color: var(--text-primary);">0</div>
+              </div>
+            </div>
+            <div class="card" style="padding: 16px; display: flex; align-items: center; gap: 14px;">
+              <div style="width: 44px; height: 44px; border-radius: 10px; background: rgba(245, 158, 11, 0.12); display: flex; align-items: center; justify-content: center; color: var(--accent-amber);">
+                <i data-lucide="dollar-sign" style="width: 22px; height: 22px;"></i>
+              </div>
+              <div>
+                <div style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;">Total Invoiced Value</div>
+                <div id="clients-kpi-revenue" style="font-size: 1.4rem; font-weight: 800; color: var(--accent-green);">$0.00</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Inline Add/Edit Client Card on Tab -->
+          <div id="tab-inline-client-form" class="card hidden" style="padding: 20px; margin-bottom: 24px; border: 1px solid var(--accent-blue);">
+            <h4 id="tab-client-form-title" style="font-size: 1rem; font-weight: 700; color: var(--accent-blue); margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+              <i data-lucide="user-plus" style="width: 18px; height: 18px;"></i> Add New Client
+            </h4>
+            <input type="hidden" id="tab-cli-id" value="">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px;">
+              <div class="form-group">
+                <label style="font-size: 0.82rem; font-weight: 600;">Client Name *</label>
+                <input type="text" id="tab-cli-name" class="form-control" placeholder="Full Name" required>
+              </div>
+              <div class="form-group">
+                <label style="font-size: 0.82rem; font-weight: 600;">Company</label>
+                <input type="text" id="tab-cli-company" class="form-control" placeholder="Company Name">
+              </div>
+              <div class="form-group">
+                <label style="font-size: 0.82rem; font-weight: 600;">Email</label>
+                <input type="email" id="tab-cli-email" class="form-control" placeholder="client@example.com">
+              </div>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-top: 12px;">
+              <div class="form-group">
+                <label style="font-size: 0.82rem; font-weight: 600;">Phone Number</label>
+                <input type="text" id="tab-cli-phone" class="form-control" placeholder="+1 (555) 000-0000">
+              </div>
+              <div class="form-group">
+                <label style="font-size: 0.82rem; font-weight: 600;">VAT / Tax ID / EIN</label>
+                <input type="text" id="tab-cli-vat" class="form-control" placeholder="e.g. IT05496370262 or EIN">
+              </div>
+            </div>
+            <div class="form-group" style="margin-top: 12px;">
+              <label style="font-size: 0.82rem; font-weight: 600;">Billing Address</label>
+              <textarea id="tab-cli-address" class="form-control" rows="2" placeholder="Full postal billing address"></textarea>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px;">
+              <button type="button" class="btn btn-secondary" onclick="app.toggleTabAddClientForm(false)">Cancel</button>
+              <button type="button" class="btn btn-primary" onclick="app.saveClientFromTab()">
+                <i data-lucide="check" style="width: 14px; height: 14px;"></i> Save Client
+              </button>
+            </div>
+          </div>
+
+          <!-- Client Directory Card & Table -->
+          <div class="card" style="padding: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 20px; flex-wrap: wrap;">
+              <div style="position: relative; flex: 1; min-width: 260px; max-width: 450px;">
+                <input type="text" id="tab-clients-search" class="form-control" placeholder="Search clients by name, email, company, address..." oninput="app.renderClientsTab(this.value)" style="padding-left: 36px;">
+                <i data-lucide="search" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: var(--text-muted); pointer-events: none;"></i>
+              </div>
+              <div style="font-size: 0.85rem; color: var(--text-muted);" id="clients-count-label">Showing all clients</div>
+            </div>
+
             <div class="table-responsive">
-              <table class="data-table">
+              <table class="data-table" style="min-width: 750px;">
                 <thead>
                   <tr>
-                    <th>Invoice #</th>
-                    <th>Client</th>
-                    <th>Date</th>
-                    <th>Total</th>
-                    <th>Status</th>
-                    <th style="text-align: right;">Actions</th>
+                    <th>Client Name & Company</th>
+                    <th>Contact Details</th>
+                    <th>Tax ID & Billing Address</th>
+                    <th>Invoices & Billed</th>
+                    <th style="text-align: right; width: 200px;">Actions</th>
                   </tr>
                 </thead>
-                <tbody id="invoices-list-tbody">
+                <tbody id="tab-clients-tbody">
+                  <!-- Populated dynamically -->
                 </tbody>
               </table>
             </div>
@@ -1291,6 +1742,8 @@ Bangladesh</textarea>
         <p>&copy; 2026 Zannat.me. All rights reserved.</p>
       </div>
     </footer>
+  </div>
+
   <!-- Modal: Custom Confirmation -->
   <div class="modal-overlay hidden" id="modal-confirm">
     <div class="modal-card" style="max-width: 420px; text-align: center; padding: 32px 24px;">
@@ -1322,6 +1775,13 @@ Bangladesh</textarea>
           </button>
           <button class="btn btn-outline btn-icon-text" onclick="app.openEmailInvoiceModal(app.currentPreviewInvoice)">
             <i data-lucide="mail" style="width: 14px; height: 14px; color: var(--accent-cyan);"></i> Email Client
+          </button>
+          <button class="btn btn-outline btn-icon-text" style="color: #25D366; border-color: rgba(37,211,102,0.4); background: rgba(37, 211, 102, 0.08);" onclick="app.openWhatsAppInvoiceModal(app.currentPreviewInvoice)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+              <path fill="#25D366" d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91C2.13 13.66 2.59 15.36 3.45 16.86L2.05 22L7.3 20.62C8.75 21.41 10.38 21.83 12.04 21.83C17.5 21.83 21.95 17.38 21.95 11.92C21.95 9.27 20.92 6.78 19.05 4.91C17.18 3.03 14.69 2 12.04 2Z"/>
+              <path fill="#ffffff" fill-rule="evenodd" clip-rule="evenodd" d="M9.6 7.63C9.37 7.12 9.13 7.11 8.91 7.1C8.73 7.09 8.52 7.09 8.31 7.09C8.1 7.09 7.76 7.17 7.48 7.48C7.19 7.79 6.39 8.56 6.39 10.13C6.39 11.69 7.53 13.2 7.69 13.41C7.85 13.62 9.88 16.94 13.1 18.2C15.26 19.04 16.03 18.89 16.63 18.83C17.36 18.76 18.72 17.97 19.03 17.06C19.34 16.14 19.34 15.36 19.25 15.2C19.16 15.04 18.95 14.95 18.63 14.79C18.32 14.63 16.79 13.88 16.51 13.78C16.22 13.67 16.01 13.62 15.8 13.93C15.59 14.24 15 14.95 14.82 15.16C14.64 15.36 14.47 15.39 14.16 15.23C13.84 15.08 12.83 14.75 11.64 13.68C10.71 12.85 10.08 11.83 9.9 11.52C9.72 11.21 9.88 11.04 10.04 10.89C10.18 10.75 10.35 10.52 10.51 10.34C10.67 10.15 10.72 10.02 10.83 9.81C10.93 9.61 10.88 9.42 10.8 9.27C10.72 9.11 10.1 7.58 9.6 7.63Z"/>
+            </svg>
+            <span>Send PDF to WhatsApp</span>
           </button>
           <button class="btn btn-primary btn-icon-text" onclick="app.downloadCurrentInvoicePDF()">
             <i data-lucide="download" style="width: 14px; height: 14px;"></i> Download PDF
@@ -1373,6 +1833,67 @@ Bangladesh</textarea>
           <button type="submit" class="btn btn-primary btn-icon-text" id="btn-send-invoice-email">
             <i data-lucide="send" style="width: 15px; height: 15px;"></i>
             <span>Send Invoice Email</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: WhatsApp Invoice to Client -->
+  <div class="modal-overlay hidden" id="modal-whatsapp-invoice">
+    <div class="modal-card" style="max-width: 600px; padding: 24px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 14px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="width: 36px; height: 36px; border-radius: 8px; background: rgba(37, 211, 102, 0.15); display: flex; align-items: center; justify-content: center; color: #25D366;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <path fill="#25D366" d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91C2.13 13.66 2.59 15.36 3.45 16.86L2.05 22L7.3 20.62C8.75 21.41 10.38 21.83 12.04 21.83C17.5 21.83 21.95 17.38 21.95 11.92C21.95 9.27 20.92 6.78 19.05 4.91C17.18 3.03 14.69 2 12.04 2Z"/>
+              <path fill="#ffffff" fill-rule="evenodd" clip-rule="evenodd" d="M9.6 7.63C9.37 7.12 9.13 7.11 8.91 7.1C8.73 7.09 8.52 7.09 8.31 7.09C8.1 7.09 7.76 7.17 7.48 7.48C7.19 7.79 6.39 8.56 6.39 10.13C6.39 11.69 7.53 13.2 7.69 13.41C7.85 13.62 9.88 16.94 13.1 18.2C15.26 19.04 16.03 18.89 16.63 18.83C17.36 18.76 18.72 17.97 19.03 17.06C19.34 16.14 19.34 15.36 19.25 15.2C19.16 15.04 18.95 14.95 18.63 14.79C18.32 14.63 16.79 13.88 16.51 13.78C16.22 13.67 16.01 13.62 15.8 13.93C15.59 14.24 15 14.95 14.82 15.16C14.64 15.36 14.47 15.39 14.16 15.23C13.84 15.08 12.83 14.75 11.64 13.68C10.71 12.85 10.08 11.83 9.9 11.52C9.72 11.21 9.88 11.04 10.04 10.89C10.18 10.75 10.35 10.52 10.51 10.34C10.67 10.15 10.72 10.02 10.83 9.81C10.93 9.61 10.88 9.42 10.8 9.27C10.72 9.11 10.1 7.58 9.6 7.63Z"/>
+            </svg>
+          </div>
+          <div>
+            <h3 style="font-weight: 750; margin: 0; font-size: 1.2rem;">Send Invoice via WhatsApp</h3>
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin: 2px 0 0 0;">Deliver invoice details and direct PDF attachment to your client's WhatsApp.</p>
+          </div>
+        </div>
+        <button class="btn btn-secondary btn-icon" onclick="app.closeModal('modal-whatsapp-invoice')">
+          <i data-lucide="x" style="width: 16px; height: 16px;"></i>
+        </button>
+      </div>
+
+      <form onsubmit="app.submitSendInvoiceWhatsApp(event)">
+        <input type="hidden" id="wa-inv-id">
+        <input type="hidden" id="wa-inv-number">
+        <div class="form-group" style="margin-bottom: 14px;">
+          <label>Recipient WhatsApp Phone Number *</label>
+          <input type="text" id="wa-inv-to-phone" class="form-control" required placeholder="e.g. +8801700000000 or +1...">
+        </div>
+
+        <!-- PDF Document Attachment Toggle -->
+        <div style="background: rgba(37, 211, 102, 0.08); border: 1px solid rgba(37, 211, 102, 0.28); border-radius: 8px; padding: 12px 14px; margin-bottom: 14px;">
+          <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; margin: 0; font-weight: 650; color: var(--text-main, #0f172a); font-size: 0.9rem;">
+            <input type="checkbox" id="wa-inv-attach-pdf" checked onchange="app.toggleWhatsAppPdfOption(this.checked)" style="width: 17px; height: 17px; accent-color: #25D366; cursor: pointer;">
+            <span style="display: flex; align-items: center; gap: 6px;">
+              <span>📄</span>
+              <span>Attach Official Invoice PDF</span>
+              <span id="wa-inv-pdf-filename" style="font-family: monospace; font-size: 0.82rem; font-weight: 700; color: #166534; background: rgba(37,211,102,0.18); padding: 2px 8px; border-radius: 4px;">INV.pdf</span>
+            </span>
+          </label>
+          <p style="font-size: 0.78rem; color: var(--text-muted, #64748b); margin: 6px 0 0 27px; line-height: 1.4;">
+            Generates high-resolution printable PDF and delivers it as an interactive downloadable file directly to client WhatsApp chat.
+          </p>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 16px;">
+          <label>WhatsApp Message Body</label>
+          <textarea id="wa-inv-message" class="form-control" rows="8" style="font-family: inherit; font-size: 0.88rem; line-height: 1.5;"></textarea>
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 10px;">
+          <button type="button" class="btn btn-secondary" onclick="app.closeModal('modal-whatsapp-invoice')">Cancel</button>
+          <button type="submit" class="btn btn-primary btn-icon-text" id="btn-send-invoice-wa" style="background: #25D366; border-color: #25D366;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+              <path fill="#ffffff" d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91C2.13 13.66 2.59 15.36 3.45 16.86L2.05 22L7.3 20.62C8.75 21.41 10.38 21.83 12.04 21.83C17.5 21.83 21.95 17.38 21.95 11.92C21.95 9.27 20.92 6.78 19.05 4.91C17.18 3.03 14.69 2 12.04 2Z"/>
+            </svg>
+            <span id="btn-send-invoice-wa-text">Send PDF via WhatsApp</span>
           </button>
         </div>
       </form>
@@ -1469,7 +1990,63 @@ Bangladesh</textarea>
     </div>
   </div>
 
+  <!-- Modal: Connect Gmail Account -->
+  <div class="modal-overlay hidden" id="modal-connect-gmail">
+    <div class="modal-card" style="max-width: 520px; padding: 28px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 14px;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <div style="width: 40px; height: 40px; border-radius: 10px; background: rgba(234,67,53,0.1); display: flex; align-items: center; justify-content: center;">
+            <svg width="22" height="22" viewBox="0 0 24 24">
+              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+            </svg>
+          </div>
+          <div>
+            <h3 style="font-weight: 750; margin: 0; font-size: 1.25rem;">Connect Gmail Account</h3>
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin: 2px 0 0 0;">Authenticate your Gmail to start sending email alerts & invoices.</p>
+          </div>
+        </div>
+        <button class="btn btn-secondary btn-icon" onclick="app.closeModal('modal-connect-gmail')">
+          <i data-lucide="x" style="width: 16px; height: 16px;"></i>
+        </button>
+      </div>
+
+      <form onsubmit="app.submitConnectGmailModal(event)" style="display: flex; flex-direction: column; gap: 16px;">
+        <div class="form-group">
+          <label style="font-weight: 600; font-size: 13px;">Gmail Email Address *</label>
+          <input type="email" id="modal-gmail-email" class="form-control" required placeholder="yourname@gmail.com">
+        </div>
+
+        <div class="form-group">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <label style="font-weight: 600; font-size: 13px; margin: 0;">16-Character App Password *</label>
+            <a href="https://myaccount.google.com/apppasswords" target="_blank" style="font-size: 11px; color: #2563eb; text-decoration: none; font-weight: 600;">Get App Password ↗</a>
+          </div>
+          <input type="text" id="modal-gmail-app-pass" class="form-control" required placeholder="abcd efgh ijkl mnop" style="letter-spacing: 1px; font-family: monospace;">
+          <p style="font-size: 0.775rem; color: var(--text-muted); margin: 6px 0 0 0;">
+            Created from your Google Account &gt; Security &gt; 2-Step Verification &gt; App passwords.
+          </p>
+        </div>
+
+        <div id="modal-gmail-alert" style="display: none; padding: 10px 14px; border-radius: 8px; font-size: 13px;"></div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; gap: 12px;">
+          <a href="/api/auth/google" class="btn btn-outline btn-sm" style="font-size: 12px; color: #64748b;">Or use OAuth 2.0</a>
+          <div style="display: flex; gap: 10px;">
+            <button type="button" class="btn btn-secondary" onclick="app.closeModal('modal-connect-gmail')">Cancel</button>
+            <button type="submit" class="btn btn-primary" id="btn-modal-connect-gmail" style="background: #10b981; border-color: #10b981; font-weight: 600; display: inline-flex; align-items: center; gap: 8px;">
+              <i data-lucide="check-circle" style="width: 16px; height: 16px;"></i>
+              <span>Connect & Activate Gmail</span>
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- App Main Scripts -->
-  <script src="/app.js?v=11"></script>
+  <script src="/app.js?v=41"></script>
 </body>
 </html>

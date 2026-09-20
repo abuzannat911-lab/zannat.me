@@ -694,6 +694,9 @@ p {
 .badge-medium { background-color: rgba(245, 158, 11, 0.1); color: var(--accent-amber); }
 .badge-high { background-color: rgba(239, 68, 68, 0.1); color: var(--accent-red); }
 .badge-critical { background-color: var(--accent-red); color: white; }
+.badge-paid { background-color: rgba(16, 185, 129, 0.15) !important; color: #10b981 !important; border: 1px solid rgba(16, 185, 129, 0.3) !important; }
+.badge-unpaid { background-color: rgba(239, 68, 68, 0.15) !important; color: #ef4444 !important; border: 1px solid rgba(239, 68, 68, 0.3) !important; }
+.badge-due { background-color: rgba(245, 158, 11, 0.15) !important; color: #f59e0b !important; border: 1px solid rgba(245, 158, 11, 0.3) !important; }
 
 .status-text {
   display: inline-flex;

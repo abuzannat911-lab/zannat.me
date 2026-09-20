@@ -1,61 +1,51 @@
+require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
 const nodemailer = require('nodemailer');
+const db = require('./db');
+const whatsapp = require('./whatsapp');
+const { generateInvoicePDFBuffer, generateInvoiceEmailHtml } = require('./invoice_pdf');
 
 const PORT = process.env.PORT || 8080;
-// Always resolve paths relative to this file, not the cPanel working directory
-const DB_FILE = path.join(__dirname, 'data.json');
 
-// Default seed fallback
-const DEFAULT_DATA = {
-    users: [{ username: "admin", password: "zannatbugfix" }],
-    tickets: [],
-    earnings: [
-        { "month": "March", "amount": 25000 },
-        { "month": "April", "amount": 32000 },
-        { "month": "May", "amount": 45000 },
-        { "month": "June", "amount": 55000 }
-    ],
-    bugTypes: [
-        { "type": "Plugin Crash", "count": 0 },
-        { "type": "WooCommerce", "count": 0 },
-        { "type": "Malware/Security", "count": 0 },
-        { "type": "Database/PHP", "count": 0 },
-        { "type": "CSS/Theme", "count": 0 }
-    ],
-    homepageContent: {
-        name: "Abu Zannat",
-        title: "WordPress Specialist & Web Developer",
-        avatar: "assets/photo1.jpg",
-        about: "Hi, I am Abu Zannat, a WordPress expert specializing in resolving critical core bugs, plugin crashes, WooCommerce issues, database performance tuning, and server-side security hardening. I write clean PHP/JS fixes and optimize sites for speed and security."
-    },
-    pages: [],
-    smtpConfig: {},
-    invoices: [],
-    clients: [],
-    nextInvoiceNum: 1001,
-    bankDetails: {
-        bankName: "Dutch Bangla Bank PLC",
-        accountName: "Abu Zannat Md Mosaddek",
-        accountNumber: "1621010088950",
-        routingNumber: "090851456",
-        swiftCode: "DBBLBDDH",
-        branch: "Rangpur Branch"
-    }
-};
-
-// Nodemailer dynamic transporter helper
-function getTransporter() {
-    const data = loadData();
-    const config = data.smtpConfig || {};
+// Nodemailer dynamic transporter helper using MySQL database settings (supporting Gmail OAuth2 & SMTP)
+async function getTransporter() {
+    const config = await db.getSmtpConfig();
     
-    // Check if user has saved custom SMTP credentials
-    if (config.user) {
+    // 1. Check if Gmail OAuth2 is configured and connected
+    if (config.auth_type === 'oauth2' && config.oauth_refresh_token) {
+        return nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+                type: 'OAuth2',
+                user: config.user || config.oauth_user,
+                clientId: config.oauth_client_id || process.env.GOOGLE_CLIENT_ID,
+                clientSecret: config.oauth_client_secret || process.env.GOOGLE_CLIENT_SECRET,
+                refreshToken: config.oauth_refresh_token,
+                accessToken: config.oauth_access_token
+            }
+        });
+    }
+
+    // 2. Check if custom SMTP credentials exist in MySQL database
+    if (config.user && config.pass) {
+        let cleanPass = (config.pass || '').trim();
+        const isGmail = (config.host || '').toLowerCase().includes('gmail') || (config.user || '').toLowerCase().includes('gmail');
+        if (isGmail) {
+            cleanPass = cleanPass.replace(/\s+/g, '');
+            return nodemailer.createTransport({
+                service: 'gmail',
+                auth: {
+                    user: config.user.trim(),
+                    pass: cleanPass
+                }
+            });
+        }
         return nodemailer.createTransport({
             host: config.host || 'smtp.gmail.com',
             port: parseInt(config.port) || 587,
-            secure: config.secure === true || config.secure === 'true',
+            secure: config.secure === true || config.secure === 'true' || config.secure === 1,
             auth: {
                 user: config.user,
                 pass: config.pass
@@ -63,11 +53,11 @@ function getTransporter() {
         });
     }
     
-    // Fallback to environment variables
-    if (process.env.SMTP_USER) {
+    // 3. Fallback to environment variables
+    if (process.env.SMTP_USER && process.env.SMTP_PASS) {
         return nodemailer.createTransport({
-            host: process.env.SMTP_HOST || 'smtp.ethereal.email',
-            port: process.env.SMTP_PORT || 587,
+            host: process.env.SMTP_HOST || 'smtp.gmail.com',
+            port: parseInt(process.env.SMTP_PORT || '587'),
             secure: process.env.SMTP_SECURE === 'true',
             auth: {
                 user: process.env.SMTP_USER,
@@ -76,7 +66,7 @@ function getTransporter() {
         });
     }
 
-    // Fallback to local system sendmail binary
+    // 4. Fallback to local system sendmail binary
     return nodemailer.createTransport({
         sendmail: true,
         newline: 'unix',
@@ -85,7 +75,7 @@ function getTransporter() {
 }
 
 function logEmailSent(mailOptions) {
-    const logPath = path.join(__dirname, 'sent_emails.log'); // __dirname ensures correct path on cPanel
+    const logPath = path.join(__dirname, 'sent_emails.log');
     const logContent = `
 ========================================
 TIMESTAMP: ${new Date().toISOString()}
@@ -104,52 +94,9 @@ ${mailOptions.text}
     }
 }
 
-// Database helper functions
-function loadData() {
-    if (!fs.existsSync(DB_FILE)) {
-        fs.writeFileSync(DB_FILE, JSON.stringify(DEFAULT_DATA, null, 2));
-        return JSON.parse(JSON.stringify(DEFAULT_DATA));
-    }
-    try {
-        const raw = fs.readFileSync(DB_FILE, 'utf-8');
-        const data = JSON.parse(raw);
-        let modified = false;
-        if (!data.users) {
-            data.users = JSON.parse(JSON.stringify(DEFAULT_DATA.users));
-            modified = true;
-        }
-        if (!data.homepageContent) {
-            data.homepageContent = JSON.parse(JSON.stringify(DEFAULT_DATA.homepageContent));
-            modified = true;
-        }
-        if (!data.pages) {
-            data.pages = [];
-            modified = true;
-        }
-        if (!data.smtpConfig) {
-            data.smtpConfig = {};
-            modified = true;
-        }
-        if (!data.bankDetails) {
-            data.bankDetails = JSON.parse(JSON.stringify(DEFAULT_DATA.bankDetails));
-            modified = true;
-        }
-        if (modified) {
-            saveData(data);
-        }
-        return data;
-    } catch (e) {
-        fs.writeFileSync(DB_FILE, JSON.stringify(DEFAULT_DATA, null, 2));
-        return JSON.parse(JSON.stringify(DEFAULT_DATA));
-    }
-}
-
-function saveData(data) {
-    fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
-}
-
 const app = express();
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 app.use((req, res, next) => {
     console.log(`[HTTP REQUEST] ${req.method} ${req.url}`);
@@ -171,23 +118,27 @@ app.use((req, res, next) => {
     next();
 });
 
-// GET State
-app.get('/api/state', (req, res) => {
+// ==========================================
+// API ROUTES (ALL BACKED BY MYSQL DATABASE)
+// ==========================================
+
+// GET Full State
+app.get('/api/state', async (req, res) => {
     try {
-        const data = loadData();
-        res.json(data);
+        const state = await db.getFullState();
+        res.json(state);
     } catch (err) {
+        console.error('API state error:', err);
         res.status(500).json({ error: err.message });
     }
 });
 
 // POST Login
-app.post('/api/login', (req, res) => {
+app.post('/api/login', async (req, res) => {
     try {
         const { username, password } = req.body;
-        const data = loadData();
-        const user = data.users.find(u => u.username === username && u.password === password);
-        if (user) {
+        const valid = await db.authenticateUser(username, password);
+        if (valid) {
             res.json({ success: true, token: "zannat_secure_session_token_123" });
         } else {
             res.status(401).json({ success: false, message: "Invalid username or password" });
@@ -198,40 +149,12 @@ app.post('/api/login', (req, res) => {
 });
 
 // POST Tickets (Add Bug Ticket)
-app.post('/api/tickets', (req, res) => {
+app.post('/api/tickets', async (req, res) => {
     try {
         const { clientName, clientEmail, siteUrl, bugType, description, severity } = req.body;
-        const data = loadData();
+        const { ticketId, date } = await db.addTicket({ clientName, clientEmail, siteUrl, bugType, description, severity });
 
-        const count = data.tickets.length + 1;
-        const ticketId = `TKT-2026-${String(count).padStart(3, '0')}`;
-        
-        const newTicket = {
-            id: ticketId,
-            clientName,
-            clientEmail,
-            siteUrl,
-            bugType,
-            description,
-            severity,
-            status: "Pending",
-            date: new Date().toISOString().split('T')[0],
-            adminNotes: ""
-        };
-
-        data.tickets.push(newTicket);
-
-        // Update bug type stats
-        const typeStat = data.bugTypes.find(b => b.type === bugType);
-        if (typeStat) {
-            typeStat.count += 1;
-        } else {
-            data.bugTypes.push({ type: bugType, count: 1 });
-        }
-
-        saveData(data);
-
-        // Send email alert to user email
+        // Send email alert
         const mailOptions = {
             from: '"Zannat.me Support" <abuzannat911@gmail.com>',
             to: 'abuzannat911@gmail.com',
@@ -240,7 +163,7 @@ app.post('/api/tickets', (req, res) => {
 New Bug Fix Ticket Submitted:
 ----------------------------------------
 Ticket ID: ${ticketId}
-Date: ${newTicket.date}
+Date: ${date}
 Client Name: ${clientName}
 Client Email: ${clientEmail}
 Website URL: ${siteUrl}
@@ -254,14 +177,31 @@ Check the admin portal at: http://localhost:8080/admin
 `
         };
 
-        getTransporter().sendMail(mailOptions, (err, info) => {
-            if (err) {
-                console.error('Nodemailer error sending email:', err.message);
-            } else {
-                console.log('Email sent successfully:', info.messageId);
-            }
+        try {
+            const transporter = await getTransporter();
+            transporter.sendMail(mailOptions, (err, info) => {
+                if (err) {
+                    console.error('Nodemailer error sending email:', err.message);
+                } else {
+                    console.log('Email sent successfully:', info.messageId);
+                }
+                logEmailSent(mailOptions);
+            });
+        } catch (mailErr) {
+            console.warn('[EMAIL WARNING]', mailErr.message);
             logEmailSent(mailOptions);
-        });
+        }
+
+        // Send WhatsApp alert if WhatsApp is connected
+        try {
+            const waStatus = whatsapp.getWhatsAppStatus();
+            if (waStatus.isConnected && waStatus.user && waStatus.user.phone) {
+                const waMsg = `🚨 *New Bug Fix Ticket Received!*\n\n• *Ticket ID:* ${ticketId}\n• *Client:* ${clientName} (${clientEmail || 'No email'})\n• *Website:* ${siteUrl || 'N/A'}\n• *Severity:* ${severity}\n• *Issue:* ${bugType}\n\n📝 *Description:*\n${description}\n\n👉 Open Admin: http://localhost:8080/admin`;
+                whatsapp.sendWhatsAppMessage(waStatus.user.phone, waMsg).catch(e => console.warn('[WA ALERT WARNING]', e.message));
+            }
+        } catch (waErr) {
+            console.warn('[WA ALERT WARNING]', waErr.message);
+        }
 
         res.json({ success: true, ticketId });
     } catch (err) {
@@ -269,33 +209,11 @@ Check the admin portal at: http://localhost:8080/admin
     }
 });
 
-// POST Update Ticket (Admin status/notes change)
-app.post('/api/tickets/update', (req, res) => {
+// POST Update Ticket
+app.post('/api/tickets/update', async (req, res) => {
     try {
         const { id, status, adminNotes } = req.body;
-        const data = loadData();
-
-        const ticket = data.tickets.find(t => t.id === id);
-        if (!ticket) {
-            return res.status(404).json({ error: "Ticket not found" });
-        }
-
-        if (status) ticket.status = status;
-        if (adminNotes !== undefined) ticket.adminNotes = adminNotes;
-
-        // If status changes to Resolved, log an earnings record for visual metrics (mock BDT 5000 per resolved ticket)
-        if (status === "Resolved" && ticket.status !== "Resolved") {
-            const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-            const currentMonthName = months[new Date().getMonth()];
-            const earnRecord = data.earnings.find(e => e.month === currentMonthName);
-            if (earnRecord) {
-                earnRecord.amount += 5000;
-            } else {
-                data.earnings.push({ month: currentMonthName, amount: 5000 });
-            }
-        }
-
-        saveData(data);
+        await db.updateTicket(id, status, adminNotes);
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -303,37 +221,33 @@ app.post('/api/tickets/update', (req, res) => {
 });
 
 // POST Delete Ticket
-app.post('/api/tickets/delete', (req, res) => {
+app.post('/api/tickets/delete', async (req, res) => {
     try {
         const { id } = req.body;
-        const data = loadData();
-
-        const ticketIndex = data.tickets.findIndex(t => t.id === id);
-        if (ticketIndex === -1) {
-            return res.status(404).json({ error: "Ticket not found" });
-        }
-
-        data.tickets.splice(ticketIndex, 1);
-        saveData(data);
+        await db.deleteTicket(id);
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-// GET Backup Database
-app.get('/api/backup', (req, res) => {
+// GET Backup Database (JSON dump)
+app.get('/api/backup', async (req, res) => {
     try {
-        res.download(DB_FILE, 'zannat_backup.json');
+        const json = await db.exportDatabaseJson();
+        res.setHeader('Content-Type', 'application/json');
+        res.setHeader('Content-Disposition', 'attachment; filename="zannat_mysql_backup.json"');
+        res.send(json);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
 // POST Restore Database
-app.post('/api/restore', express.raw({ type: 'application/octet-stream', limit: '50mb' }), (req, res) => {
+app.post('/api/restore', express.raw({ type: 'application/octet-stream', limit: '50mb' }), async (req, res) => {
     try {
-        fs.writeFileSync(DB_FILE, req.body);
+        const bodyStr = req.body.toString('utf-8');
+        await db.restoreDatabaseFromJson(bodyStr);
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -341,14 +255,10 @@ app.post('/api/restore', express.raw({ type: 'application/octet-stream', limit: 
 });
 
 // POST Update Homepage Content
-app.post('/api/homepage/update', (req, res) => {
+app.post('/api/homepage/update', async (req, res) => {
     try {
         const { name, title, avatar, about } = req.body;
-        const data = loadData();
-
-        data.homepageContent = { name, title, avatar, about };
-        saveData(data);
-
+        await db.updateHomepage({ name, title, avatar, about });
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -356,57 +266,21 @@ app.post('/api/homepage/update', (req, res) => {
 });
 
 // POST Create or Update Custom Page
-app.post('/api/pages', (req, res) => {
+app.post('/api/pages', async (req, res) => {
     try {
         const { title, slug, layout, content, oldSlug } = req.body;
-        const data = loadData();
-
-        if (!data.pages) data.pages = [];
-
-        // Check if editing an existing page
-        if (oldSlug) {
-            const pageIndex = data.pages.findIndex(p => p.slug === oldSlug);
-            if (pageIndex !== -1) {
-                // Check if slug changed and is taken by another page
-                if (slug !== oldSlug && data.pages.some(p => p.slug === slug)) {
-                    return res.status(400).json({ error: "A page with this URL slug already exists." });
-                }
-                data.pages[pageIndex] = { title, slug, layout, content };
-            } else {
-                if (data.pages.some(p => p.slug === slug)) {
-                    return res.status(400).json({ error: "A page with this URL slug already exists." });
-                }
-                data.pages.push({ title, slug, layout, content });
-            }
-        } else {
-            if (data.pages.some(p => p.slug === slug)) {
-                return res.status(400).json({ error: "A page with this URL slug already exists." });
-            }
-            data.pages.push({ title, slug, layout, content });
-        }
-
-        saveData(data);
+        await db.savePage({ title, slug, layout, content, oldSlug });
         res.json({ success: true });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(400).json({ error: err.message });
     }
 });
 
 // POST Delete Custom Page
-app.post('/api/pages/delete', (req, res) => {
+app.post('/api/pages/delete', async (req, res) => {
     try {
         const { slug } = req.body;
-        const data = loadData();
-
-        if (!data.pages) data.pages = [];
-
-        const pageIndex = data.pages.findIndex(p => p.slug === slug);
-        if (pageIndex === -1) {
-            return res.status(404).json({ error: "Page not found." });
-        }
-
-        data.pages.splice(pageIndex, 1);
-        saveData(data);
+        await db.deletePage(slug);
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -414,42 +288,10 @@ app.post('/api/pages/delete', (req, res) => {
 });
 
 // POST Create or Update Admin User
-app.post('/api/users', (req, res) => {
+app.post('/api/users', async (req, res) => {
     try {
         const { username, password } = req.body;
-        const data = loadData();
-
-        if (!data.users) data.users = [];
-
-        const userIndex = data.users.findIndex(u => u.username === username);
-        if (userIndex !== -1) {
-            data.users[userIndex].password = password;
-        } else {
-            data.users.push({ username, password });
-        }
-
-        saveData(data);
-        res.json({ success: true });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// POST Update SMTP Config
-app.post('/api/smtp/update', (req, res) => {
-    try {
-        const { host, port, secure, user, pass } = req.body;
-        const data = loadData();
-
-        data.smtpConfig = {
-            host: host || '',
-            port: port || '',
-            secure: secure === true || secure === 'true',
-            user: user || '',
-            pass: pass || ''
-        };
-
-        saveData(data);
+        await db.saveUser(username, password);
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -457,203 +299,269 @@ app.post('/api/smtp/update', (req, res) => {
 });
 
 // POST Delete Admin User
-app.post('/api/users/delete', (req, res) => {
+app.post('/api/users/delete', async (req, res) => {
     try {
         const { username } = req.body;
-        const data = loadData();
+        await db.deleteUser(username);
+        res.json({ success: true });
+    } catch (err) {
+        res.status(400).json({ error: err.message });
+    }
+});
 
-        if (!data.users) data.users = [];
-
-        if (data.users.length <= 1) {
-            return res.status(400).json({ error: "Cannot delete the only administrative user." });
+// POST Update SMTP Config (Password / Direct SMTP)
+app.post('/api/smtp/update', async (req, res) => {
+    try {
+        let { host, port, secure, user, pass, auth_type } = req.body;
+        if (user) user = user.trim();
+        if (pass) pass = pass.trim();
+        if (pass && ((host && host.includes('gmail')) || (user && user.includes('gmail')))) {
+            pass = pass.replace(/\s+/g, '');
         }
-
-        const userIndex = data.users.findIndex(u => u.username === username);
-        if (userIndex === -1) {
-            return res.status(404).json({ error: "User not found." });
-        }
-
-        data.users.splice(userIndex, 1);
-        saveData(data);
+        await db.updateSmtp({ host, port, secure, user, pass, auth_type: auth_type || 'password' });
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: err.message });
+    }
+});
+
+// GET Initiate Google OAuth2 Login
+app.get('/api/auth/google', async (req, res) => {
+    try {
+        const config = await db.getSmtpConfig();
+        const clientId = config.oauth_client_id || process.env.GOOGLE_CLIENT_ID;
+        
+        if (!clientId) {
+            return res.redirect('/admin/maintenance?error=missing_google_client_id');
+        }
+
+        const host = req.get('host');
+        const protocol = req.protocol === 'https' || req.get('x-forwarded-proto') === 'https' ? 'https' : 'http';
+        const redirectUri = process.env.GOOGLE_REDIRECT_URI || `${protocol}://${host}/api/auth/google/callback`;
+
+        const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` + new URLSearchParams({
+            client_id: clientId,
+            redirect_uri: redirectUri,
+            response_type: 'code',
+            scope: 'https://mail.google.com/ https://www.googleapis.com/auth/userinfo.email',
+            access_type: 'offline',
+            prompt: 'consent'
+        });
+
+        res.redirect(authUrl);
+    } catch (err) {
+        console.error('Google auth error:', err);
+        res.redirect('/admin/maintenance?error=' + encodeURIComponent(err.message));
+    }
+});
+
+// GET Google OAuth2 Callback
+app.get('/api/auth/google/callback', async (req, res) => {
+    try {
+        const { code, error } = req.query;
+        if (error || !code) {
+            return res.redirect('/admin/maintenance?error=' + encodeURIComponent(error || 'authorization_denied'));
+        }
+
+        const config = await db.getSmtpConfig();
+        const clientId = config.oauth_client_id || process.env.GOOGLE_CLIENT_ID;
+        const clientSecret = config.oauth_client_secret || process.env.GOOGLE_CLIENT_SECRET;
+
+        const host = req.get('host');
+        const protocol = req.protocol === 'https' || req.get('x-forwarded-proto') === 'https' ? 'https' : 'http';
+        const redirectUri = process.env.GOOGLE_REDIRECT_URI || `${protocol}://${host}/api/auth/google/callback`;
+
+        // Exchange code for tokens
+        const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({
+                code: String(code),
+                client_id: clientId,
+                client_secret: clientSecret,
+                redirect_uri: redirectUri,
+                grant_type: 'authorization_code'
+            })
+        });
+
+        const tokenData = await tokenRes.json();
+        if (!tokenRes.ok || !tokenData.access_token) {
+            console.error('Failed to exchange Google token:', tokenData);
+            return res.redirect('/admin/maintenance?error=' + encodeURIComponent(tokenData.error_description || tokenData.error || 'token_exchange_failed'));
+        }
+
+        // Fetch user email
+        let userEmail = '';
+        try {
+            const userinfoRes = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+                headers: { Authorization: `Bearer ${tokenData.access_token}` }
+            });
+            const userData = await userinfoRes.json();
+            userEmail = userData.email || '';
+        } catch (uErr) {
+            console.warn('Failed to fetch userinfo from Google:', uErr.message);
+        }
+
+        await db.saveGoogleOAuthTokens({
+            email: userEmail,
+            refreshToken: tokenData.refresh_token || '',
+            accessToken: tokenData.access_token
+        });
+
+        res.redirect('/admin/maintenance?gmail_connected=1');
+    } catch (err) {
+        console.error('Google callback error:', err);
+        res.redirect('/admin/maintenance?error=' + encodeURIComponent(err.message));
+    }
+});
+
+// POST Disconnect Google OAuth2
+app.post('/api/auth/google/disconnect', async (req, res) => {
+    try {
+        await db.disconnectGoogleOAuth();
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// POST Save Custom Google OAuth Credentials (Client ID & Secret)
+app.post('/api/auth/google/credentials', async (req, res) => {
+    try {
+        const { clientId, clientSecret } = req.body;
+        await db.saveGoogleOAuthCredentials({ clientId, clientSecret });
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// POST Send Live Test Email
+app.post('/api/smtp/test', async (req, res) => {
+    try {
+        const { to } = req.body;
+        const config = await db.getSmtpConfig();
+        const recipient = (to || config.user || config.oauth_user || 'abuzannat911@gmail.com').trim();
+
+        const mailOptions = {
+            from: `"Zannat.me Mail Test" <${config.user || config.oauth_user || 'abuzannat911@gmail.com'}>`,
+            to: recipient,
+            subject: '✅ Zannat.me Live Email Delivery Test',
+            text: `Hello! This is a test email sent from your Zannat.me application to confirm that your Gmail / SMTP configuration is working properly.\n\nSent at: ${new Date().toISOString()}`,
+            html: `
+                <div style="font-family: Arial, sans-serif; font-size: 15px; color: #1e293b; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 8px;">
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 16px; border-bottom: 2px solid #10b981; padding-bottom: 12px;">
+                        <h2 style="color: #10b981; margin: 0; font-size: 20px;">Email System Verified!</h2>
+                    </div>
+                    <p style="color: #334155; line-height: 1.6;">
+                        Your email delivery system on <strong>Zannat.me</strong> is active and delivering emails.
+                    </p>
+                    <div style="background: #f8fafc; padding: 14px; border-radius: 6px; font-size: 13px; color: #64748b; margin: 16px 0; border-left: 3px solid #10b981;">
+                        <strong>Auth Mode:</strong> ${config.auth_type === 'oauth2' ? 'Gmail OAuth 2.0 (Google Direct Auth)' : 'SMTP Password / App Key'}<br>
+                        <strong>Sender:</strong> ${config.user || config.oauth_user || 'Default System'}<br>
+                        <strong>Recipient:</strong> ${recipient}<br>
+                        <strong>Timestamp:</strong> ${new Date().toLocaleString()}
+                    </div>
+                    <p style="font-size: 12px; color: #94a3b8; text-align: center; margin-top: 20px;">
+                        Sent automatically from your Zannat.me Admin Maintenance Console.
+                    </p>
+                </div>
+            `
+        };
+
+        const transporter = await getTransporter();
+        const info = await transporter.sendMail(mailOptions);
+        logEmailSent(mailOptions);
+
+        res.json({ success: true, message: `Test email successfully sent to ${recipient}!`, messageId: info.messageId });
+    } catch (err) {
+        console.error('Test email failure:', err);
+        res.status(500).json({ success: false, error: err.message });
     }
 });
 
 // ============ INVOICE API ============
-app.post('/api/invoices', (req, res) => {
+app.get('/api/invoices', async (req, res) => {
     try {
-        const data = loadData();
-        if (!data.invoices) data.invoices = [];
-        if (!data.clients) data.clients = [];
-        if (!data.nextInvoiceNum) data.nextInvoiceNum = 1001;
-
-        const invoiceData = req.body;
-
-        // Auto-save/update client details into clients directory
-        if (invoiceData.clientName && invoiceData.clientName.trim() !== '' && invoiceData.saveClient !== false) {
-            const clientNameClean = invoiceData.clientName.trim();
-            const clientEmailClean = (invoiceData.clientEmail || '').trim();
-            
-            let clientIdx = -1;
-            if (clientEmailClean) {
-                clientIdx = data.clients.findIndex(c => c.email && c.email.toLowerCase() === clientEmailClean.toLowerCase());
-            }
-            if (clientIdx === -1) {
-                clientIdx = data.clients.findIndex(c => c.name && c.name.toLowerCase() === clientNameClean.toLowerCase());
-            }
-
-            const clientRecord = {
-                id: clientIdx !== -1 ? data.clients[clientIdx].id : 'cli_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
-                name: clientNameClean,
-                company: invoiceData.clientCompany || '',
-                email: clientEmailClean,
-                phone: invoiceData.clientPhone || '',
-                vat: invoiceData.clientVat || '',
-                address: invoiceData.clientAddress || '',
-                updatedAt: new Date().toISOString()
-            };
-
-            if (clientIdx !== -1) {
-                data.clients[clientIdx] = { ...data.clients[clientIdx], ...clientRecord };
-            } else {
-                clientRecord.createdAt = new Date().toISOString();
-                data.clients.unshift(clientRecord);
-            }
-        }
-
-        // Check for update (existing invoice)
-        let existingIndex = -1;
-        if (invoiceData.id) {
-            existingIndex = data.invoices.findIndex(inv => inv.id === invoiceData.id);
-        }
-
-        if (existingIndex !== -1) {
-            data.invoices[existingIndex] = { ...data.invoices[existingIndex], ...invoiceData, updatedAt: new Date().toISOString() };
-            saveData(data);
-            return res.json({ success: true, invoice: data.invoices[existingIndex], clients: data.clients });
-        } else {
-            const num = data.nextInvoiceNum;
-            data.nextInvoiceNum++;
-            const newInvoice = {
-                ...invoiceData,
-                id: 'inv_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
-                number: `INV-${num}`,
-                createdAt: new Date().toISOString()
-            };
-            data.invoices.push(newInvoice);
-            saveData(data);
-            return res.json({ success: true, invoice: newInvoice, nextNum: data.nextInvoiceNum, clients: data.clients });
-        }
+        const state = await db.getFullState();
+        res.json({ success: true, invoices: state.invoices, nextNum: state.nextInvoiceNum });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-app.post('/api/invoices/delete', (req, res) => {
+app.post('/api/invoices', async (req, res) => {
+    try {
+        const invoiceData = req.body;
+        const saved = await db.saveInvoice(invoiceData);
+        const state = await db.getFullState();
+        res.json({
+            success: true,
+            invoice: saved,
+            nextNum: state.nextInvoiceNum,
+            clients: state.clients
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/invoices/delete', async (req, res) => {
     try {
         const { id } = req.body;
-        const data = loadData();
-        if (!data.invoices) data.invoices = [];
-        data.invoices = data.invoices.filter(inv => inv.id !== id);
-        saveData(data);
-        res.json({ success: true });
+        await db.deleteInvoice(id);
+        const state = await db.getFullState();
+        res.json({ success: true, invoices: state.invoices });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
 // ============ CLIENTS API ============
-app.get('/api/clients', (req, res) => {
+app.get('/api/clients', async (req, res) => {
     try {
-        const data = loadData();
-        res.json({ success: true, clients: data.clients || [] });
+        const state = await db.getFullState();
+        res.json({ success: true, clients: state.clients });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-app.post('/api/clients', (req, res) => {
+app.post('/api/clients', async (req, res) => {
     try {
-        const data = loadData();
-        if (!data.clients) data.clients = [];
-
         const clientData = req.body;
-        if (!clientData.name || clientData.name.trim() === '') {
-            return res.status(400).json({ error: 'Client name is required' });
-        }
-
-        let existingIndex = -1;
-        if (clientData.id) {
-            existingIndex = data.clients.findIndex(c => c.id === clientData.id);
-        } else if (clientData.email && clientData.email.trim() !== '') {
-            existingIndex = data.clients.findIndex(c => c.email && c.email.toLowerCase() === clientData.email.trim().toLowerCase());
-        } else {
-            existingIndex = data.clients.findIndex(c => c.name && c.name.toLowerCase() === clientData.name.trim().toLowerCase());
-        }
-
-        if (existingIndex !== -1) {
-            data.clients[existingIndex] = {
-                ...data.clients[existingIndex],
-                ...clientData,
-                updatedAt: new Date().toISOString()
-            };
-            saveData(data);
-            return res.json({ success: true, client: data.clients[existingIndex], clients: data.clients });
-        } else {
-            const newClient = {
-                ...clientData,
-                id: 'cli_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
-                createdAt: new Date().toISOString()
-            };
-            data.clients.unshift(newClient);
-            saveData(data);
-            return res.json({ success: true, client: newClient, clients: data.clients });
-        }
+        const saved = await db.saveClient(clientData);
+        const state = await db.getFullState();
+        res.json({ success: true, client: saved, clients: state.clients });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(400).json({ error: err.message });
     }
 });
 
-app.post('/api/clients/delete', (req, res) => {
+app.post('/api/clients/delete', async (req, res) => {
     try {
         const { id } = req.body;
-        const data = loadData();
-        if (!data.clients) data.clients = [];
-        data.clients = data.clients.filter(c => c.id !== id);
-        saveData(data);
-        res.json({ success: true, clients: data.clients });
+        const remainingClients = await db.deleteClient(id);
+        res.json({ success: true, clients: remainingClients });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
 // ============ BANK DETAILS API ============
-app.get('/api/bank-details', (req, res) => {
+app.get('/api/bank-details', async (req, res) => {
     try {
-        const data = loadData();
-        res.json({ success: true, bankDetails: data.bankDetails || DEFAULT_DATA.bankDetails });
+        const state = await db.getFullState();
+        res.json({ success: true, bankDetails: state.bankDetails });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-app.post('/api/bank-details', (req, res) => {
+app.post('/api/bank-details', async (req, res) => {
     try {
-        const data = loadData();
-        const { bankName, accountName, accountNumber, routingNumber, swiftCode, branch } = req.body;
-        data.bankDetails = {
-            bankName: (bankName || '').trim(),
-            accountName: (accountName || '').trim(),
-            accountNumber: (accountNumber || '').trim(),
-            routingNumber: (routingNumber || '').trim(),
-            swiftCode: (swiftCode || '').trim(),
-            branch: (branch || '').trim(),
-            updatedAt: new Date().toISOString()
-        };
-        saveData(data);
-        res.json({ success: true, bankDetails: data.bankDetails });
+        const updated = await db.updateBankDetails(req.body);
+        res.json({ success: true, bankDetails: updated });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -662,56 +570,203 @@ app.post('/api/bank-details', (req, res) => {
 // ============ INVOICE EMAIL SENDER API ============
 app.post('/api/invoices/send-email', async (req, res) => {
     try {
-        const { to, subject, message, invoiceNumber } = req.body;
+        const { to, subject, message, invoiceNumber, invoiceId, invoiceData } = req.body;
         if (!to || !to.trim()) {
             return res.status(400).json({ error: 'Recipient email is required' });
         }
 
+        // Retrieve full invoice details
+        let invoice = invoiceData;
+        if (!invoice && (invoiceId || invoiceNumber)) {
+            const state = await db.getFullState();
+            invoice = (state.invoices || []).find(i => 
+                (invoiceId && i.id === invoiceId) || 
+                (invoiceNumber && i.number === invoiceNumber)
+            );
+        }
+        if (!invoice) {
+            invoice = {
+                number: invoiceNumber || 'INV-1001',
+                date: new Date().toISOString().split('T')[0],
+                clientEmail: to.trim()
+            };
+        }
+
+        // Generate full visual email HTML matching preview modal design
+        const emailHtml = generateInvoiceEmailHtml(invoice, message);
+
+        // Generate high-resolution vector PDF attachment
+        const pdfBuffer = await generateInvoicePDFBuffer(invoice);
+
         const mailOptions = {
             from: '"Abu Zannat - WordPress Engineering" <abuzannat911@gmail.com>',
             to: to.trim(),
-            subject: subject || `Commercial Invoice ${invoiceNumber || ''} - Abu Zannat`,
-            text: message || 'Please find your commercial invoice attached.',
-            html: `
-                <div style="font-family: Arial, sans-serif; font-size: 15px; color: #1e293b; line-height: 1.6; max-width: 650px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
-                    <div style="margin-bottom: 20px; border-bottom: 2px solid #6366f1; padding-bottom: 12px;">
-                        <h2 style="color: #6366f1; margin: 0; font-size: 20px;">Abu Zannat — WordPress Engineering</h2>
-                        <span style="font-size: 13px; color: #64748b;">Specialist Bug Diagnostics, Custom Fixes & Security</span>
-                    </div>
-                    <div style="white-space: pre-line; margin-bottom: 24px; color: #334155;">${message}</div>
-                    <div style="background: #f8fafc; padding: 14px; border-radius: 6px; font-size: 13px; color: #64748b; border-left: 3px solid #6366f1;">
-                        <strong>Note for Accounts Payable:</strong> Services provided remotely from Bangladesh. Form W-8BEN (US) / Reverse Charge documentation available upon request.
-                    </div>
-                    <div style="margin-top: 24px; border-top: 1px solid #e2e8f0; padding-top: 14px; font-size: 12px; color: #94a3b8; text-align: center;">
-                        Abu Zannat &bull; <a href="https://zannat.me" style="color: #6366f1; text-decoration: none;">https://zannat.me</a> &bull; abuzannat911@gmail.com
-                    </div>
-                </div>
-            `
+            subject: subject || `Commercial Invoice ${invoice.number || invoiceNumber || ''} - Abu Zannat`,
+            text: message || `Please find your commercial invoice ${invoice.number} attached.`,
+            html: emailHtml,
+            attachments: [
+                {
+                    filename: `${invoice.number || 'Commercial_Invoice'}.pdf`,
+                    content: pdfBuffer,
+                    contentType: 'application/pdf'
+                }
+            ]
         };
 
         logEmailSent(mailOptions);
 
         try {
-            const transporter = getTransporter();
+            const transporter = await getTransporter();
             await transporter.sendMail(mailOptions);
         } catch (mailErr) {
             console.warn('[EMAIL WARNING] Transporter send failed, logged to sent_emails.log instead:', mailErr.message);
         }
 
-        res.json({ success: true, message: `Invoice email successfully processed for ${to}` });
+        res.json({ success: true, message: `Commercial invoice ${invoice.number} successfully emailed to ${to} with PDF attachment!` });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-// Serve Static Frontend Assets
-app.use(express.static(__dirname));
+// ============ WHATSAPP INTEGRATION APIS ============
+
+// GET WhatsApp Connection Status & QR code
+app.get('/api/whatsapp/status', (req, res) => {
+    try {
+        const status = whatsapp.getWhatsAppStatus();
+        res.json(status);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// POST Request 8-digit Pairing Code for Mobile Number
+app.post('/api/whatsapp/pair-code', async (req, res) => {
+    try {
+        const { phone } = req.body;
+        if (!phone) {
+            return res.status(400).json({ error: 'Phone number is required.' });
+        }
+        const result = await whatsapp.requestPairingCode(phone);
+        res.json(result);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// POST Send WhatsApp Notification Message (Supports optional document/PDF attachment)
+app.post('/api/whatsapp/send', async (req, res) => {
+    try {
+        const { to, message, pdfBase64, fileName, mimetype } = req.body;
+        if (!to || (!message && !pdfBase64)) {
+            return res.status(400).json({ error: 'Recipient phone number and message/document are required.' });
+        }
+        const options = {};
+        if (pdfBase64) {
+            options.pdfBase64 = pdfBase64;
+            options.fileName = fileName || 'document.pdf';
+            options.mimetype = mimetype || 'application/pdf';
+        }
+        const result = await whatsapp.sendWhatsAppMessage(to, message || '', options);
+        res.json(result);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// POST Disconnect WhatsApp Session
+app.post('/api/whatsapp/disconnect', async (req, res) => {
+    try {
+        const result = await whatsapp.disconnectWhatsApp();
+        res.json(result);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// POST Send Invoice via WhatsApp (Supports Text Message + High-Res Vector PDF Document Attachment)
+app.post('/api/invoices/send-whatsapp', async (req, res) => {
+    try {
+        const { to, message, invoiceNumber, attachPdf, pdfBase64, fileName, invoiceData, invoiceId } = req.body;
+        if (!to || !to.trim()) {
+            return res.status(400).json({ error: 'Recipient WhatsApp phone number is required.' });
+        }
+        const textMessage = message || `Hello,\n\nPlease find your commercial invoice ${invoiceNumber || ''} from Abu Zannat.\n\nThank you!`;
+        
+        const options = {};
+        if (attachPdf) {
+            let buffer = null;
+
+            // 1. If client provided a valid base64 PDF of sufficient size (> 5KB)
+            if (pdfBase64 && typeof pdfBase64 === 'string') {
+                const raw = pdfBase64.replace(/^data:application\/pdf;base64,/, '').replace(/^data:[^;]+;base64,/, '');
+                const clientBuf = Buffer.from(raw, 'base64');
+                // Blank/broken client canvas is ~20 to 500 bytes. Only accept substantive buffers.
+                if (clientBuf.length > 5000) {
+                    buffer = clientBuf;
+                }
+            }
+
+            // 2. If client buffer is missing, empty, or too small, generate pristine vector PDF on server!
+            if (!buffer) {
+                let invoiceObj = invoiceData;
+                if (!invoiceObj && (invoiceId || invoiceNumber)) {
+                    const state = await db.getFullState();
+                    invoiceObj = (state.invoices || []).find(i => 
+                        (invoiceId && i.id === invoiceId) || 
+                        (invoiceNumber && i.number === invoiceNumber)
+                    );
+                }
+                if (!invoiceObj) {
+                    invoiceObj = {
+                        number: invoiceNumber || 'INV-1001',
+                        date: new Date().toISOString().split('T')[0],
+                        clientPhone: to
+                    };
+                }
+                buffer = await generateInvoicePDFBuffer(invoiceObj);
+            }
+
+            options.documentBuffer = buffer;
+            options.fileName = fileName || `${invoiceNumber || 'Invoice'}.pdf`;
+            options.mimetype = 'application/pdf';
+        }
+
+        const result = await whatsapp.sendWhatsAppMessage(to, textMessage, options);
+        res.json({
+            success: true,
+            message: result.hasPdf 
+                ? `Invoice PDF document (${result.fileName}) successfully sent via WhatsApp to ${result.to}!` 
+                : `Invoice message successfully sent via WhatsApp to ${result.to}!`,
+            messageId: result.messageId,
+            to: result.to,
+            hasPdf: !!result.hasPdf,
+            fileName: result.fileName
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Serve Static Frontend Assets with no-cache headers for live development
+app.use(express.static(__dirname, {
+    setHeaders: (res, filePath) => {
+        if (filePath.endsWith('.js') || filePath.endsWith('.html') || filePath.endsWith('.css')) {
+            res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+            res.setHeader('Pragma', 'no-cache');
+            res.setHeader('Expires', '0');
+        }
+    }
+}));
 
 // Serve SPA index.html for all other routes
 app.use((req, res) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 app.listen(PORT, () => {
-    console.log(`Zannat.me Developer Server running on port ${PORT}`);
+    console.log(`Zannat.me MySQL-Backed Server running on port ${PORT}`);
+    // Initialize WhatsApp connection
+    whatsapp.initWhatsApp();
 });

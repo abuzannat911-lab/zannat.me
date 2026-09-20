@@ -125,51 +125,45 @@
 
 
 
-        // Fetch application state from server or fallback to local storage
+        // Fetch application state directly from SQLite database backend
         async fetchState() {
             let data = null;
             try {
                 const response = await fetch(this.getApiUrl('/api/state'));
                 if (response.ok) {
                     data = await response.json();
+                } else {
+                    console.error('Failed to load state from database server:', response.statusText);
                 }
             } catch (err) {
-                console.warn('Backend API unavailable. Using local storage state mode.', err);
-            }
-
-            if (!data) {
-                const localSaved = localStorage.getItem('zannat_app_state');
-                if (localSaved) {
-                    try { data = JSON.parse(localSaved); } catch(e) {}
-                }
+                console.error('Database connection error:', err);
+                this.showToast('Unable to connect to database backend.', 'error');
             }
 
             if (!data) {
                 data = {
                     users: [{ username: "admin", password: "zannatbugfix" }],
                     tickets: [],
-                    earnings: [
-                        { "month": "March", "amount": 25000 },
-                        { "month": "April", "amount": 32000 },
-                        { "month": "May", "amount": 45000 },
-                        { "month": "June", "amount": 55000 }
-                    ],
-                    bugTypes: [
-                        { "type": "Plugin Crash", "count": 0 },
-                        { "type": "WooCommerce", "count": 0 },
-                        { "type": "Malware/Security", "count": 0 },
-                        { "type": "Database/PHP", "count": 0 },
-                        { "type": "CSS/Theme", "count": 0 }
-                    ],
+                    earnings: [],
+                    bugTypes: [],
                     homepageContent: {
                         name: "Abu Zannat",
                         title: "WordPress Specialist & Web Developer",
                         avatar: "assets/photo1.jpg",
-                        about: "Hi, I am Abu Zannat, a WordPress expert specializing in resolving critical core bugs, plugin crashes, WooCommerce issues, database performance tuning, and server-side security hardening. I write clean PHP/JS fixes and optimize sites for speed and security."
+                        about: "WordPress Specialist & Web Developer"
                     },
                     pages: [],
                     invoices: [],
-                    nextInvoiceNum: 1001
+                    clients: [],
+                    nextInvoiceNum: 1001,
+                    bankDetails: {
+                        bankName: "Dutch Bangla Bank PLC",
+                        accountName: "Abu Zannat Md Mosaddek",
+                        accountNumber: "1621010088950",
+                        routingNumber: "090851456",
+                        swiftCode: "DBBLBDDH",
+                        branch: "Rangpur Branch"
+                    }
                 };
             }
 
@@ -189,49 +183,10 @@
                 swiftCode: "DBBLBDDH",
                 branch: "Rangpur Branch"
             };
-            const localSavedBank = localStorage.getItem('zannat_bank_details');
-            if (localSavedBank) {
-                try { this.state.bankDetails = JSON.parse(localSavedBank); } catch (e) {}
-            }
             this.state.homepageContent = data.homepageContent || {};
             this.state.smtpConfig = data.smtpConfig || {};
 
-            // Seed clients from existing invoices if clients directory is empty
-            if (this.state.clients.length === 0 && this.state.invoices.length > 0) {
-                const seenEmails = new Set();
-                this.state.invoices.forEach(inv => {
-                    if (inv.clientName && (!inv.clientEmail || !seenEmails.has(inv.clientEmail.toLowerCase()))) {
-                        if (inv.clientEmail) seenEmails.add(inv.clientEmail.toLowerCase());
-                        this.state.clients.push({
-                            id: 'cli_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
-                            name: inv.clientName,
-                            company: inv.clientCompany || '',
-                            email: inv.clientEmail || '',
-                            phone: inv.clientPhone || '',
-                            vat: inv.clientVat || '',
-                            address: inv.clientAddress || '',
-                            createdAt: inv.createdAt || new Date().toISOString()
-                        });
-                    }
-                });
-            }
-
-            // Save local copy
-            try {
-                localStorage.setItem('zannat_app_state', JSON.stringify({
-                    tickets: this.state.tickets,
-                    earnings: this.state.earnings,
-                    bugTypes: this.state.bugTypes,
-                    pages: this.state.pages,
-                    users: this.state.users,
-                    invoices: this.state.invoices,
-                    clients: this.state.clients,
-                    nextInvoiceNum: this.state.nextInvoiceNum,
-                    homepageContent: this.state.homepageContent
-                }));
-            } catch(e) {}
-
-            // Render components based on state
+            // Render components based on database state
             this.renderDashboardKPIs();
             this.renderCharts();
             this.renderTicketsTable();
@@ -241,6 +196,9 @@
             this.renderSMTPConfig();
             this.renderInvoicesList();
             this.renderClientSelectOptions();
+            this.renderClientsTab();
+            this.initWhatsAppPolling();
+            this.resetInvoiceForm();
 
             // Check routing paths dynamically if loaded
             if (typeof this.router === 'function') {
@@ -285,6 +243,25 @@
                     }
                 });
             }
+
+            // Global Click Delegation for Gmail Connection Buttons & Modals
+            document.addEventListener('click', (e) => {
+                const connectBtn = e.target.closest('#btn-google-login, [data-action="connect-gmail"], [data-action="change-gmail"]');
+                if (connectBtn) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    this.openConnectGmailModal();
+                    return;
+                }
+
+                const disconnectBtn = e.target.closest('[data-action="disconnect-gmail"], #btn-disconnect-gmail');
+                if (disconnectBtn) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    this.disconnectGmailOAuth();
+                    return;
+                }
+            });
 
             // Login Form Submission
             const loginForm = document.getElementById('form-login');
@@ -622,16 +599,38 @@
                 });
             }
 
-            // SMTP Config Form Submission
+            // Gmail Connection Form Submission (Maintenance Tab)
+            const connectGmailForm = document.getElementById('form-connect-gmail');
+            if (connectGmailForm) {
+                connectGmailForm.addEventListener('submit', (e) => {
+                    this.submitConnectGmailForm(e);
+                });
+            }
+
+            const connectGmailBtn = document.getElementById('btn-submit-connect-gmail');
+            if (connectGmailBtn) {
+                connectGmailBtn.addEventListener('click', (e) => {
+                    const form = document.getElementById('form-connect-gmail');
+                    if (form) {
+                        if (!form.checkValidity()) {
+                            form.reportValidity();
+                            return;
+                        }
+                        this.submitConnectGmailForm(e);
+                    }
+                });
+            }
+
+            // Legacy SMTP Config Form Submission fallback
             const smtpForm = document.getElementById('form-smtp-config');
             if (smtpForm) {
                 smtpForm.addEventListener('submit', async (e) => {
                     e.preventDefault();
-                    const host = document.getElementById('smtp-host').value;
-                    const port = document.getElementById('smtp-port').value;
-                    const secure = document.getElementById('smtp-secure').value;
-                    const user = document.getElementById('smtp-user').value;
-                    const pass = document.getElementById('smtp-pass').value;
+                    const host = document.getElementById('smtp-host')?.value || 'smtp.gmail.com';
+                    const port = document.getElementById('smtp-port')?.value || '587';
+                    const secure = document.getElementById('smtp-secure')?.value || 'false';
+                    const user = document.getElementById('smtp-user')?.value || '';
+                    const pass = document.getElementById('smtp-pass')?.value || '';
 
                     try {
                         const response = await fetch(this.getApiUrl('/api/smtp/update'), {
@@ -642,14 +641,120 @@
 
                         const result = await response.json();
                         if (response.ok && result.success) {
-                            alert('SMTP Configuration saved successfully!');
+                            this.showToast('SMTP Configuration saved successfully!', 'success');
                             this.fetchState();
                         } else {
-                            alert('Error: ' + (result.error || 'Unknown error'));
+                            this.showToast('Error: ' + (result.error || 'Unknown error'), 'error');
                         }
                     } catch (err) {
                         console.error('Save SMTP config error:', err);
-                        alert('Server connection error.');
+                        this.showToast('Server connection error.', 'error');
+                    }
+                });
+            }
+
+            // Google OAuth Credentials Form Submission
+            const googleCredsForm = document.getElementById('form-google-credentials');
+            if (googleCredsForm) {
+                googleCredsForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const clientId = (document.getElementById('oauth-client-id').value || '').trim();
+                    const clientSecret = (document.getElementById('oauth-client-secret').value || '').trim();
+
+                    try {
+                        const response = await fetch(this.getApiUrl('/api/auth/google/credentials'), {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ clientId, clientSecret })
+                        });
+
+                        const result = await response.json();
+                        if (response.ok && result.success) {
+                            this.showToast('Google OAuth App credentials saved successfully!', 'success');
+                            this.fetchState();
+                        } else {
+                            this.showToast('Error: ' + (result.error || 'Unknown error'), 'error');
+                        }
+                    } catch (err) {
+                        console.error('Save Google credentials error:', err);
+                        this.showToast('Server connection error.', 'error');
+                    }
+                });
+            }
+
+            // Live Email Deliverability Test Form Submission
+            const testEmailForm = document.getElementById('form-test-email');
+            if (testEmailForm) {
+                testEmailForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const to = (document.getElementById('test-email-recipient').value || '').trim();
+                    const btn = document.getElementById('btn-send-test-email');
+                    const resultDiv = document.getElementById('test-email-result');
+
+                    if (!to) {
+                        this.showToast('Please enter a recipient email address.', 'error');
+                        return;
+                    }
+
+                    const originalBtnHtml = btn.innerHTML;
+                    btn.disabled = true;
+                    btn.innerHTML = `
+                        <span style="display: inline-block; width: 14px; height: 14px; border: 2px solid #ffffff; border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; vertical-align: middle; margin-right: 6px;"></span>
+                        <span>Dispatching Email...</span>
+                    `;
+                    if (resultDiv) {
+                        resultDiv.style.display = 'block';
+                        resultDiv.innerHTML = `
+                            <div style="padding: 10px 14px; border-radius: 8px; font-size: 13px; background: rgba(59,130,246,0.08); color: #2563eb; border: 1px solid rgba(59,130,246,0.2);">
+                                ⏳ Connecting to email provider and dispatching live test email...
+                            </div>
+                        `;
+                    }
+
+                    try {
+                        const response = await fetch(this.getApiUrl('/api/smtp/test'), {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ to })
+                        });
+
+                        const result = await response.json();
+                        if (response.ok && result.success) {
+                            this.showToast(result.message || 'Test email sent successfully!', 'success');
+                            if (resultDiv) {
+                                resultDiv.innerHTML = `
+                                    <div style="padding: 12px 16px; border-radius: 8px; font-size: 13px; background: rgba(16,185,129,0.1); color: #059669; border: 1px solid rgba(16,185,129,0.3); line-height: 1.5;">
+                                        <strong>✅ Email Delivered Successfully!</strong><br>
+                                        ${result.message}<br>
+                                        <span style="font-size: 11px; opacity: 0.85;">Message ID: ${result.messageId || 'OK'}</span>
+                                    </div>
+                                `;
+                            }
+                        } else {
+                            this.showToast(result.error || 'Failed to send test email', 'error');
+                            if (resultDiv) {
+                                resultDiv.innerHTML = `
+                                    <div style="padding: 12px 16px; border-radius: 8px; font-size: 13px; background: rgba(239,68,68,0.1); color: #dc2626; border: 1px solid rgba(239,68,68,0.3); line-height: 1.5;">
+                                        <strong>❌ Delivery Failed:</strong><br>
+                                        ${result.error || 'Unknown error occurred while connecting to mail transport.'}
+                                    </div>
+                                `;
+                            }
+                        }
+                    } catch (err) {
+                        console.error('Test email error:', err);
+                        this.showToast('Server connection error.', 'error');
+                        if (resultDiv) {
+                            resultDiv.innerHTML = `
+                                <div style="padding: 12px 16px; border-radius: 8px; font-size: 13px; background: rgba(239,68,68,0.1); color: #dc2626; border: 1px solid rgba(239,68,68,0.3);">
+                                    <strong>❌ Connection Error:</strong> Unable to reach server.
+                                </div>
+                            `;
+                        }
+                    } finally {
+                        btn.disabled = false;
+                        btn.innerHTML = originalBtnHtml;
+                        if (window.lucide) window.lucide.createIcons();
                     }
                 });
             }
@@ -752,7 +857,7 @@
         // Switch View Tabs
         switchTab(tabId) {
             // If selecting an admin tab, ensure we are authenticated or admin shell is already active
-            const adminTabs = ['dashboard', 'tickets', 'maintenance', 'cms', 'invoices'];
+            const adminTabs = ['dashboard', 'tickets', 'maintenance', 'cms', 'invoices', 'clients'];
             const adminShell = document.getElementById('admin-shell');
             const isAdminActive = adminShell && !adminShell.classList.contains('hidden');
 
@@ -791,7 +896,8 @@
                     'tickets': '/admin/tickets',
                     'maintenance': '/admin/maintenance',
                     'cms': '/admin/cms',
-                    'invoices': '/admin/invoices'
+                    'invoices': '/admin/invoices',
+                    'clients': '/admin/clients'
                 };
                 const targetUrl = adminTabMap[tabId] || '/admin';
                 if (window.location.pathname !== targetUrl) {
@@ -799,8 +905,14 @@
                 }
 
                 if (tabId === 'invoices') {
-                    this.resetInvoiceForm();
-                    this.toggleInvoiceView('create');
+                    this.loadInvoicesFromDatabase().then(() => {
+                        this.renderInvoicesList();
+                        if (!document.getElementById('inv-number')?.value) {
+                            this.resetInvoiceForm();
+                        }
+                    });
+                } else if (tabId === 'clients') {
+                    this.renderClientsTab();
                 }
             }
 
@@ -855,6 +967,11 @@
                     case 'invoices':
                         pageTitle.textContent = 'Invoice Generator & Billing Desk';
                         pageSubtitle.textContent = 'Create professional PDF invoices with auto-increment numbers, client addresses, and tax options.';
+                        break;
+                    case 'clients':
+                        pageTitle.textContent = 'Clients Directory';
+                        pageSubtitle.textContent = 'Manage client profiles, contact information, and invoice billing history.';
+                        this.renderClientsTab();
                         break;
                 }
             }
@@ -1543,6 +1660,10 @@
                         const url = new URL(anchor.href);
                         if (url.origin === window.location.origin) {
                             const path = url.pathname;
+                            // Bypass SPA interceptor for API endpoints (e.g. OAuth redirects)
+                            if (path.startsWith('/api/') || path.includes('/api/auth/')) {
+                                return;
+                            }
                             if (anchor.hash && (path === '/' || path === '' || path === window.location.pathname)) {
                                 return;
                             }
@@ -1567,6 +1688,23 @@
 
         // Client side router
         router() {
+            // Check for OAuth or action query params
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('gmail_connected') === '1') {
+                this.showToast('✅ Gmail connected and authenticated successfully via Google OAuth 2.0!', 'success');
+                const cleanUrl = window.location.pathname;
+                window.history.replaceState({}, document.title, cleanUrl);
+            } else if (urlParams.get('error')) {
+                const err = urlParams.get('error');
+                if (err === 'missing_google_client_id') {
+                    this.showToast('⚠️ Google Client ID is missing. Please enter your Google OAuth credentials in Developer Settings below.', 'error');
+                } else {
+                    this.showToast('⚠️ Google Authentication Error: ' + err, 'error');
+                }
+                const cleanUrl = window.location.pathname;
+                window.history.replaceState({}, document.title, cleanUrl);
+            }
+
             const pathname = window.location.pathname;
             let cleanPath = pathname;
             if (cleanPath.endsWith('/') && cleanPath.length > 1) {
@@ -1579,7 +1717,8 @@
                 '/admin/tickets': 'tickets',
                 '/admin/maintenance': 'maintenance',
                 '/admin/cms': 'cms',
-                '/admin/invoices': 'invoices'
+                '/admin/invoices': 'invoices',
+                '/admin/clients': 'clients'
             };
 
             if (cleanPath in adminRoutes) {
@@ -1837,7 +1976,7 @@
             });
         },
 
-        // Render SMTP Configuration inputs
+        // Render SMTP & Gmail OAuth Configuration UI
         renderSMTPConfig() {
             const config = this.state.smtpConfig || {};
             const hostEl = document.getElementById('smtp-host');
@@ -1846,26 +1985,854 @@
             const userEl = document.getElementById('smtp-user');
             const passEl = document.getElementById('smtp-pass');
 
-            if (hostEl) hostEl.value = config.host || '';
-            if (portEl) portEl.value = config.port || '';
+            if (hostEl) hostEl.value = config.host || 'smtp.gmail.com';
+            if (portEl) portEl.value = config.port || '587';
             if (secureEl) secureEl.value = config.secure !== undefined ? String(config.secure) : 'false';
-            if (userEl) userEl.value = config.user || '';
-            if (passEl) passEl.value = config.pass || '';
+            if (userEl && config.user) userEl.value = config.user;
+            if (passEl && config.pass) passEl.value = config.pass;
+
+            // Custom Google OAuth Credentials inputs
+            const clientIdEl = document.getElementById('oauth-client-id');
+            const clientSecretEl = document.getElementById('oauth-client-secret');
+            if (clientIdEl) clientIdEl.value = config.oauthClientId || config.oauth_client_id || '';
+            if (clientSecretEl) clientSecretEl.value = config.oauth_client_secret || '';
+
+            // Update Redirect URI display
+            const redirectUriDisplay = document.getElementById('google-redirect-uri-display');
+            if (redirectUriDisplay) {
+                redirectUriDisplay.textContent = `${window.location.origin}/api/auth/google/callback`;
+            }
+
+            // Connection evaluation
+            const isOAuthConnected = (config.authType === 'oauth2' || config.auth_type === 'oauth2') && (config.oauthUser || config.oauth_user || config.hasRefreshToken || config.oauth_refresh_token);
+            const isSmtpConfigured = Boolean(config.user && config.pass);
+            const isConnected = Boolean(config.isConnected || isOAuthConnected || isSmtpConfigured);
+            const activeEmail = config.user || config.oauthUser || config.oauth_user || '';
+
+            // Gmail status badge
+            const statusBadge = document.getElementById('gmail-status-badge');
+            if (statusBadge) {
+                if (isConnected && activeEmail) {
+                    statusBadge.innerHTML = `
+                        <span style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 600; background: rgba(16,185,129,0.15); color: #34d399; border: 1px solid rgba(16,185,129,0.3);">
+                            <span style="width: 8px; height: 8px; border-radius: 50%; background: #10b981;"></span> Connected: ${activeEmail}
+                        </span>
+                    `;
+                } else {
+                    statusBadge.innerHTML = `
+                        <span style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 600; background: rgba(239,68,68,0.15); color: #f87171; border: 1px solid rgba(239,68,68,0.3);">
+                            <span style="width: 8px; height: 8px; border-radius: 50%; background: #ef4444;"></span> Not Connected
+                        </span>
+                    `;
+                }
+            }
+
+            // Toggle connected view vs connect form view
+            const connectedView = document.getElementById('gmail-connected-view');
+            const connectView = document.getElementById('gmail-connect-view');
+            const activeConnectedEmail = document.getElementById('active-connected-email');
+
+            if (isConnected && activeEmail) {
+                if (connectedView) connectedView.style.display = 'block';
+                if (connectView) connectView.style.display = 'none';
+                if (activeConnectedEmail) activeConnectedEmail.textContent = activeEmail;
+            } else {
+                if (connectedView) connectedView.style.display = 'none';
+                if (connectView) connectView.style.display = 'block';
+            }
+
+            // Right column: Test recipient
+            const testRecipient = document.getElementById('test-email-recipient');
+            if (testRecipient && (!testRecipient.value || testRecipient.value === 'abuzannat911@gmail.com')) {
+                testRecipient.value = activeEmail || 'abuzannat911@gmail.com';
+            }
+        },
+
+        // Connect Gmail with App Password from inline maintenance tab
+        async submitConnectGmailForm(event) {
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            const userEl = document.getElementById('smtp-user');
+            const passEl = document.getElementById('smtp-pass');
+            const email = (userEl ? userEl.value : '').trim();
+            const appPass = (passEl ? passEl.value : '').trim();
+            const btn = document.getElementById('btn-submit-connect-gmail');
+            const alertBox = document.getElementById('connect-gmail-alert');
+
+            if (!email || !appPass) {
+                this.showToast('Please enter both Gmail address and 16-character App Password', 'error');
+                if (alertBox) {
+                    alertBox.style.display = 'block';
+                    alertBox.style.background = 'rgba(239,68,68,0.1)';
+                    alertBox.style.color = '#dc2626';
+                    alertBox.style.border = '1px solid rgba(239,68,68,0.3)';
+                    alertBox.textContent = '❌ Please enter both your Gmail address and 16-character App Password.';
+                }
+                return;
+            }
+
+            const originalHtml = btn ? btn.innerHTML : '';
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = `<span style="display:inline-block; width:14px; height:14px; border:2px solid #fff; border-top-color:transparent; border-radius:50%; animation:spin 0.8s linear infinite; margin-right:8px; vertical-align:middle;"></span> Connecting & Verifying...`;
+            }
+            if (alertBox) {
+                alertBox.style.display = 'block';
+                alertBox.style.background = 'rgba(59,130,246,0.1)';
+                alertBox.style.color = '#2563eb';
+                alertBox.style.border = '1px solid rgba(59,130,246,0.3)';
+                alertBox.textContent = '⏳ Saving credentials and verifying live Gmail deliverability...';
+            }
+
+            try {
+                // 1. Save credentials
+                const updateRes = await fetch(this.getApiUrl('/api/smtp/update'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        host: 'smtp.gmail.com',
+                        port: '587',
+                        secure: false,
+                        user: email,
+                        pass: appPass,
+                        auth_type: 'password'
+                    })
+                });
+
+                if (!updateRes.ok) {
+                    const errData = await updateRes.json().catch(() => ({}));
+                    throw new Error(errData.error || 'Failed to save configuration.');
+                }
+
+                // 2. Perform live delivery test
+                const testRes = await fetch(this.getApiUrl('/api/smtp/test'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ to: email })
+                });
+
+                const testData = await testRes.json();
+                if (testRes.ok && testData.success) {
+                    this.showToast(`🎉 Gmail connected and verified successfully for ${email}!`, 'success');
+                    if (alertBox) {
+                        alertBox.style.display = 'none';
+                        alertBox.textContent = '';
+                    }
+                    await this.fetchState();
+                    const testRecip = document.getElementById('test-email-recipient');
+                    if (testRecip) testRecip.value = email;
+                } else {
+                    throw new Error(testData.error || 'Verification failed. Please ensure 2-Step Verification is ON and the 16-character App Password is correct.');
+                }
+            } catch (err) {
+                console.error('Connect Gmail error:', err);
+                if (alertBox) {
+                    alertBox.style.display = 'block';
+                    alertBox.style.background = 'rgba(239,68,68,0.1)';
+                    alertBox.style.color = '#dc2626';
+                    alertBox.style.border = '1px solid rgba(239,68,68,0.3)';
+                    alertBox.textContent = `❌ ${err.message}`;
+                }
+                this.showToast(err.message, 'error');
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = originalHtml;
+                }
+                if (window.lucide) window.lucide.createIcons();
+            }
+        },
+
+        // Show inline Gmail connect form to change email
+        showGmailConnectForm() {
+            const connectedView = document.getElementById('gmail-connected-view');
+            const connectView = document.getElementById('gmail-connect-view');
+            if (connectedView) connectedView.style.display = 'none';
+            if (connectView) connectView.style.display = 'block';
+            const userEl = document.getElementById('smtp-user');
+            if (userEl) userEl.focus();
+        },
+
+        // Open Connect Gmail Modal with populated or empty values
+        openConnectGmailModal() {
+            const config = this.state.smtpConfig || {};
+            const modalEmail = document.getElementById('modal-gmail-email');
+            const modalPass = document.getElementById('modal-gmail-app-pass');
+            const alertBox = document.getElementById('modal-gmail-alert');
+
+            if (modalEmail) modalEmail.value = config.user || config.oauth_user || '';
+            if (modalPass) modalPass.value = config.pass || '';
+            if (alertBox) {
+                alertBox.style.display = 'none';
+                alertBox.textContent = '';
+            }
+
+            this.openModal('modal-connect-gmail');
+        },
+
+        // Submit Connect Gmail Modal (App Password / Instant Connect)
+        async submitConnectGmailModal(event) {
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            const email = (document.getElementById('modal-gmail-email').value || '').trim();
+            const appPass = (document.getElementById('modal-gmail-app-pass').value || '').trim();
+            const btn = document.getElementById('btn-modal-connect-gmail');
+            const alertBox = document.getElementById('modal-gmail-alert');
+
+            if (!email || !appPass) {
+                this.showToast('Please enter both Gmail email and 16-character App Password', 'error');
+                return;
+            }
+
+            const originalHtml = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = `<span style="display:inline-block; width:14px; height:14px; border:2px solid #fff; border-top-color:transparent; border-radius:50%; animation:spin 0.8s linear infinite; margin-right:6px; vertical-align:middle;"></span> Connecting...`;
+            if (alertBox) {
+                alertBox.style.display = 'block';
+                alertBox.style.background = 'rgba(59,130,246,0.1)';
+                alertBox.style.color = '#2563eb';
+                alertBox.style.border = '1px solid rgba(59,130,246,0.3)';
+                alertBox.textContent = 'Saving configuration & verifying Gmail delivery...';
+            }
+
+            try {
+                const updateRes = await fetch(this.getApiUrl('/api/smtp/update'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        host: 'smtp.gmail.com',
+                        port: '587',
+                        secure: false,
+                        user: email,
+                        pass: appPass,
+                        auth_type: 'password'
+                    })
+                });
+
+                if (!updateRes.ok) {
+                    throw new Error('Failed to save configuration to database');
+                }
+
+                // Test live email deliverability
+                const testRes = await fetch(this.getApiUrl('/api/smtp/test'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ to: email })
+                });
+
+                const testData = await testRes.json();
+                if (testRes.ok && testData.success) {
+                    this.showToast(`🎉 Gmail connected and verified successfully for ${email}!`, 'success');
+                    this.closeModal('modal-connect-gmail');
+                    await this.fetchState();
+                } else {
+                    throw new Error(testData.error || 'Connection test failed. Please verify your App Password.');
+                }
+            } catch (err) {
+                if (alertBox) {
+                    alertBox.style.display = 'block';
+                    alertBox.style.background = 'rgba(239,68,68,0.1)';
+                    alertBox.style.color = '#dc2626';
+                    alertBox.style.border = '1px solid rgba(239,68,68,0.3)';
+                    alertBox.textContent = `❌ ${err.message}`;
+                }
+                this.showToast(err.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalHtml;
+                if (window.lucide) window.lucide.createIcons();
+            }
+        },
+
+        // Disconnect Google OAuth2 / Gmail
+        async disconnectGmailOAuth() {
+            if (!confirm('Are you sure you want to disconnect this Gmail account and clear settings?')) return;
+            try {
+                const res = await fetch(this.getApiUrl('/api/auth/google/disconnect'), {
+                    method: 'POST'
+                });
+                const data = await res.json();
+                if (data.success) {
+                    this.state.smtpConfig = {
+                        isConnected: false,
+                        user: '',
+                        pass: '',
+                        authType: 'password',
+                        oauthUser: '',
+                        hasRefreshToken: false
+                    };
+                    const modalEmail = document.getElementById('modal-gmail-email');
+                    const modalPass = document.getElementById('modal-gmail-app-pass');
+                    const userEl = document.getElementById('smtp-user');
+                    const passEl = document.getElementById('smtp-pass');
+                    const testRecip = document.getElementById('test-email-recipient');
+                    if (modalEmail) modalEmail.value = '';
+                    if (modalPass) modalPass.value = '';
+                    if (userEl) userEl.value = '';
+                    if (passEl) passEl.value = '';
+                    if (testRecip) testRecip.value = '';
+                    this.renderSMTPConfig();
+                    this.showToast('Gmail account disconnected and cleared successfully.', 'info');
+                    await this.fetchState();
+                } else {
+                    this.showToast(data.error || 'Failed to disconnect', 'error');
+                }
+            } catch (err) {
+                console.error('Disconnect Gmail error:', err);
+                this.showToast('Server connection error.', 'error');
+            }
+        },
+
+        // =============================================
+        // WHATSAPP INTEGRATION CONTROLLER
+        // =============================================
+        whatsAppPollTimer: null,
+        whatsAppStatus: null,
+
+        initWhatsAppPolling() {
+            if (this.whatsAppPollTimer) clearInterval(this.whatsAppPollTimer);
+            this.fetchWhatsAppStatus();
+            // Poll every 4 seconds to catch QR updates, pairing code results, and live connection transitions
+            this.whatsAppPollTimer = setInterval(() => {
+                const currentTab = this.state?.currentTab;
+                if (currentTab === 'maintenance' || !this.whatsAppStatus?.isConnected) {
+                    this.fetchWhatsAppStatus();
+                }
+            }, 4000);
+        },
+
+        async fetchWhatsAppStatus() {
+            try {
+                const res = await fetch(this.getApiUrl('/api/whatsapp/status'));
+                if (!res.ok) return;
+                const data = await res.json();
+                this.whatsAppStatus = data;
+                this.renderWhatsAppStatus(data);
+            } catch (err) {
+                // Background poll fail silent
+            }
+        },
+
+        renderWhatsAppStatus(data) {
+            if (!data) return;
+            const badge = document.getElementById('wa-status-badge');
+            const connectedView = document.getElementById('wa-connected-view');
+            const connectView = document.getElementById('wa-connect-view');
+            const phoneEl = document.getElementById('wa-connected-number');
+            const nameEl = document.getElementById('wa-connected-name');
+            const qrImage = document.getElementById('wa-qr-image');
+            const qrLoading = document.getElementById('wa-qr-loading');
+
+            if (data.isConnected && data.user) {
+                if (badge) {
+                    badge.innerHTML = `
+                        <span style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 600; background: rgba(16,185,129,0.15); color: #34d399; border: 1px solid rgba(16,185,129,0.3);">
+                            <span style="width: 8px; height: 8px; border-radius: 50%; background: #10b981;"></span> Connected: ${data.user.phone || ''}
+                        </span>
+                    `;
+                }
+                if (connectedView) connectedView.style.display = 'block';
+                if (connectView) connectView.style.display = 'none';
+                if (phoneEl) phoneEl.textContent = data.user.phone || '';
+                if (nameEl) nameEl.textContent = data.user.name || 'Personal WhatsApp';
+
+                // Auto prefill test recipient if empty
+                const testPhone = document.getElementById('wa-test-recipient-phone');
+                if (testPhone && !testPhone.value && data.user.phone) {
+                    testPhone.value = data.user.phone;
+                }
+            } else {
+                if (badge) {
+                    if (data.status === 'connecting' || data.qrCode) {
+                        badge.innerHTML = `
+                            <span style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 600; background: rgba(245,158,11,0.15); color: #fbbf24; border: 1px solid rgba(245,158,11,0.3);">
+                                <span style="width: 8px; height: 8px; border-radius: 50%; background: #f59e0b;"></span> Waiting for Link / Scan
+                            </span>
+                        `;
+                    } else {
+                        badge.innerHTML = `
+                            <span style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 600; background: rgba(239,68,68,0.15); color: #f87171; border: 1px solid rgba(239,68,68,0.3);">
+                                <span style="width: 8px; height: 8px; border-radius: 50%; background: #ef4444;"></span> Not Connected
+                            </span>
+                        `;
+                    }
+                }
+                if (connectedView) connectedView.style.display = 'none';
+                if (connectView) connectView.style.display = 'block';
+
+                if (data.qrCode) {
+                    if (qrImage) {
+                        qrImage.src = data.qrCode;
+                        qrImage.style.display = 'block';
+                    }
+                    if (qrLoading) qrLoading.style.display = 'none';
+                }
+            }
+        },
+
+        switchWhatsAppTab(tab) {
+            const qrBtn = document.getElementById('btn-wa-tab-qr');
+            const codeBtn = document.getElementById('btn-wa-tab-code');
+            const qrContent = document.getElementById('wa-tab-qr-content');
+            const codeContent = document.getElementById('wa-tab-code-content');
+
+            if (tab === 'qr') {
+                if (qrBtn) {
+                    qrBtn.style.background = '#ffffff';
+                    qrBtn.style.color = '#1e293b';
+                    qrBtn.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
+                }
+                if (codeBtn) {
+                    codeBtn.style.background = 'transparent';
+                    codeBtn.style.color = 'var(--text-muted, #64748b)';
+                    codeBtn.style.boxShadow = 'none';
+                }
+                if (qrContent) qrContent.style.display = 'flex';
+                if (codeContent) codeContent.style.display = 'none';
+            } else {
+                if (codeBtn) {
+                    codeBtn.style.background = '#ffffff';
+                    codeBtn.style.color = '#1e293b';
+                    codeBtn.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
+                }
+                if (qrBtn) {
+                    qrBtn.style.background = 'transparent';
+                    qrBtn.style.color = 'var(--text-muted, #64748b)';
+                    qrBtn.style.boxShadow = 'none';
+                }
+                if (qrContent) qrContent.style.display = 'none';
+                if (codeContent) codeContent.style.display = 'flex';
+            }
+        },
+
+        async refreshWhatsAppQR() {
+            const qrLoading = document.getElementById('wa-qr-loading');
+            const qrImage = document.getElementById('wa-qr-image');
+            if (qrLoading) qrLoading.style.display = 'flex';
+            if (qrImage) qrImage.style.display = 'none';
+            this.showToast('Refreshing WhatsApp QR Code...', 'info');
+            await this.fetchWhatsAppStatus();
+        },
+
+        async requestWhatsAppPairingCode() {
+            const phoneInput = document.getElementById('wa-pairing-phone-input');
+            const btn = document.getElementById('btn-wa-get-code');
+            const resultBox = document.getElementById('wa-pairing-code-result');
+            const displayCode = document.getElementById('wa-display-code');
+            const alertBox = document.getElementById('wa-pairing-alert');
+
+            const phone = (phoneInput?.value || '').trim();
+            if (!phone) {
+                this.showToast('Please enter your phone number with country code.', 'error');
+                if (phoneInput) phoneInput.focus();
+                return;
+            }
+
+            const originalHtml = btn ? btn.innerHTML : '';
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = `<span style="display:inline-block; width:14px; height:14px; border:2px solid #fff; border-top-color:transparent; border-radius:50%; animation:spin 0.8s linear infinite; margin-right:6px; vertical-align:middle;"></span> Generating Code...`;
+            }
+            if (alertBox) alertBox.style.display = 'none';
+
+            try {
+                const res = await fetch(this.getApiUrl('/api/whatsapp/pair-code'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phone })
+                });
+                const data = await res.json();
+                if (res.ok && data.success) {
+                    if (displayCode) displayCode.textContent = data.code;
+                    if (resultBox) resultBox.style.display = 'block';
+                    this.showToast(`Pairing code generated: ${data.code}`, 'success');
+                } else {
+                    throw new Error(data.error || 'Failed to request pairing code');
+                }
+            } catch (err) {
+                console.error('Pairing code error:', err);
+                if (alertBox) {
+                    alertBox.style.display = 'block';
+                    alertBox.style.background = 'rgba(239,68,68,0.1)';
+                    alertBox.style.color = '#dc2626';
+                    alertBox.style.border = '1px solid rgba(239,68,68,0.3)';
+                    alertBox.textContent = `❌ ${err.message}`;
+                }
+                this.showToast(err.message, 'error');
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = originalHtml;
+                }
+            }
+        },
+
+        copyWhatsAppPairingCode() {
+            const displayCode = document.getElementById('wa-display-code');
+            const text = (displayCode?.textContent || '').replace(/\s+/g, '').trim();
+            if (text) {
+                navigator.clipboard.writeText(text).then(() => {
+                    this.showToast(`Copied pairing code: ${text}`, 'success');
+                }).catch(() => {
+                    this.showToast(`Code: ${text}`, 'info');
+                });
+            }
+        },
+
+        async submitSendWhatsAppTest(event) {
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            const phone = (document.getElementById('wa-test-recipient-phone')?.value || '').trim();
+            const message = (document.getElementById('wa-test-msg-body')?.value || '').trim();
+            const btn = document.getElementById('btn-send-wa-test');
+            const resultBox = document.getElementById('wa-test-result');
+
+            if (!phone || !message) {
+                this.showToast('Please enter both recipient phone and message.', 'error');
+                return;
+            }
+
+            const originalHtml = btn ? btn.innerHTML : '';
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = `<span style="display:inline-block; width:14px; height:14px; border:2px solid #fff; border-top-color:transparent; border-radius:50%; animation:spin 0.8s linear infinite; margin-right:6px; vertical-align:middle;"></span> Dispatching...`;
+            }
+            if (resultBox) {
+                resultBox.style.display = 'block';
+                resultBox.innerHTML = `
+                    <div style="padding: 10px 14px; border-radius: 8px; font-size: 13px; background: rgba(37,211,102,0.1); color: #059669; border: 1px solid rgba(37,211,102,0.3);">
+                        ⏳ Dispatching message via personal WhatsApp socket...
+                    </div>
+                `;
+            }
+
+            try {
+                const res = await fetch(this.getApiUrl('/api/whatsapp/send'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ to: phone, message })
+                });
+                const data = await res.json();
+                if (res.ok && data.success) {
+                    this.showToast(`WhatsApp message sent to ${data.to}!`, 'success');
+                    if (resultBox) {
+                        resultBox.innerHTML = `
+                            <div style="padding: 12px 16px; border-radius: 8px; font-size: 13px; background: rgba(16,185,129,0.1); color: #059669; border: 1px solid rgba(16,185,129,0.3); line-height: 1.5;">
+                                <strong>✅ WhatsApp Message Delivered!</strong><br>
+                                Recipient: <strong>${data.to}</strong><br>
+                                <span style="font-size: 11px; opacity: 0.85;">Message ID: ${data.messageId || 'OK'}</span>
+                            </div>
+                        `;
+                    }
+                } else {
+                    throw new Error(data.error || 'Failed to dispatch WhatsApp message.');
+                }
+            } catch (err) {
+                console.error('WhatsApp send error:', err);
+                if (resultBox) {
+                    resultBox.innerHTML = `
+                        <div style="padding: 12px 16px; border-radius: 8px; font-size: 13px; background: rgba(239,68,68,0.1); color: #dc2626; border: 1px solid rgba(239,68,68,0.3); line-height: 1.5;">
+                            <strong>❌ Delivery Failed</strong><br>
+                            ${err.message}
+                        </div>
+                    `;
+                }
+                this.showToast(err.message, 'error');
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = originalHtml;
+                }
+            }
+        },
+
+        showWhatsAppConnectForm() {
+            const connectedView = document.getElementById('wa-connected-view');
+            const connectView = document.getElementById('wa-connect-view');
+            if (connectedView) connectedView.style.display = 'none';
+            if (connectView) connectView.style.display = 'block';
+        },
+
+        async disconnectWhatsApp() {
+            if (!confirm('Are you sure you want to disconnect and unlink this WhatsApp account?')) return;
+            try {
+                const res = await fetch(this.getApiUrl('/api/whatsapp/disconnect'), {
+                    method: 'POST'
+                });
+                const data = await res.json();
+                if (data.success) {
+                    this.whatsAppStatus = null;
+                    const connectedView = document.getElementById('wa-connected-view');
+                    const connectView = document.getElementById('wa-connect-view');
+                    if (connectedView) connectedView.style.display = 'none';
+                    if (connectView) connectView.style.display = 'block';
+                    this.showToast('WhatsApp account unlinked and disconnected.', 'info');
+                    await this.fetchWhatsAppStatus();
+                } else {
+                    this.showToast(data.error || 'Failed to disconnect WhatsApp', 'error');
+                }
+            } catch (err) {
+                console.error('Disconnect WA error:', err);
+                this.showToast('Server connection error.', 'error');
+            }
+        },
+
+        toggleWhatsAppPdfOption(checked) {
+            const btnText = document.getElementById('btn-send-invoice-wa-text');
+            if (btnText) {
+                btnText.textContent = checked ? 'Send PDF via WhatsApp' : 'Send Message via WhatsApp';
+            }
+        },
+
+        openWhatsAppInvoiceModal(invoice) {
+            if (typeof invoice === 'string') {
+                invoice = (this.state.invoices || []).find(i => i.id === invoice);
+            }
+            if (!invoice) invoice = this.currentPreviewInvoice || this.getInvoiceFormData();
+            const modal = document.getElementById('modal-whatsapp-invoice');
+            if (!modal) return;
+
+            this.currentWhatsAppInvoice = invoice;
+            this.renderInvoicePreview(invoice);
+
+            const symbol = this.getCurrencySymbol(invoice.currency);
+            const totalVal = typeof invoice.total === 'number' ? invoice.total : (parseFloat(invoice.total) || 0);
+
+            const idEl = document.getElementById('wa-inv-id');
+            const numEl = document.getElementById('wa-inv-number');
+            const phoneEl = document.getElementById('wa-inv-to-phone');
+            const msgEl = document.getElementById('wa-inv-message');
+            const pdfFilenameEl = document.getElementById('wa-inv-pdf-filename');
+            const attachCheckbox = document.getElementById('wa-inv-attach-pdf');
+
+            const invNumber = invoice.number || 'Invoice';
+            if (idEl) idEl.value = invoice.id || '';
+            if (numEl) numEl.value = invNumber;
+            if (phoneEl) phoneEl.value = invoice.clientPhone || invoice.client_phone || '';
+            if (pdfFilenameEl) pdfFilenameEl.textContent = `${invNumber}.pdf`;
+            if (attachCheckbox) attachCheckbox.checked = true;
+
+            const btnText = document.getElementById('btn-send-invoice-wa-text');
+            if (btnText) btnText.textContent = 'Send PDF via WhatsApp';
+
+            const invoiceUrl = `${window.location.origin}/invoice/${invoice.id}`;
+
+            if (msgEl) {
+                msgEl.value = `Hello ${invoice.clientName || 'Client'},\n\n` +
+`Please find attached your Commercial Invoice *#${invNumber}* from Abu Zannat (Zannat.me).\n\n` +
+`📄 *INVOICE DETAILS:*\n` +
+`• Total Due: *${symbol}${totalVal.toFixed(2)} ${invoice.currency}*\n` +
+`• Issue Date: ${invoice.date || ''}\n` +
+`• Due Date: ${invoice.dueDate || 'Upon Receipt'}\n` +
+`• Terms: ${invoice.paymentTerms || 'Payment upon receipt'}\n\n` +
+`🏦 *PAYMENT / BANK INFO:*\n` +
+`• Bank: ${invoice.bankName || 'Dutch Bangla Bank PLC'}\n` +
+`• Beneficiary: ${invoice.bankAccountName || 'Abu Zannat Md Mosaddek'}\n` +
+`• Account / IBAN: ${invoice.bankAccountNo || '1621010088950'}\n` +
+`• SWIFT: ${invoice.bankSwift || 'DBBLBDDH'}\n\n` +
+`🔗 *View / Pay Online:* ${invoiceUrl}\n\n` +
+`Thank you for your business! Please let me know if you have any questions.\n\n` +
+`Best regards,\nAbu Zannat\nhttps://zannat.me`;
+            }
+
+            this.openModal('modal-whatsapp-invoice');
+        },
+
+        async generateInvoicePDFBase64(invoice) {
+            if (!invoice) invoice = this.currentWhatsAppInvoice || this.currentPreviewInvoice;
+            if (typeof html2pdf === 'undefined') {
+                throw new Error('PDF generator library (html2pdf) is not loaded yet. Please refresh the page.');
+            }
+
+            // Ensure preview element is updated
+            this.renderInvoicePreview(invoice);
+            const sourceEl = document.getElementById('invoice-preview-content');
+            if (!sourceEl) throw new Error('Invoice preview template not found.');
+
+            const invNum = invoice?.number || `Invoice_${Date.now()}`;
+            const filename = `${invNum}.pdf`;
+
+            // Render container at (0,0) behind screen content so html2canvas captures full dimensions
+            const clone = document.createElement('div');
+            clone.style.position = 'fixed';
+            clone.style.left = '0';
+            clone.style.top = '0';
+            clone.style.width = '794px';
+            clone.style.maxWidth = '794px';
+            clone.style.background = '#ffffff';
+            clone.style.color = '#1e293b';
+            clone.style.zIndex = '-2000';
+            clone.style.pointerEvents = 'none';
+            clone.innerHTML = sourceEl.innerHTML;
+            document.body.appendChild(clone);
+
+            const opt = {
+                margin:       [6, 8, 6, 8],
+                filename:     filename,
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2, useCORS: true, logging: false, scrollX: 0, scrollY: 0, windowWidth: 1000 },
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
+            };
+
+            try {
+                let dataUri = null;
+                try {
+                    dataUri = await html2pdf().set(opt).from(clone).outputPdf('datauristring');
+                } catch (e) {
+                    console.warn('html2pdf outputPdf failed, trying fallback:', e);
+                }
+
+                if (!dataUri || dataUri.length < 5000) {
+                    const pdfWorker = html2pdf().set(opt).from(clone);
+                    const pdfObj = await pdfWorker.toPdf().get('pdf');
+                    if (pdfObj && typeof pdfObj.output === 'function') {
+                        dataUri = pdfObj.output('datauristring');
+                    }
+                }
+
+                return {
+                    filename,
+                    dataUri: (dataUri && dataUri.length > 5000) ? dataUri : null
+                };
+            } finally {
+                if (clone && clone.parentNode) {
+                    clone.parentNode.removeChild(clone);
+                }
+            }
+        },
+
+        async submitSendInvoiceWhatsApp(event) {
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            const phone = (document.getElementById('wa-inv-to-phone')?.value || '').trim();
+            const message = (document.getElementById('wa-inv-message')?.value || '').trim();
+            const invoiceNumber = document.getElementById('wa-inv-number')?.value || '';
+            const attachPdf = Boolean(document.getElementById('wa-inv-attach-pdf')?.checked);
+            const btn = document.getElementById('btn-send-invoice-wa');
+
+            if (!phone) {
+                this.showToast('Please enter recipient WhatsApp phone number.', 'error');
+                return;
+            }
+
+            const originalHtml = btn ? btn.innerHTML : '';
+            if (btn) btn.disabled = true;
+
+            try {
+                let pdfBase64 = null;
+                const invoiceData = this.currentWhatsAppInvoice || this.currentPreviewInvoice || this.getInvoiceFormData();
+                let fileName = `${invoiceNumber || invoiceData?.number || 'Invoice'}.pdf`;
+
+                if (attachPdf) {
+                    if (btn) {
+                        btn.innerHTML = `<span style="display:inline-block; width:14px; height:14px; border:2px solid #fff; border-top-color:transparent; border-radius:50%; animation:spin 0.8s linear infinite; margin-right:6px; vertical-align:middle;"></span> Preparing Vector PDF...`;
+                    }
+                    try {
+                        const pdfResult = await this.generateInvoicePDFBase64(invoiceData);
+                        if (pdfResult && pdfResult.dataUri && pdfResult.dataUri.length > 5000) {
+                            pdfBase64 = pdfResult.dataUri;
+                            fileName = pdfResult.filename || fileName;
+                        }
+                    } catch (pdfErr) {
+                        console.warn('Client PDF generation skipped (server will generate high-res vector fallback):', pdfErr);
+                    }
+
+                    if (btn) {
+                        btn.innerHTML = `<span style="display:inline-block; width:14px; height:14px; border:2px solid #fff; border-top-color:transparent; border-radius:50%; animation:spin 0.8s linear infinite; margin-right:6px; vertical-align:middle;"></span> Dispatching PDF to WhatsApp...`;
+                    }
+                } else {
+                    if (btn) {
+                        btn.innerHTML = `<span style="display:inline-block; width:14px; height:14px; border:2px solid #fff; border-top-color:transparent; border-radius:50%; animation:spin 0.8s linear infinite; margin-right:6px; vertical-align:middle;"></span> Sending via WhatsApp...`;
+                    }
+                }
+
+                const res = await fetch(this.getApiUrl('/api/invoices/send-whatsapp'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        to: phone,
+                        message,
+                        invoiceNumber: invoiceNumber || invoiceData?.number,
+                        invoiceId: invoiceData?.id,
+                        attachPdf,
+                        pdfBase64,
+                        fileName,
+                        invoiceData
+                    })
+                });
+                const data = await res.json();
+                if (res.ok && data.success) {
+                    this.showToast(data.message || `Invoice PDF successfully sent via WhatsApp to ${data.to || phone}!`, 'success');
+                    this.closeModal('modal-whatsapp-invoice');
+                } else {
+                    throw new Error(data.error || 'Failed to dispatch invoice on WhatsApp.');
+                }
+            } catch (err) {
+                console.error('Invoice WhatsApp send error:', err);
+                this.showToast(err.message, 'error');
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = originalHtml;
+                }
+            }
         },
 
         // =============================================
         // INVOICE GENERATOR CONTROLLER
         // =============================================
-        toggleInvoiceView(view) {
+        async toggleInvoiceView(view) {
             const createPanel = document.getElementById('invoice-create-panel');
             const listPanel = document.getElementById('invoice-list-panel');
+            const btnHistory = document.getElementById('btn-tab-invoice-history');
+            const btnCreate = document.getElementById('btn-tab-invoice-create');
+
             if (view === 'create') {
                 if (createPanel) createPanel.classList.remove('hidden');
                 if (listPanel) listPanel.classList.add('hidden');
+                if (btnCreate) {
+                    btnCreate.className = 'btn btn-primary btn-icon-text';
+                }
+                if (btnHistory) {
+                    btnHistory.className = 'btn btn-outline btn-icon-text';
+                }
             } else {
                 if (createPanel) createPanel.classList.add('hidden');
                 if (listPanel) listPanel.classList.remove('hidden');
+                if (btnHistory) {
+                    btnHistory.className = 'btn btn-primary btn-icon-text';
+                }
+                if (btnCreate) {
+                    btnCreate.className = 'btn btn-outline btn-icon-text';
+                }
+                await this.loadInvoicesFromDatabase();
                 this.renderInvoicesList();
+            }
+        },
+
+        async loadInvoicesFromDatabase() {
+            try {
+                const res = await fetch(this.getApiUrl('/api/invoices'));
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.success && Array.isArray(data.invoices)) {
+                        this.state.invoices = data.invoices;
+                        if (data.nextNum) {
+                            this.state.nextInvoiceNum = data.nextNum;
+                        }
+                    }
+                }
+            } catch (err) {
+                console.error('Error loading invoices from database:', err);
             }
         },
 
@@ -1963,9 +2930,6 @@
                 branch: (document.getElementById('inv-bank-branch')?.value || '').trim()
             };
 
-            this.state.bankDetails = bankData;
-            localStorage.setItem('zannat_bank_details', JSON.stringify(bankData));
-
             try {
                 const res = await fetch(this.getApiUrl('/api/bank-details'), {
                     method: 'POST',
@@ -1974,13 +2938,19 @@
                 });
                 if (res.ok) {
                     const data = await res.json();
-                    if (data.bankDetails) this.state.bankDetails = data.bankDetails;
+                    if (data.bankDetails) {
+                        this.state.bankDetails = data.bankDetails;
+                    } else {
+                        this.state.bankDetails = bankData;
+                    }
+                    this.showToast('Bank details saved to database successfully!', 'success');
+                } else {
+                    this.showToast('Failed to save bank details to database.', 'error');
                 }
             } catch (err) {
-                console.warn('Bank details saved to local storage mode.', err);
+                console.error('Bank details database save error:', err);
+                this.showToast('Database connection error.', 'error');
             }
-
-            this.showToast('Bank details saved as default successfully!', 'success');
         },
 
         getCurrencySymbol(currency = 'USD') {
@@ -2144,88 +3114,25 @@
                             this.renderClientSelectOptions();
                         }
                     }
+                } else {
+                    const errRes = await response.json().catch(() => ({}));
+                    this.showToast(errRes.error || 'Failed to save invoice to database.', 'error');
+                    return null;
                 }
             } catch (err) {
-                console.warn('Backend API unavailable. Saving invoice locally in static mode.', err);
-            }
-
-            // Fallback: local storage invoice handling
-            if (!savedInvoice) {
-                let existingIndex = -1;
-                if (invoiceData.id) {
-                    existingIndex = this.state.invoices.findIndex(inv => inv.id === invoiceData.id);
-                }
-
-                if (existingIndex !== -1) {
-                    this.state.invoices[existingIndex] = {
-                        ...this.state.invoices[existingIndex],
-                        ...invoiceData,
-                        updatedAt: new Date().toISOString()
-                    };
-                    savedInvoice = this.state.invoices[existingIndex];
-                } else {
-                    const num = this.state.nextInvoiceNum || 1001;
-                    this.state.nextInvoiceNum = num + 1;
-                    savedInvoice = {
-                        ...invoiceData,
-                        id: 'inv_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
-                        number: `INV-${num}`,
-                        createdAt: new Date().toISOString()
-                    };
-                    this.state.invoices.unshift(savedInvoice);
-                    nextNum = this.state.nextInvoiceNum;
-                }
-
-                // Handle local client saving
-                if (invoiceData.clientName && invoiceData.saveClient !== false) {
-                    if (!this.state.clients) this.state.clients = [];
-                    const cleanName = invoiceData.clientName.trim();
-                    const cleanEmail = (invoiceData.clientEmail || '').trim();
-                    let cIdx = -1;
-                    if (cleanEmail) {
-                        cIdx = this.state.clients.findIndex(c => c.email && c.email.toLowerCase() === cleanEmail.toLowerCase());
-                    }
-                    if (cIdx === -1) {
-                        cIdx = this.state.clients.findIndex(c => c.name && c.name.toLowerCase() === cleanName.toLowerCase());
-                    }
-
-                    const cliObj = {
-                        id: cIdx !== -1 ? this.state.clients[cIdx].id : 'cli_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
-                        name: cleanName,
-                        company: invoiceData.clientCompany || '',
-                        email: cleanEmail,
-                        phone: invoiceData.clientPhone || '',
-                        vat: invoiceData.clientVat || '',
-                        address: invoiceData.clientAddress || '',
-                        updatedAt: new Date().toISOString()
-                    };
-
-                    if (cIdx !== -1) {
-                        this.state.clients[cIdx] = { ...this.state.clients[cIdx], ...cliObj };
-                    } else {
-                        cliObj.createdAt = new Date().toISOString();
-                        this.state.clients.unshift(cliObj);
-                    }
-                    this.renderClientSelectOptions();
-                }
-
-                // Persist state to local storage
-                try {
-                    localStorage.setItem('zannat_app_state', JSON.stringify({
-                        tickets: this.state.tickets,
-                        earnings: this.state.earnings,
-                        bugTypes: this.state.bugTypes,
-                        pages: this.state.pages,
-                        users: this.state.users,
-                        invoices: this.state.invoices,
-                        clients: this.state.clients,
-                        nextInvoiceNum: this.state.nextInvoiceNum,
-                        homepageContent: this.state.homepageContent
-                    }));
-                } catch(e) {}
+                console.error('Invoice database save error:', err);
+                this.showToast('Database connection error.', 'error');
+                return null;
             }
 
             if (savedInvoice) {
+                const existingIdx = this.state.invoices.findIndex(inv => inv.id === savedInvoice.id);
+                if (existingIdx !== -1) {
+                    this.state.invoices[existingIdx] = savedInvoice;
+                } else {
+                    this.state.invoices.unshift(savedInvoice);
+                }
+
                 if (nextNum) {
                     this.state.nextInvoiceNum = nextNum;
                 }
@@ -2233,7 +3140,7 @@
                 this.renderInvoicesList();
 
                 if (options.showToast !== false) {
-                    this.showToast(`Invoice ${savedInvoice.number} saved successfully!`, 'success');
+                    this.showToast(`Invoice ${savedInvoice.number} saved to database successfully!`, 'success');
                 }
 
                 if (options.openPreview) {
@@ -2245,7 +3152,8 @@
                         }, 400);
                     }
                 } else if (options.switchToList) {
-                    this.toggleInvoiceView('list');
+                    this.resetInvoiceForm();
+                    await this.toggleInvoiceView('list');
                 }
 
                 return savedInvoice;
@@ -2257,7 +3165,21 @@
 
         async handleSaveInvoice(event) {
             if (event) event.preventDefault();
-            return await this.saveInvoice(event, { showToast: true, openPreview: false, autoDownload: false, switchToList: true });
+            const btn = event?.target?.closest('button') || document.querySelector('button[onclick*="handleSaveInvoice"]');
+            const origHtml = btn ? btn.innerHTML : '';
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<span style="display:inline-flex;align-items:center;gap:6px;">Saving...</span>';
+            }
+            try {
+                return await this.saveInvoice(event, { showToast: true, openPreview: false, autoDownload: false, switchToList: true });
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = origHtml;
+                    if (window.lucide) window.lucide.createIcons();
+                }
+            }
         },
 
         handlePreviewInvoice(event) {
@@ -2298,7 +3220,19 @@
             this.openEmailInvoiceModal(invoiceData);
         },
 
+        handleOpenWhatsAppModalFromForm(event) {
+            if (event) event.preventDefault();
+            const invoiceData = this.getInvoiceFormData();
+            if (!invoiceData.clientName) {
+                invoiceData.clientName = 'Valued Client';
+            }
+            this.openWhatsAppInvoiceModal(invoiceData);
+        },
+
         openEmailInvoiceModal(invoice) {
+            if (typeof invoice === 'string') {
+                invoice = (this.state.invoices || []).find(i => i.id === invoice);
+            }
             if (!invoice) invoice = this.currentPreviewInvoice || this.getInvoiceFormData();
             const emailModal = document.getElementById('modal-email-invoice');
             if (!emailModal) return;
@@ -2366,6 +3300,8 @@
                 sendBtn.innerHTML = '<i data-lucide="loader" style="width: 15px; height: 15px; animation: spin 1s linear infinite;"></i> Sending...';
             }
 
+            const invoiceData = this.currentPreviewInvoice || this.currentWhatsAppInvoice || this.getInvoiceFormData();
+
             try {
                 const res = await fetch(this.getApiUrl('/api/invoices/send-email'), {
                     method: 'POST',
@@ -2374,7 +3310,9 @@
                         to,
                         subject,
                         message,
-                        invoiceNumber: this.currentPreviewInvoice?.number || ''
+                        invoiceNumber: invoiceData?.number || '',
+                        invoiceId: invoiceData?.id || '',
+                        invoiceData: invoiceData
                     })
                 });
 
@@ -2630,15 +3568,21 @@
                         <div>${inv.date || 'N/A'}</div>
                         <div style="font-size: 0.75rem; color: var(--text-muted);">${inv.paymentMethod || 'Bank Transfer'}</div>
                     </td>
-                    <td style="font-weight: 700;">${symbol}${(inv.total || 0).toFixed(2)}</td>
-                    <td><span class="${badgeClass}" style="font-size: 0.7rem;">${status}</span></td>
+                    <td style="font-weight: 700;">${symbol}${(parseFloat(inv.total) || 0).toFixed(2)}</td>
+                    <td><span class="badge ${badgeClass}" style="font-size: 0.7rem;">${status}</span></td>
                     <td style="text-align: right;">
                         <div style="display: flex; gap: 8px; justify-content: flex-end;">
-                            <button type="button" class="btn btn-outline btn-icon" title="View / Open Invoice in New Tab" onclick="app.openInvoiceInNewTab('${inv.id}')">
-                                <i data-lucide="external-link" style="width: 14px; height: 14px;"></i>
+                            <button type="button" class="btn btn-outline btn-icon" title="View Invoice Preview" onclick="app.viewInvoice('${inv.id}')">
+                                <i data-lucide="eye" style="width: 14px; height: 14px; color: var(--accent-blue);"></i>
                             </button>
-                            <button type="button" class="btn btn-outline btn-icon" title="Email Invoice to Client" onclick="app.openEmailInvoiceModal(app.state.invoices.find(i=>i.id==='${inv.id}'))">
+                            <button type="button" class="btn btn-outline btn-icon" title="Email Invoice to Client" onclick="app.openEmailInvoiceModal('${inv.id}')">
                                 <i data-lucide="mail" style="width: 14px; height: 14px; color: var(--accent-cyan);"></i>
+                            </button>
+                            <button type="button" class="btn btn-outline btn-icon" title="Send PDF Invoice via WhatsApp" style="color: #25D366; border-color: rgba(37,211,102,0.4);" onclick="app.openWhatsAppInvoiceModal('${inv.id}')">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                                    <path fill="#25D366" d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91C2.13 13.66 2.59 15.36 3.45 16.86L2.05 22L7.3 20.62C8.75 21.41 10.38 21.83 12.04 21.83C17.5 21.83 21.95 17.38 21.95 11.92C21.95 9.27 20.92 6.78 19.05 4.91C17.18 3.03 14.69 2 12.04 2Z"/>
+                                    <path fill="#ffffff" fill-rule="evenodd" clip-rule="evenodd" d="M9.6 7.63C9.37 7.12 9.13 7.11 8.91 7.1C8.73 7.09 8.52 7.09 8.31 7.09C8.1 7.09 7.76 7.17 7.48 7.48C7.19 7.79 6.39 8.56 6.39 10.13C6.39 11.69 7.53 13.2 7.69 13.41C7.85 13.62 9.88 16.94 13.1 18.2C15.26 19.04 16.03 18.89 16.63 18.83C17.36 18.76 18.72 17.97 19.03 17.06C19.34 16.14 19.34 15.36 19.25 15.2C19.16 15.04 18.95 14.95 18.63 14.79C18.32 14.63 16.79 13.88 16.51 13.78C16.22 13.67 16.01 13.62 15.8 13.93C15.59 14.24 15 14.95 14.82 15.16C14.64 15.36 14.47 15.39 14.16 15.23C13.84 15.08 12.83 14.75 11.64 13.68C10.71 12.85 10.08 11.83 9.9 11.52C9.72 11.21 9.88 11.04 10.04 10.89C10.18 10.75 10.35 10.52 10.51 10.34C10.67 10.15 10.72 10.02 10.83 9.81C10.93 9.61 10.88 9.42 10.8 9.27C10.72 9.11 10.1 7.58 9.6 7.63Z"/>
+                                </svg>
                             </button>
                             <button type="button" class="btn btn-outline btn-icon" title="Edit Invoice" onclick="app.editInvoice('${inv.id}')">
                                 <i data-lucide="edit" style="width: 14px; height: 14px; color: var(--accent-cyan);"></i>
@@ -2743,16 +3687,15 @@
             if (contentBody) contentBody.scrollTop = 0;
         },
 
-        openInvoiceInNewTab(id) {
+        viewInvoice(id) {
             const invoice = (this.state.invoices || []).find(i => i.id === id);
             if (!invoice) return;
-
-            // Also render and open preview modal in local UI
             this.renderInvoicePreview(invoice);
             this.openModal('modal-invoice-preview');
+        },
 
-            // Render standalone print page
-            this.renderStandalonePrintInvoice(invoice);
+        openInvoiceInNewTab(id) {
+            this.viewInvoice(id);
         },
 
         renderStandalonePrintInvoice(invoice) {
@@ -3057,7 +4000,11 @@
                 const result = await response.json();
                 if (response.ok && result.success) {
                     this.showToast('Invoice deleted.', 'success');
-                    this.state.invoices = this.state.invoices.filter(i => i.id !== id);
+                    if (Array.isArray(result.invoices)) {
+                        this.state.invoices = result.invoices;
+                    } else {
+                        this.state.invoices = this.state.invoices.filter(i => i.id !== id);
+                    }
                     this.renderInvoicesList();
                 } else {
                     this.showToast(result.error || 'Failed to delete invoice.', 'error');
@@ -3133,59 +4080,17 @@
                         this.renderSavedClientsTable();
                         return result.client;
                     }
+                } else {
+                    const errRes = await response.json().catch(() => ({}));
+                    this.showToast(errRes.error || 'Failed to save client to database.', 'error');
+                    return null;
                 }
             } catch (err) {
-                console.warn('Backend API unavailable. Saving client locally.', err);
+                console.error('Database save client error:', err);
+                this.showToast('Database connection error.', 'error');
+                return null;
             }
-
-            // Fallback for local storage mode
-            if (!this.state.clients) this.state.clients = [];
-            const cleanName = clientData.name.trim();
-            const cleanEmail = (clientData.email || '').trim();
-
-            let idx = -1;
-            if (clientData.id) {
-                idx = this.state.clients.findIndex(c => c.id === clientData.id);
-            } else if (cleanEmail) {
-                idx = this.state.clients.findIndex(c => c.email && c.email.toLowerCase() === cleanEmail.toLowerCase());
-            } else {
-                idx = this.state.clients.findIndex(c => c.name && c.name.toLowerCase() === cleanName.toLowerCase());
-            }
-
-            let savedClient = null;
-            if (idx !== -1) {
-                this.state.clients[idx] = {
-                    ...this.state.clients[idx],
-                    ...clientData,
-                    updatedAt: new Date().toISOString()
-                };
-                savedClient = this.state.clients[idx];
-            } else {
-                savedClient = {
-                    ...clientData,
-                    id: 'cli_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
-                    createdAt: new Date().toISOString()
-                };
-                this.state.clients.unshift(savedClient);
-            }
-
-            try {
-                localStorage.setItem('zannat_app_state', JSON.stringify({
-                    tickets: this.state.tickets,
-                    earnings: this.state.earnings,
-                    bugTypes: this.state.bugTypes,
-                    pages: this.state.pages,
-                    users: this.state.users,
-                    invoices: this.state.invoices,
-                    clients: this.state.clients,
-                    nextInvoiceNum: this.state.nextInvoiceNum,
-                    homepageContent: this.state.homepageContent
-                }));
-            } catch(e) {}
-
-            this.renderClientSelectOptions(savedClient.id);
-            this.renderSavedClientsTable();
-            return savedClient;
+            return null;
         },
 
         async quickSaveClient() {
@@ -3390,37 +4295,304 @@
                         this.state.clients = result.clients;
                         this.renderClientSelectOptions();
                         this.renderSavedClientsTable();
-                        this.showToast('Client deleted.', 'success');
+                        this.showToast('Client deleted from database.', 'success');
                         return;
                     }
+                } else {
+                    const errRes = await response.json().catch(() => ({}));
+                    this.showToast(errRes.error || 'Failed to delete client from database.', 'error');
                 }
             } catch (err) {
-                console.warn('Backend API delete failed, applying local fallback.', err);
+                console.error('Delete client error:', err);
+                this.showToast('Database connection error.', 'error');
             }
-
-            // Fallback for local storage
-            this.state.clients = (this.state.clients || []).filter(c => c.id !== clientId);
-            try {
-                localStorage.setItem('zannat_app_state', JSON.stringify({
-                    tickets: this.state.tickets,
-                    earnings: this.state.earnings,
-                    bugTypes: this.state.bugTypes,
-                    pages: this.state.pages,
-                    users: this.state.users,
-                    invoices: this.state.invoices,
-                    clients: this.state.clients,
-                    nextInvoiceNum: this.state.nextInvoiceNum,
-                    homepageContent: this.state.homepageContent
-                }));
-            } catch(e) {}
-
-            this.renderClientSelectOptions();
-            this.renderSavedClientsTable();
-            this.showToast('Client deleted.', 'success');
         },
 
         useClientInInvoice(clientId) {
             this.closeModal('modal-manage-clients');
+            this.toggleInvoiceView('create');
+            this.onSelectSavedClient(clientId);
+            const selectEl = document.getElementById('inv-client-select');
+            if (selectEl) selectEl.value = clientId;
+        },
+
+        // =============================================
+        // CLIENTS ADMIN TAB METHODS
+        // =============================================
+        async syncClientsFromInvoices() {
+            const invoices = this.state.invoices || [];
+            if (invoices.length === 0) {
+                this.showToast('No invoices available to extract clients from.', 'info');
+                return;
+            }
+
+            let syncCount = 0;
+            const seenEmails = new Set();
+            const seenNames = new Set();
+
+            // First index existing clients
+            (this.state.clients || []).forEach(c => {
+                if (c.email) seenEmails.add(c.email.toLowerCase().trim());
+                if (c.name) seenNames.add(c.name.toLowerCase().trim());
+            });
+
+            for (const inv of invoices) {
+                const name = (inv.clientName || '').trim();
+                const email = (inv.clientEmail || '').trim();
+                if (!name) continue;
+
+                const emailKey = email.toLowerCase();
+                const nameKey = name.toLowerCase();
+
+                const isEmailSeen = emailKey && seenEmails.has(emailKey);
+                const isNameSeen = !emailKey && seenNames.has(nameKey);
+
+                if (!isEmailSeen && !isNameSeen) {
+                    try {
+                        const newClient = await this.saveClient({
+                            name: name,
+                            company: inv.clientCompany || '',
+                            email: email,
+                            phone: inv.clientPhone || '',
+                            vat: inv.clientVat || '',
+                            address: inv.clientAddress || ''
+                        });
+                        if (newClient) {
+                            if (emailKey) seenEmails.add(emailKey);
+                            seenNames.add(nameKey);
+                            syncCount++;
+                        }
+                    } catch (e) {
+                        console.warn('Sync client failed for:', name, e);
+                    }
+                }
+            }
+
+            this.renderClientsTab();
+            this.renderSavedClientsTable();
+            this.renderClientSelectOptions();
+
+            if (syncCount > 0) {
+                this.showToast(`Successfully synced ${syncCount} client(s) from invoices into MySQL database!`, 'success');
+            } else {
+                this.showToast('All clients from invoices are already synced.', 'info');
+            }
+        },
+
+        renderClientsTab(filterQuery = '') {
+            const tbody = document.getElementById('tab-clients-tbody');
+            const totalKpi = document.getElementById('clients-kpi-total');
+            const invoicedKpi = document.getElementById('clients-kpi-invoiced');
+            const revenueKpi = document.getElementById('clients-kpi-revenue');
+            const countLabel = document.getElementById('clients-count-label');
+
+            const clients = this.state.clients || [];
+            const invoices = this.state.invoices || [];
+
+            // Compute invoice statistics per client
+            const clientStats = new Map();
+            let totalInvoicedRevenue = 0;
+            const invoicedClientIds = new Set();
+
+            invoices.forEach(inv => {
+                const invClientName = (inv.clientName || '').toLowerCase().trim();
+                const invClientEmail = (inv.clientEmail || '').toLowerCase().trim();
+                const amount = Number(inv.total) || 0;
+                totalInvoicedRevenue += amount;
+
+                // Match with client record
+                const matched = clients.find(c => 
+                    (invClientEmail && c.email && c.email.toLowerCase().trim() === invClientEmail) ||
+                    (invClientName && c.name && c.name.toLowerCase().trim() === invClientName)
+                );
+
+                if (matched) {
+                    invoicedClientIds.add(matched.id);
+                    const curr = clientStats.get(matched.id) || { count: 0, total: 0 };
+                    curr.count += 1;
+                    curr.total += amount;
+                    clientStats.set(matched.id, curr);
+                }
+            });
+
+            // Update KPI cards
+            if (totalKpi) totalKpi.textContent = clients.length;
+            if (invoicedKpi) invoicedKpi.textContent = invoicedClientIds.size;
+            if (revenueKpi) revenueKpi.textContent = `$${totalInvoicedRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+            if (!tbody) return;
+
+            let filtered = clients;
+            if (filterQuery && filterQuery.trim() !== '') {
+                const q = filterQuery.toLowerCase().trim();
+                filtered = clients.filter(c => 
+                    (c.name && c.name.toLowerCase().includes(q)) ||
+                    (c.company && c.company.toLowerCase().includes(q)) ||
+                    (c.email && c.email.toLowerCase().includes(q)) ||
+                    (c.phone && c.phone.toLowerCase().includes(q)) ||
+                    (c.vat && c.vat.toLowerCase().includes(q)) ||
+                    (c.address && c.address.toLowerCase().includes(q))
+                );
+            }
+
+            if (countLabel) {
+                countLabel.textContent = filterQuery ? `Showing ${filtered.length} of ${clients.length} clients` : `Showing all ${clients.length} clients`;
+            }
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 36px 16px;">
+                            <div style="margin-bottom: 8px;"><i data-lucide="users" style="width: 32px; height: 32px; opacity: 0.4;"></i></div>
+                            <p style="font-size: 0.95rem; margin-bottom: 12px;">${filterQuery ? 'No matching clients found.' : 'No clients found in directory.'}</p>
+                            ${!filterQuery ? '<button type="button" class="btn btn-secondary btn-sm" onclick="app.syncClientsFromInvoices()"><i data-lucide="refresh-cw" style="width: 14px; height: 14px;"></i> Sync Clients from Invoices</button>' : ''}
+                        </td>
+                    </tr>
+                `;
+                if (window.lucide) window.lucide.createIcons();
+                return;
+            }
+
+            tbody.innerHTML = '';
+            filtered.forEach(c => {
+                const stats = clientStats.get(c.id) || { count: 0, total: 0 };
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>
+                        <div style="font-weight: 700; color: var(--text-primary); font-size: 0.95rem;">${c.name}</div>
+                        ${c.company ? `<div style="font-size: 0.8rem; color: var(--accent-purple); font-weight: 600; margin-top: 2px;">🏢 ${c.company}</div>` : ''}
+                    </td>
+                    <td>
+                        ${c.email ? `<div style="font-size: 0.85rem; color: var(--accent-blue);">✉️ <a href="mailto:${c.email}" style="color: inherit; text-decoration: none;">${c.email}</a></div>` : ''}
+                        ${c.phone ? `<div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 3px;">📞 ${c.phone}</div>` : ''}
+                        ${!c.email && !c.phone ? '<span style="color: var(--text-muted); font-size: 0.8rem;">—</span>' : ''}
+                    </td>
+                    <td>
+                        ${c.vat ? `<div style="font-size: 0.78rem; font-weight: 700; color: var(--accent-amber); margin-bottom: 2px;">VAT: ${c.vat}</div>` : ''}
+                        ${c.address ? `<div style="font-size: 0.78rem; color: var(--text-muted); white-space: pre-line; line-height: 1.3;">${c.address}</div>` : ''}
+                        ${!c.vat && !c.address ? '<span style="color: var(--text-muted); font-size: 0.8rem;">—</span>' : ''}
+                    </td>
+                    <td>
+                        <div style="display: flex; flex-direction: column; gap: 3px;">
+                            <span class="badge" style="background: rgba(99, 102, 241, 0.12); color: var(--accent-blue); font-size: 0.75rem; width: fit-content;">
+                                ${stats.count} ${stats.count === 1 ? 'Invoice' : 'Invoices'}
+                            </span>
+                            <span style="font-size: 0.85rem; font-weight: 700; color: var(--accent-green);">
+                                $${stats.total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </span>
+                        </div>
+                    </td>
+                    <td style="text-align: right;">
+                        <div style="display: flex; gap: 6px; justify-content: flex-end; align-items: center;">
+                            <button type="button" class="btn btn-outline btn-sm" title="Create New Invoice for Client" onclick="app.createInvoiceForClient('${c.id}')" style="padding: 4px 8px; font-size: 0.78rem; color: var(--accent-green); border-color: rgba(16, 185, 129, 0.4);">
+                                <i data-lucide="file-plus" style="width: 13px; height: 13px;"></i> Invoice
+                            </button>
+                            <button type="button" class="btn btn-secondary btn-icon" title="Edit Client" onclick="app.toggleTabAddClientForm(true, '${c.id}')" style="padding: 4px 8px;">
+                                <i data-lucide="edit" style="width: 13px; height: 13px; color: var(--accent-cyan);"></i>
+                            </button>
+                            <button type="button" class="btn btn-secondary btn-icon" title="Delete Client" onclick="app.deleteClientFromTab('${c.id}')" style="padding: 4px 8px;">
+                                <i data-lucide="trash-2" style="width: 13px; height: 13px; color: var(--accent-red);"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            if (window.lucide) window.lucide.createIcons();
+        },
+
+        toggleTabAddClientForm(forceOpen = null, clientToEditId = null) {
+            const formCard = document.getElementById('tab-inline-client-form');
+            const toggleBtnText = document.getElementById('tab-btn-add-client-text');
+            const formTitle = document.getElementById('tab-client-form-title');
+            if (!formCard) return;
+
+            const isCurrentlyHidden = formCard.classList.contains('hidden');
+            const shouldOpen = forceOpen !== null ? forceOpen : isCurrentlyHidden;
+
+            if (shouldOpen) {
+                formCard.classList.remove('hidden');
+                if (toggleBtnText) toggleBtnText.textContent = 'Close Form';
+
+                const idEl = document.getElementById('tab-cli-id');
+                const nameEl = document.getElementById('tab-cli-name');
+                const compEl = document.getElementById('tab-cli-company');
+                const emailEl = document.getElementById('tab-cli-email');
+                const phoneEl = document.getElementById('tab-cli-phone');
+                const vatEl = document.getElementById('tab-cli-vat');
+                const addrEl = document.getElementById('tab-cli-address');
+
+                if (clientToEditId) {
+                    const c = (this.state.clients || []).find(cli => cli.id === clientToEditId);
+                    if (c) {
+                        if (idEl) idEl.value = c.id;
+                        if (nameEl) nameEl.value = c.name || '';
+                        if (compEl) compEl.value = c.company || '';
+                        if (emailEl) emailEl.value = c.email || '';
+                        if (phoneEl) phoneEl.value = c.phone || '';
+                        if (vatEl) vatEl.value = c.vat || c.taxId || '';
+                        if (addrEl) addrEl.value = c.address || '';
+                        if (formTitle) formTitle.innerHTML = `<i data-lucide="edit" style="width: 18px; height: 18px;"></i> Edit Client Profile: ${c.name}`;
+                    }
+                } else {
+                    if (idEl) idEl.value = '';
+                    if (nameEl) nameEl.value = '';
+                    if (compEl) compEl.value = '';
+                    if (emailEl) emailEl.value = '';
+                    if (phoneEl) phoneEl.value = '';
+                    if (vatEl) vatEl.value = '';
+                    if (addrEl) addrEl.value = '';
+                    if (formTitle) formTitle.innerHTML = `<i data-lucide="user-plus" style="width: 18px; height: 18px;"></i> Add New Client`;
+                }
+
+                if (window.lucide) window.lucide.createIcons();
+                if (nameEl) nameEl.focus();
+            } else {
+                formCard.classList.add('hidden');
+                if (toggleBtnText) toggleBtnText.textContent = 'Add New Client';
+            }
+        },
+
+        async saveClientFromTab() {
+            const id = document.getElementById('tab-cli-id')?.value;
+            const name = document.getElementById('tab-cli-name')?.value?.trim();
+            const company = document.getElementById('tab-cli-company')?.value?.trim();
+            const email = document.getElementById('tab-cli-email')?.value?.trim();
+            const phone = document.getElementById('tab-cli-phone')?.value?.trim();
+            const vat = document.getElementById('tab-cli-vat')?.value?.trim();
+            const address = document.getElementById('tab-cli-address')?.value?.trim();
+
+            if (!name) {
+                this.showToast('Client name is required.', 'error');
+                return;
+            }
+
+            const saved = await this.saveClient({
+                id: id || undefined,
+                name,
+                company,
+                email,
+                phone,
+                vat,
+                address
+            });
+
+            if (saved) {
+                this.showToast(`Client "${name}" saved in database!`, 'success');
+                this.toggleTabAddClientForm(false);
+                this.renderClientsTab();
+            }
+        },
+
+        async deleteClientFromTab(clientId) {
+            await this.deleteSavedClient(clientId);
+            this.renderClientsTab();
+        },
+
+        createInvoiceForClient(clientId) {
+            this.switchTab('invoices');
+            this.resetInvoiceForm();
             this.toggleInvoiceView('create');
             this.onSelectSavedClient(clientId);
             const selectEl = document.getElementById('inv-client-select');
