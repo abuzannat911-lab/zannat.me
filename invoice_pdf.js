@@ -1,5 +1,5 @@
 /**
- * Invoice PDF Generator for Zannat.me
+ * Invoice PDF Generator for Zannat.bd
  * High-resolution, professional vector PDF generation matching the official web preview.
  */
 const PDFDocument = require('pdfkit');
@@ -77,7 +77,7 @@ function generateInvoicePDFBuffer(invoice) {
             doc.fontSize(9.5).font('Helvetica-Bold').fillColor(colorPrimary)
                .text('WordPress Specialist & Web Developer', 88, y + 20);
             doc.fontSize(8).font('Helvetica').fillColor(colorMuted)
-               .text('Independent Contractor • Non-US Person • https://zannat.me', 88, y + 33);
+               .text('Independent Contractor • Non-US Person • https://zannat.bd', 88, y + 33);
 
             // Right title & invoice number
             doc.fontSize(17).font('Helvetica-Bold').fillColor(colorText)
@@ -322,8 +322,8 @@ function generateInvoicePDFBuffer(invoice) {
             // Right
             doc.fontSize(7.5).font('Helvetica-Bold').fillColor(colorDarkGreen)
                .text('✔ Verified Electronic Commercial Invoice', 280, y, { align: 'right', width: 279 });
-            doc.fontSize(6.5).font('Helvetica').fillColor('#94a3b8')
-               .text('Issued via Zannat.me Engine', 280, y + 10, { align: 'right', width: 279 });
+            doc.fontSize(7.5).font('Helvetica').fillColor(colorMuted)
+               .text('Issued via Zannat.bd Engine', 280, y + 10, { align: 'right', width: 279 });
 
             doc.end();
         } catch (err) {
@@ -398,7 +398,7 @@ function generateInvoiceEmailHtml(invoice, customMessage = '') {
                     <td style="vertical-align: top;">
                         <div style="font-size: 22px; font-weight: 800; color: #0f172a; letter-spacing: -0.01em;">Abu Zannat</div>
                         <div style="font-size: 13px; font-weight: 700; color: #6366f1; margin-top: 2px;">WordPress Specialist & Web Developer</div>
-                        <div style="font-size: 11px; color: #64748b; margin-top: 3px;">Independent Contractor • Non-US Person • <a href="https://zannat.me" style="color: #6366f1; text-decoration: none;">https://zannat.me</a></div>
+                        <div style="font-size: 11px; color: #64748b; margin-top: 3px;">Independent Contractor • Non-US Person • <a href="https://zannat.bd" style="color: #6366f1; text-decoration: none;">https://zannat.bd</a></div>
                     </td>
                     <td style="text-align: right; vertical-align: top;">
                         <div style="font-size: 20px; font-weight: 900; color: #0f172a; letter-spacing: -0.02em;">COMMERCIAL INVOICE</div>
@@ -569,7 +569,7 @@ function generateInvoiceEmailHtml(invoice, customMessage = '') {
                     </td>
                     <td style="text-align: right; font-size: 11px;">
                         <span style="color: #166534; font-weight: 700;">✔ Verified Electronic Commercial Invoice</span><br>
-                        <span style="color: #94a3b8; font-size: 10px;">Issued via Zannat.me Engine</span>
+                        <span style="color: #94a3b8; font-size: 10px;">Issued via Zannat.bd Engine</span>
                     </td>
                 </tr>
             </table>

@@ -219,9 +219,9 @@ app.post('/api/logs', (req, res) => {
     res.json({ success: true });
 });
 
-// Handle cPanel subdirectory routing dynamically (e.g. /zannat.me/api/state -> /api/state)
+// Handle cPanel subdirectory routing dynamically (e.g. /zannat.bd/api/state or /zannat.me/api/state -> /api/state)
 app.use((req, res, next) => {
-    const match = req.url.match(/^\/([^/]+.me|zannat[^/]*)(.*)/);
+    const match = req.url.match(/^\/([^/]+.(?:bd|me)|zannat[^/]*)(.*)/);
     if (match) {
         req.url = match[2] || '/';
     }
@@ -367,7 +367,7 @@ app.post('/api/tickets', ticketLimiter, async (req, res) => {
         // 1. Send Email Alert to Admin
         if (enableAdminEmail && adminEmail) {
             const mailOptions = {
-                from: '"Zannat.me Support" <abuzannat911@gmail.com>',
+                from: '"Zannat.bd Support" <abuzannat911@gmail.com>',
                 to: adminEmail,
                 subject: `[New Bug Query] ${ticketId} - ${clientName}`,
                 text: `
@@ -442,7 +442,7 @@ Direct Client WhatsApp: ${waClientLink || 'N/A'}
                     clientWaMsg += `• *Issue:* ${bugType || 'General'}\n`;
                     clientWaMsg += `• *Severity:* ${severity || 'Medium'}\n\n`;
                     clientWaMsg += `Abu Zannat is reviewing your issue and will communicate with you directly on this WhatsApp number shortly.\n\n`;
-                    clientWaMsg += `Best regards,\n*Abu Zannat | WordPress Specialist*\n🌐 https://zannat.me`;
+                    clientWaMsg += `Best regards,\n*Abu Zannat | WordPress Specialist*\n🌐 https://zannat.bd`;
 
                     whatsapp.sendWhatsAppMessage(clientPhone, clientWaMsg)
                         .then(() => console.log(`[WA SUCCESS] Client confirmation sent to ${clientPhone}`))
@@ -511,7 +511,7 @@ app.post('/api/tickets/update', requireAdminAuth, async (req, res) => {
                             clientWaMsg += `⚡ *Diagnostics and debugging are currently underway.* We will update you as soon as the patch is ready.\n\n`;
                         }
                         clientWaMsg += `If you have any questions or further instructions, feel free to reply directly to this message.\n\n`;
-                        clientWaMsg += `Best regards,\n*Abu Zannat | WordPress Specialist*\n🌐 https://zannat.me`;
+                        clientWaMsg += `Best regards,\n*Abu Zannat | WordPress Specialist*\n🌐 https://zannat.bd`;
 
                         await whatsapp.sendWhatsAppMessage(clientPhone, clientWaMsg);
                         notified.wa = true;
@@ -567,16 +567,8 @@ app.post('/api/tickets/update', requireAdminAuth, async (req, res) => {
                                 </div>
                                 <table style="width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 20px;">
                                     <tr style="border-bottom: 1px solid #f1f5f9;">
-                                        <td style="padding: 8px 0; color: #64748b; width: 130px;">Ticket ID:</td>
-                                        <td style="padding: 8px 0; font-weight: 600;">${id}</td>
-                                    </tr>
-                                    <tr style="border-bottom: 1px solid #f1f5f9;">
-                                        <td style="padding: 8px 0; color: #64748b;">Website URL:</td>
-                                        <td style="padding: 8px 0;"><a href="${siteUrl}" target="_blank" style="color: #2563eb; text-decoration: none;">${siteUrl || 'N/A'}</a></td>
-                                    </tr>
-                                    <tr style="border-bottom: 1px solid #f1f5f9;">
                                         <td style="padding: 8px 0; color: #64748b;">Issue Category:</td>
-                                        <td style="padding: 8px 0; font-weight: 500;">${bugType}</td>
+                                        <td style="padding: 8px 0; font-weight: 500;">${issueTitle}</td>
                                     </tr>
                                     ${notesText && notesText.trim() ? `
                                     <tr style="border-bottom: 1px solid #f1f5f9;">
@@ -590,7 +582,7 @@ app.post('/api/tickets/update', requireAdminAuth, async (req, res) => {
                                 </p>
                                 <hr style="border: none; border-top: 1px solid #f1f5f9; margin: 20px 0;">
                                 <div style="font-size: 12px; color: #94a3b8; text-align: center;">
-                                    © 2026 Zannat.me · WordPress Specialist & Web Developer
+                                    © 2026 Zannat.bd · WordPress Specialist & Web Developer
                                 </div>
                             </div>
                         </div>
@@ -617,7 +609,7 @@ app.post('/api/tickets/update', requireAdminAuth, async (req, res) => {
             // Also inform Admin Email if enabled
             if (enableAdminEmail && adminEmail && adminEmail !== clientEmail) {
                 const adminMailOptions = {
-                    from: '"Zannat.me Support" <abuzannat911@gmail.com>',
+                    from: '"Zannat.bd Support" <abuzannat911@gmail.com>',
                     to: adminEmail,
                     subject: `[Status Changed: ${newStatus}] Ticket ${id} - ${clientName}`,
                     text: `Ticket ${id} status updated to: ${newStatus} (was: ${previousStatus}).\nClient: ${clientName} (${clientEmail || 'No email'}, ${clientPhone || 'No phone'}).\nDeveloper Notes: ${notesText || 'None'}`
@@ -861,17 +853,17 @@ app.post('/api/smtp/test', requireAdminAuth, async (req, res) => {
         const recipient = (to || config.user || config.oauth_user || 'abuzannat911@gmail.com').trim();
 
         const mailOptions = {
-            from: `"Zannat.me Mail Test" <${config.user || config.oauth_user || 'abuzannat911@gmail.com'}>`,
+            from: `"Zannat.bd Mail Test" <${config.user || config.oauth_user || 'abuzannat911@gmail.com'}>`,
             to: recipient,
-            subject: '✅ Zannat.me Live Email Delivery Test',
-            text: `Hello! This is a test email sent from your Zannat.me application to confirm that your Gmail / SMTP configuration is working properly.\n\nSent at: ${new Date().toISOString()}`,
+            subject: '✅ Zannat.bd Live Email Delivery Test',
+            text: `Hello! This is a test email sent from your Zannat.bd application to confirm that your Gmail / SMTP configuration is working properly.\n\nSent at: ${new Date().toISOString()}`,
             html: `
                 <div style="font-family: Arial, sans-serif; font-size: 15px; color: #1e293b; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 8px;">
                     <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 16px; border-bottom: 2px solid #10b981; padding-bottom: 12px;">
                         <h2 style="color: #10b981; margin: 0; font-size: 20px;">Email System Verified!</h2>
                     </div>
                     <p style="color: #334155; line-height: 1.6;">
-                        Your email delivery system on <strong>Zannat.me</strong> is active and delivering emails.
+                        Your email delivery system on <strong>Zannat.bd</strong> is active and delivering emails.
                     </p>
                     <div style="background: #f8fafc; padding: 14px; border-radius: 6px; font-size: 13px; color: #64748b; margin: 16px 0; border-left: 3px solid #10b981;">
                         <strong>Auth Mode:</strong> ${config.auth_type === 'oauth2' ? 'Gmail OAuth 2.0 (Google Direct Auth)' : 'SMTP Password / App Key'}<br>
@@ -880,7 +872,7 @@ app.post('/api/smtp/test', requireAdminAuth, async (req, res) => {
                         <strong>Timestamp:</strong> ${new Date().toLocaleString()}
                     </div>
                     <p style="font-size: 12px; color: #94a3b8; text-align: center; margin-top: 20px;">
-                        Sent automatically from your Zannat.me Admin Maintenance Console.
+                        Sent automatically from your Zannat.bd Admin Maintenance Console.
                     </p>
                 </div>
             `
@@ -1409,7 +1401,7 @@ app.use((req, res) => {
 });
 
 app.listen(PORT, () => {
-    console.log(`Zannat.me MySQL-Backed Server running on port ${PORT}`);
+    console.log(`Zannat.bd MySQL-Backed Server running on port ${PORT}`);
     // Initialize WhatsApp connection
     whatsapp.initWhatsApp();
 });

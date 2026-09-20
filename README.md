@@ -1,4 +1,4 @@
-# zannat.me — WordPress Bug Fixer & Portfolio
+# zannat.bd — WordPress Bug Fixer & Portfolio
 
 Personal portfolio and client ticketing system for Abu Zannat — WordPress specialist.
 
@@ -15,7 +15,7 @@ npm start
 ## 🌐 cPanel Deployment (Node.js App)
 
 ### Step 1 — Upload files
-Upload all files **except** `node_modules/` to your cPanel File Manager under `public_html` or a subdomain folder.
+Upload all files **except** `node_modules/` to your cPanel File Manager under `public_html` or your domain directory.
 
 ### Step 2 — Setup Node.js App in cPanel
 1. Login to cPanel → **Setup Node.js App**
@@ -23,8 +23,8 @@ Upload all files **except** `node_modules/` to your cPanel File Manager under `p
 3. Set:
    - **Node.js version:** 18.x or 20.x
    - **Application mode:** Production
-   - **Application root:** `/home/<user>/public_html` (or wherever you uploaded)
-   - **Application URL:** `zannat.me`
+   - **Application root:** `/home/<user>/public_html` (or your domain directory)
+   - **Application URL:** `zannat.bd`
    - **Application startup file:** `server.js`
 4. Click **Create**
 
@@ -42,7 +42,7 @@ Create/update `.htaccess` in the same directory with the contents already includ
 ## 📁 File Structure
 
 ```
-zannat.me/
+zannat.bd/
 ├── server.js          # Express backend + API routes
 ├── app.js             # Client-side SPA controller
 ├── index.html         # Main HTML shell

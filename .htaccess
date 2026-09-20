@@ -1,5 +1,5 @@
-# zannat.me — Apache config for cPanel + Node.js (Passenger)
-# This file enables SPA routing so zannat.me/page-name works correctly
+# zannat.bd — Apache config for cPanel + Node.js (Passenger)
+# This file enables SPA routing so zannat.bd/page-name works correctly
 
 Options -MultiViews
 RewriteEngine On

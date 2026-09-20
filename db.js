@@ -386,7 +386,7 @@ const DEFAULT_REVIEWS = [
 // Master Default Site Settings for Header, Footer, Homepage, and All Pages
 const DEFAULT_SITE_SETTINGS = {
     header: {
-        brandName: "Zannat.me",
+        brandName: "Zannat.bd",
         brandTagline: "WordPress Specialist",
         brandLogo: "/assets/zannat_inner_symbol_icon.png",
         statusBadgeText: "Available for fixing bugs",
@@ -398,9 +398,9 @@ const DEFAULT_SITE_SETTINGS = {
         navSubmitBug: "Submit Bug"
     },
     footer: {
-        brandTitle: "Zannat.me",
+        brandTitle: "Zannat.bd",
         brandDescription: "WordPress specialist available globally for emergency repairs.",
-        copyrightText: "© 2026 Zannat.me. All rights reserved. WordPress is a registered trademark of the WordPress Foundation.",
+        copyrightText: "© 2026 Zannat.bd. All rights reserved. WordPress is a registered trademark of the WordPress Foundation.",
         linkHome: "Home",
         linkServices: "Services",
         linkWorkflow: "Workflow",

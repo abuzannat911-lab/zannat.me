@@ -1,4 +1,4 @@
-// app.js - Client-Side Controller for zannat.me
+// app.js - Client-Side Controller for zannat.bd
 (function() {
     const originalLog = console.log;
     const originalWarn = console.warn;
@@ -2473,7 +2473,7 @@
             tbody.innerHTML = pages.map(p => `
                 <tr>
                     <td style="font-weight: 600;">${p.title}</td>
-                    <td class="font-mono text-small">zannat.me/${p.slug}</td>
+                    <td class="font-mono text-small">zannat.bd/${p.slug}</td>
                     <td style="text-transform: capitalize;">${p.layout}</td>
                     <td style="text-align: right;">
                         <div style="display: flex; gap: 8px; justify-content: flex-end;">
@@ -3261,7 +3261,7 @@
 
             if (msgEl) {
                 msgEl.value = `Hello ${invoice.clientName || 'Client'},\n\n` +
-`Please find attached your Commercial Invoice *#${invNumber}* from Abu Zannat (Zannat.me).\n\n` +
+`Please find attached your Commercial Invoice *#${invNumber}* from Abu Zannat (Zannat.bd).\n\n` +
 `📄 *INVOICE DETAILS:*\n` +
 `• Total Due: *${symbol}${totalVal.toFixed(2)} ${invoice.currency}*\n` +
 `• Issue Date: ${invoice.date || ''}\n` +
@@ -3274,7 +3274,7 @@
 `• SWIFT: ${invoice.bankSwift || 'DBBLBDDH'}\n\n` +
 `🔗 *View / Pay Online:* ${invoiceUrl}\n\n` +
 `Thank you for your business! Please let me know if you have any questions.\n\n` +
-`Best regards,\nAbu Zannat\nhttps://zannat.me`;
+`Best regards,\nAbu Zannat\nhttps://zannat.bd`;
             }
 
             this.openModal('modal-whatsapp-invoice');
@@ -3912,7 +3912,7 @@
 `Best regards,\n` +
 `Abu Zannat\n` +
 `WordPress Specialist & Web Developer\n` +
-`https://zannat.me | abuzannat911@gmail.com`;
+`https://zannat.bd | abuzannat911@gmail.com`;
             }
 
             this.openModal('modal-email-invoice');
@@ -4023,7 +4023,7 @@
                         <div>
                             <h2 style="font-size: 1.25rem; font-weight: 800; color: #0f172a; margin: 0; letter-spacing: -0.01em;">Abu Zannat</h2>
                             <div style="font-size: 0.76rem; color: #6366f1; font-weight: 700; margin-top: 1px;">WordPress Specialist & Web Developer</div>
-                            <div style="font-size: 0.68rem; color: #64748b; margin-top: 1px;">Independent Contractor &bull; Non-US Person &bull; https://zannat.me</div>
+                            <div style="font-size: 0.68rem; color: #64748b; margin-top: 1px;">Independent Contractor &bull; Non-US Person &bull; https://zannat.bd</div>
                         </div>
                     </div>
                     <div style="text-align: right;">
@@ -4138,7 +4138,7 @@
                     </div>
                     <div style="text-align: right;">
                         <div style="font-size: 0.68rem; color: #166534; font-weight: 700;">&check; Verified Electronic Commercial Invoice</div>
-                        <div style="font-size: 0.62rem; color: #94a3b8;">Issued via Zannat.me Engine</div>
+                        <div style="font-size: 0.62rem; color: #94a3b8;">Issued via Zannat.bd Engine</div>
                     </div>
                 </div>
             `;
@@ -4451,7 +4451,7 @@
                 <div>
                     <h2 style="font-size: 1.25rem; font-weight: 800; color: #0f172a; margin: 0; letter-spacing: -0.01em;">Abu Zannat</h2>
                     <div style="font-size: 0.76rem; color: #6366f1; font-weight: 700; margin-top: 1px;">WordPress Specialist & Web Developer</div>
-                    <div style="font-size: 0.68rem; color: #64748b; margin-top: 1px;">Independent Contractor &bull; Non-US Person &bull; https://zannat.me</div>
+                    <div style="font-size: 0.68rem; color: #64748b; margin-top: 1px;">Independent Contractor &bull; Non-US Person &bull; https://zannat.bd</div>
                 </div>
             </div>
             <div style="text-align: right;">
@@ -4566,7 +4566,7 @@
             </div>
             <div style="text-align: right;">
                 <div style="font-size: 0.68rem; color: #166534; font-weight: 700;">&check; Verified Electronic Commercial Invoice</div>
-                <div style="font-size: 0.62rem; color: #94a3b8;">Issued via Zannat.me Engine</div>
+                <div style="font-size: 0.62rem; color: #94a3b8;">Issued via Zannat.bd Engine</div>
             </div>
         </div>
     </div>
@@ -5669,7 +5669,7 @@
 
             const payload = {
                 header: {
-                    brandName: getVal('set-header-brandName', 'Zannat.me'),
+                    brandName: getVal('set-header-brandName', 'Zannat.bd'),
                     brandLogo: getVal('set-header-brandLogo', '/assets/zannat_inner_symbol_icon.png'),
                     brandTagline: getVal('set-header-brandTagline', 'WordPress Specialist'),
                     statusBadgeText: getVal('set-header-statusBadgeText', 'Available for fixing bugs'),
@@ -5681,9 +5681,9 @@
                     navSubmitBug: getVal('set-header-navSubmitBug', 'Submit Bug')
                 },
                 footer: {
-                    brandTitle: getVal('set-footer-brandTitle', 'Zannat.me'),
+                    brandTitle: getVal('set-footer-brandTitle', 'Zannat.bd'),
                     brandDescription: getVal('set-footer-brandDescription', 'WordPress specialist available globally for emergency repairs.'),
-                    copyrightText: getVal('set-footer-copyrightText', '© 2026 Zannat.me. All rights reserved. WordPress is a registered trademark of the WordPress Foundation.'),
+                    copyrightText: getVal('set-footer-copyrightText', '© 2026 Zannat.bd. All rights reserved. WordPress is a registered trademark of the WordPress Foundation.'),
                     linkHome: getVal('set-footer-linkHome', 'Home'),
                     linkServices: getVal('set-footer-linkServices', 'Services'),
                     linkWorkflow: getVal('set-footer-linkWorkflow', 'Workflow'),
